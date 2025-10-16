@@ -2,8 +2,13 @@ package com.whistleup.backend.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "profile")
@@ -32,4 +37,7 @@ public class Profile {
 
     @Column(name = "password")
     private String password;
+
+    @Column(name = "role")
+    private String role;
 }
