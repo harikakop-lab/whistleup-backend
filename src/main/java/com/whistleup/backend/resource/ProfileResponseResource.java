@@ -1,4 +1,4 @@
-package com.whistleup.backend.controllers;
+package com.whistleup.backend.resource;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
