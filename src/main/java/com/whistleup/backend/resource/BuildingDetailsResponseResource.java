@@ -1,0 +1,16 @@
+package com.whistleup.backend.resource;
+
+import lombok.*;
+
+import java.util.List;
+
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
+public class BuildingDetailsResponseResource {
+
+    private String buildingId;
+    private String buildingName;
+    private AddressResource buildingAddress;
+}
