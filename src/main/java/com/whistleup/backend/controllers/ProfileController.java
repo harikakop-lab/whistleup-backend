@@ -1,5 +1,7 @@
 package com.whistleup.backend.controllers;
 
+import com.whistleup.backend.resource.ProfileCreateResource;
+import com.whistleup.backend.resource.ProfileResponseResource;
 import com.whistleup.backend.service.ProfileService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,25 +17,27 @@ public class ProfileController {
         this.profileService = profileService;
     }
 
-    @GetMapping("")
-    public ResponseEntity<String> sayHello() {
-        return new ResponseEntity<>("Hello, Profile", HttpStatus.OK);
+    @GetMapping("/{userId}")
+    public ResponseEntity<ProfileResponseResource> getProfileById(@PathVariable("userId") String userId) {
+        ProfileResponseResource profileResponseResource = profileService.getProfileById(userId);
+        return new ResponseEntity<>(profileResponseResource, HttpStatus.OK);
     }
 
     @PostMapping("/create")
     public ResponseEntity<ProfileResponseResource> createProfile(@RequestBody ProfileCreateResource profileCreateResource) {
-        profileService.createProfile(profileCreateResource);
-        return new ResponseEntity<>(new ProfileResponseResource(), HttpStatus.CREATED);
+        var profileResponse = profileService.createProfile(profileCreateResource);
+        return new ResponseEntity<>(profileResponse, HttpStatus.CREATED);
     }
 
     @PatchMapping("/update")
-    public ResponseEntity<ProfileResponseResource> updateProfile(@RequestBody ProfileCreateResource profileUpdateResource) {
-        profileService.updateProfile(profileUpdateResource);
-        return new ResponseEntity<>(new ProfileResponseResource(), HttpStatus.OK);
+    public ResponseEntity<String> updateProfile(@RequestBody ProfileCreateResource profileUpdateResource) {
+        String response = profileService.updateProfile(profileUpdateResource);
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
-    @PutMapping("/password/change")
-    public ResponseEntity<Void> changePassword() {
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    @DeleteMapping("/delete/{userId}")
+    public ResponseEntity<String> deleteProfile(@PathVariable("userId") String userId) {
+        String response = profileService.deleteProfile(userId);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 }
