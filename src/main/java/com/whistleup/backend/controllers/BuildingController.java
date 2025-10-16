@@ -16,8 +16,8 @@ public class BuildingController {
     @Autowired
     BuildingDetailsService buildingDetailsService;
 
-    @GetMapping("/buildingId")
-    public ResponseEntity<BuildingDetailsResponseResource> getBuildingDetailsById(@PathVariable("buildingId") String buildingId) {
+    @GetMapping("/{buildingId}")
+    public ResponseEntity<BuildingDetailsResponseResource> getBuildingDetailsById(@PathVariable("buildingId") Long buildingId) {
 
         BuildingDetails buildingDetails = buildingDetailsService.getBuildingDetails(buildingId);
         return new ResponseEntity<>(buildResponseResource(buildingDetails), HttpStatus.OK);
@@ -37,23 +37,23 @@ public class BuildingController {
         return new ResponseEntity<>(buildResponseResource(buildingDetails), HttpStatus.CREATED);
     }
 
-    @PutMapping("/update/buildingId")
-    public ResponseEntity<BuildingDetailsResponseResource> updateBuildingDetails(@PathVariable("buildingId") String buildingId,
+    @PutMapping("/update/{buildingId}")
+    public ResponseEntity<BuildingDetailsResponseResource> updateBuildingDetails(@PathVariable("buildingId") Long buildingId,
                                                                                  @RequestBody BuildingDetailsRequestResource updateRequestResource) {
         BuildingDetails buildingDetails = buildingDetailsService.updateBuildingDetails(buildingId, updateRequestResource);
         return new ResponseEntity<>(buildResponseResource(buildingDetails), HttpStatus.ACCEPTED);
     }
 
-    @PatchMapping("/update/buildingId/address")
-    public ResponseEntity<BuildingDetailsResponseResource> updateAddress(@PathVariable("buildingId") String buildingId,
+    @PatchMapping("/update/{buildingId}/address")
+    public ResponseEntity<BuildingDetailsResponseResource> updateAddress(@PathVariable("buildingId") Long buildingId,
                                                                          @RequestBody BuildingDetailsRequestResource buildingDetailsRequestResource) {
 
         BuildingDetails buildingDetails = buildingDetailsService.updateBuildingAddress(buildingId, buildingDetailsRequestResource);
         return new ResponseEntity<>(buildResponseResource(buildingDetails), HttpStatus.ACCEPTED);
     }
 
-    @DeleteMapping("/delete/buildingId")
-    public ResponseEntity<String> deleteBuildingDetails(@PathVariable("buildingId") String buildingId) {
+    @DeleteMapping("/delete/{buildingId}")
+    public ResponseEntity<String> deleteBuildingDetails(@PathVariable("buildingId") Long buildingId) {
         buildingDetailsService.deleteBuildingDetails(buildingId);
         return new ResponseEntity<>("Deleted", HttpStatus.OK);
     }

@@ -7,5 +7,5 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
-public interface BuildingDetailsRepository extends JpaRepository<BuildingDetails, String> {
+public interface BuildingDetailsRepository extends JpaRepository<BuildingDetails, Long> {
 }

@@ -8,12 +8,12 @@ public interface BuildingDetailsService {
 
     BuildingDetails saveBuildingDetails(BuildingDetailsRequestResource buildingDetailsRequestResource);
 
-    BuildingDetails getBuildingDetails(String buildingId);
+    BuildingDetails getBuildingDetails(Long buildingId);
 
-    BuildingDetails updateBuildingDetails(String buildingId, BuildingDetailsRequestResource updateBuildingDetailsRequestResource);
+    BuildingDetails updateBuildingDetails(Long buildingId, BuildingDetailsRequestResource updateBuildingDetailsRequestResource);
 
-    BuildingDetails updateBuildingAddress(String buildingId, BuildingDetailsRequestResource updateBuildingDetailsRequestResource);
+    BuildingDetails updateBuildingAddress(Long buildingId, BuildingDetailsRequestResource updateBuildingDetailsRequestResource);
 
-    void deleteBuildingDetails(String buildingId);
+    void deleteBuildingDetails(Long buildingId);
 
 }

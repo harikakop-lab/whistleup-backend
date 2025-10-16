@@ -10,7 +10,7 @@ import java.util.List;
 @NoArgsConstructor
 public class BuildingDetailsResponseResource {
 
-    private String buildingId;
+    private Long buildingId;
     private String buildingName;
     private AddressResource buildingAddress;
 }

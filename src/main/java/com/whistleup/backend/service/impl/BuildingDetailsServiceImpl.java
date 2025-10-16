@@ -28,12 +28,12 @@ public class BuildingDetailsServiceImpl implements BuildingDetailsService {
     }
 
     @Override
-    public BuildingDetails getBuildingDetails(String buildingId) {
+    public BuildingDetails getBuildingDetails(Long buildingId) {
         return buildingDetailsRepository.findById(buildingId).orElseThrow( () -> new RuntimeException("No Buildings found with this id"));
     }
 
     @Override
-    public BuildingDetails updateBuildingDetails(String buildingId, BuildingDetailsRequestResource updateBuildingDetailsRequestResource) {
+    public BuildingDetails updateBuildingDetails(Long buildingId, BuildingDetailsRequestResource updateBuildingDetailsRequestResource) {
         BuildingDetails existingBuildingDetails = buildingDetailsRepository.findById(buildingId).orElseThrow( () -> new RuntimeException("No Buildings found with this id"));
         existingBuildingDetails.setBuildingName(updateBuildingDetailsRequestResource.getBuildingName());
         existingBuildingDetails.setBuildingAddress(updateBuildingDetailsRequestResource.getBuildingAddress());
@@ -41,14 +41,14 @@ public class BuildingDetailsServiceImpl implements BuildingDetailsService {
     }
 
     @Override
-    public BuildingDetails updateBuildingAddress(String buildingId, BuildingDetailsRequestResource updateBuildingDetailsRequestResource) {
+    public BuildingDetails updateBuildingAddress(Long buildingId, BuildingDetailsRequestResource updateBuildingDetailsRequestResource) {
         BuildingDetails existingBuildingDetails = buildingDetailsRepository.findById(buildingId).orElseThrow( () -> new RuntimeException("No Buildings found with this id"));
         existingBuildingDetails.setBuildingAddress(updateBuildingDetailsRequestResource.getBuildingAddress());
         return buildingDetailsRepository.save(existingBuildingDetails);
     }
 
     @Override
-    public void deleteBuildingDetails(String buildingId) {
+    public void deleteBuildingDetails(Long buildingId) {
         BuildingDetails buildingDetails = buildingDetailsRepository.findById(buildingId).orElseThrow( () -> new RuntimeException("No Buildings found with this id"));
         buildingDetailsRepository.deleteById(buildingId);
     }

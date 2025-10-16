@@ -24,7 +24,7 @@ public class BuildingDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
-    private String buildingId;
+    private Long buildingId;
 
     @Column(name = "building_name")
     private String buildingName;
