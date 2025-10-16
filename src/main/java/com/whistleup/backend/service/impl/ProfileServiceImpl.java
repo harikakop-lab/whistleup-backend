@@ -5,7 +5,6 @@ import com.whistleup.backend.controllers.ProfileResponseResource;
 import com.whistleup.backend.entity.Profile;
 import com.whistleup.backend.service.ProfileService;
 import org.springframework.beans.BeanUtils;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 @Service

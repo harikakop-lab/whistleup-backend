@@ -2,7 +2,12 @@ package com.whistleup.backend.controllers;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import lombok.*;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
 @Setter
@@ -17,4 +22,5 @@ public class ProfileCreateResource {
     private String email;
     private String phone;
     private String password;
+    private String role;
 }
