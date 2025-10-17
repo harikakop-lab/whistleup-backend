@@ -10,8 +10,6 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 public class ComplaintsServiceImpl implements ComplaintsService {
@@ -34,11 +32,7 @@ public class ComplaintsServiceImpl implements ComplaintsService {
 
     @Override
     public ComplaintsResponseResource getAllComplaintsById(String complaintId) {
-        Optional<Complaints> complaintsOptional = complaintsRepository.findById(Long.valueOf(complaintId));
-        if (complaintsOptional.isEmpty()) {
-            throw new NotFoundException("No Complaints/suggestions found with this given id: " + complaintId);
-        }
-        Complaints complaintEntity = complaintsOptional.get();
+        Complaints complaintEntity = complaintsRepository.findById(Long.valueOf(complaintId)).orElseThrow(() -> new NotFoundException("No Complaints/suggestions found with this given id: " + complaintId));
         ComplaintsResponseResource complaintsResponseResource = ComplaintsResponseResource.builder().build();
         BeanUtils.copyProperties(complaintEntity, complaintsResponseResource);
         return complaintsResponseResource;
@@ -64,6 +58,6 @@ public class ComplaintsServiceImpl implements ComplaintsService {
 
     @Override
     public void deleteComplaint(String complaintId) {
-
+        complaintsRepository.deleteById(Long.valueOf(complaintId));
     }
 }
