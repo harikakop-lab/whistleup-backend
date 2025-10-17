@@ -1,4 +1,4 @@
-package com.whistleup.backend.service.impl;
+package com.whistleup.backend.repository;
 
 import com.whistleup.backend.entity.Profile;
 import org.springframework.data.jpa.repository.JpaRepository;

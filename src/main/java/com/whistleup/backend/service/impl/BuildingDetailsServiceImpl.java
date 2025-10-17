@@ -2,6 +2,7 @@ package com.whistleup.backend.service.impl;
 
 import com.whistleup.backend.entity.BuildingDetails;
 import com.whistleup.backend.exception.NotFoundException;
+import com.whistleup.backend.repository.BuildingDetailsRepository;
 import com.whistleup.backend.resource.BuildingDetailsRequestResource;
 import com.whistleup.backend.service.BuildingDetailsService;
 import lombok.extern.slf4j.Slf4j;

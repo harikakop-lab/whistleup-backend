@@ -2,6 +2,7 @@ package com.whistleup.backend.service.impl;
 
 import com.whistleup.backend.exception.BadRequestException;
 import com.whistleup.backend.exception.NotFoundException;
+import com.whistleup.backend.repository.ProfileRepository;
 import com.whistleup.backend.resource.ProfileCreateResource;
 import com.whistleup.backend.resource.ProfileResponseResource;
 import com.whistleup.backend.entity.Profile;
@@ -9,12 +10,8 @@ import com.whistleup.backend.service.ProfileService;
 import com.whistleup.backend.util.CustomBeanUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
-import org.springframework.beans.BeanWrapper;
-import org.springframework.beans.BeanWrapperImpl;
 import org.springframework.stereotype.Service;
 
-import java.beans.PropertyDescriptor;
-import java.util.Arrays;
 import java.util.Optional;
 
 @Service
