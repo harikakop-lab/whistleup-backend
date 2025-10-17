@@ -4,10 +4,13 @@ import com.whistleup.backend.entity.BuildingDetails;
 import com.whistleup.backend.exception.NotFoundException;
 import com.whistleup.backend.repository.BuildingDetailsRepository;
 import com.whistleup.backend.resource.BuildingDetailsRequestResource;
+import com.whistleup.backend.resource.BuildingDetailsResponseResource;
 import com.whistleup.backend.service.BuildingDetailsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 @Slf4j
@@ -17,6 +20,16 @@ public class BuildingDetailsServiceImpl implements BuildingDetailsService {
 
     public BuildingDetailsServiceImpl(BuildingDetailsRepository buildingDetailsRepository) {
         this.buildingDetailsRepository = buildingDetailsRepository;
+    }
+
+    @Override
+    public List<BuildingDetailsResponseResource> getExistingBuildingsInformation() {
+        List<BuildingDetails> buildingDetailsList = buildingDetailsRepository.findAll();
+        return buildingDetailsList.stream().map(buildingDetails -> {
+            BuildingDetailsResponseResource buildingDetailsResponseResource = new BuildingDetailsResponseResource();
+            BeanUtils.copyProperties(buildingDetails, buildingDetailsResponseResource);
+            return buildingDetailsResponseResource;
+        }).toList();
     }
 
     @Override
