@@ -1,32 +1,65 @@
 package com.whistleup.backend.service.impl;
 
+import com.whistleup.backend.entity.Complaints;
+import com.whistleup.backend.exception.NotFoundException;
+import com.whistleup.backend.repository.ComplaintsRepository;
 import com.whistleup.backend.resource.ComplaintCreateResource;
 import com.whistleup.backend.resource.ComplaintsResponseResource;
 import com.whistleup.backend.service.ComplaintsService;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class ComplaintsServiceImpl implements ComplaintsService {
+
+    private final ComplaintsRepository complaintsRepository;
+
+    public ComplaintsServiceImpl(ComplaintsRepository complaintsRepository) {
+        this.complaintsRepository = complaintsRepository;
+    }
+
     @Override
     public List<ComplaintsResponseResource> getAllComplaints() {
-        return List.of();
+        List<Complaints> complaints = complaintsRepository.findAll();
+        return complaints.stream().map(complaintEntity -> {
+            ComplaintsResponseResource complaintsResponseResource = new ComplaintsResponseResource();
+            BeanUtils.copyProperties(complaintEntity, complaintsResponseResource);
+            return complaintsResponseResource;
+        }).toList();
     }
 
     @Override
     public ComplaintsResponseResource getAllComplaintsById(String complaintId) {
-        return null;
+        Optional<Complaints> complaintsOptional = complaintsRepository.findById(Long.valueOf(complaintId));
+        if (complaintsOptional.isEmpty()) {
+            throw new NotFoundException("No Complaints/suggestions found with this given id: " + complaintId);
+        }
+        Complaints complaintEntity = complaintsOptional.get();
+        ComplaintsResponseResource complaintsResponseResource = ComplaintsResponseResource.builder().build();
+        BeanUtils.copyProperties(complaintEntity, complaintsResponseResource);
+        return complaintsResponseResource;
     }
 
     @Override
     public ComplaintsResponseResource getComplaintsByProfileId(String profileId, boolean isAssigned) {
-        return null;
+        Complaints complaintsOptional = complaintsRepository.findByProfileId(profileId).orElseThrow(() -> new NotFoundException("No Complaints/suggestions found for this given profile id: " + profileId));
+        ComplaintsResponseResource complaintsResponseResource = ComplaintsResponseResource.builder().build();
+        BeanUtils.copyProperties(complaintsOptional, complaintsResponseResource);
+        return complaintsResponseResource;
     }
 
     @Override
     public ComplaintsResponseResource registerComplaint(ComplaintCreateResource complaintCreateResource) {
-        return null;
+        Complaints complaintEntity = Complaints.builder().build();
+        BeanUtils.copyProperties(complaintCreateResource, complaintEntity);
+        Complaints savedEntity = complaintsRepository.save(complaintEntity);
+        ComplaintsResponseResource complaintsResponseResource = ComplaintsResponseResource.builder().build();
+        BeanUtils.copyProperties(savedEntity, complaintsResponseResource);
+        return complaintsResponseResource;
     }
 
     @Override

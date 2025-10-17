@@ -22,6 +22,12 @@ public class Complaints {
     @Column(name = "username")
     private String username;
 
+    @Column(name = "profileId")
+    private String profileId;
+
+    @Column(name = "is_assigned")
+    private boolean isAssigned;
+
     @Column(name = "type")
     private String type;
 
