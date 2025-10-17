@@ -6,6 +6,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/whistleup/complaints")
 public class ComplaintsController {
@@ -17,7 +19,7 @@ public class ComplaintsController {
     }
 
     @GetMapping("")
-    public ResponseEntity<ComplaintCreateResource> getAllComplaints() {
+    public ResponseEntity<List<ComplaintCreateResource>> getAllComplaints() {
         complaintsService.getAllComplaints();
         return new ResponseEntity<>(HttpStatus.OK);
     }
@@ -25,12 +27,6 @@ public class ComplaintsController {
     @GetMapping("/{complaintId}")
     public ResponseEntity<ComplaintCreateResource> getAllComplaints(@PathVariable String complaintId) {
         complaintsService.getAllComplaintsById(complaintId);
-        return new ResponseEntity<>(HttpStatus.OK);
-    }
-
-    @GetMapping("/{profileId}")
-    public ResponseEntity<ComplaintCreateResource> getAllComplaintsByProfileId(@PathVariable String profileId) {
-        complaintsService.getComplaintsByProfileId(profileId);
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
