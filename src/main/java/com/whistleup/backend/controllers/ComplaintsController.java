@@ -18,33 +18,38 @@ public class ComplaintsController {
 
     @GetMapping("")
     public ResponseEntity<ComplaintCreateResource> getAllComplaints() {
+        complaintsService.getAllComplaints();
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @GetMapping("/{complaintId}")
     public ResponseEntity<ComplaintCreateResource> getAllComplaints(@PathVariable String complaintId) {
+        complaintsService.getAllComplaintsById(complaintId);
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @GetMapping("/{profileId}")
     public ResponseEntity<ComplaintCreateResource> getAllComplaintsByProfileId(@PathVariable String profileId) {
+        complaintsService.getComplaintsByProfileId(profileId);
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @GetMapping("/{profileId}")
     public ResponseEntity<ComplaintCreateResource> getAllComplaintsAssignedToProfileId(@PathVariable String profileId,
                                                                                        @RequestParam("isAssigned") boolean isAssigned) {
-
+        complaintsService.getComplaintsByProfileId(profileId, isAssigned);
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @PostMapping("/register")
     public ResponseEntity<ComplaintCreateResource> registerComplaint(@RequestBody ComplaintCreateResource complaintCreateResource) {
+        complaintsService.registerComplaint(complaintCreateResource);
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
 
     @DeleteMapping("/{complaintId}")
     public ResponseEntity<Void> deleteComplaint(@PathVariable String complaintId) {
+        complaintsService.deleteComplaint(complaintId);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }
