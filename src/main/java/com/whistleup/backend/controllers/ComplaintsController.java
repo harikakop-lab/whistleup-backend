@@ -25,7 +25,19 @@ public class ComplaintsController {
     public ResponseEntity<ComplaintCreateResource> getAllComplaints(@PathVariable String complaintId) {
         return new ResponseEntity<>(HttpStatus.OK);
     }
-    
+
+    @GetMapping("/{profileId}")
+    public ResponseEntity<ComplaintCreateResource> getAllComplaintsByProfileId(@PathVariable String profileId) {
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @GetMapping("/{profileId}")
+    public ResponseEntity<ComplaintCreateResource> getAllComplaintsAssignedToProfileId(@PathVariable String profileId,
+                                                                                       @RequestParam("isAssigned") boolean isAssigned) {
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
     @PostMapping("/register")
     public ResponseEntity<ComplaintCreateResource> registerComplaint(@RequestBody ComplaintCreateResource complaintCreateResource) {
         return new ResponseEntity<>(HttpStatus.CREATED);
