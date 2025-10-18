@@ -2,6 +2,8 @@ package com.whistleup.backend;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.razorpay.RazorpayClient;
+import com.razorpay.RazorpayException;
 import lombok.*;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -23,8 +25,8 @@ public class RazorpayConfig {
     private String currency;
     private String appName;
 
-//    @Bean
-//    public RazorpayClient razorPayClient() {
-//        return new RazorpayClient(keyId, keySecret);
-//    }
+    @Bean
+    public RazorpayClient razorPayClient() throws RazorpayException {
+        return new RazorpayClient(keyId, keySecret);
+    }
 }
