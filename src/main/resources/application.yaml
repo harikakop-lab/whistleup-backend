@@ -25,4 +25,9 @@ razorpay:
   keySecret: VmOy1526JxTiTsR2bQG8KAkl
   currency: INR
   appName: whistleup
+sms:
+  provider: fast2sms
+  fast2sms:
+    api:
+      key: YOUR_API_KEY_HERE
   
