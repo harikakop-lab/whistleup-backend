@@ -20,3 +20,24 @@ server:
   error:
     include-stacktrace: never
     include-message: always
+razorpay:
+  keyId: rzp_test_RUq0uJckU4WH99
+  keySecret: VmOy1526JxTiTsR2bQG8KAkl
+  currency: INR
+  appName: whistleup
+sms:
+  provider: fast2sms
+  fast2sms:
+    api:
+      url: https://www.fast2sms.com/dev/bulkV2
+      key: BCrPmWIRzyjlTNZG3FXcgwnMd1a7fh4k5uDts6vLQoJK08eYSVMyi6WhP2gN97CXerYzHuwZ0nL1x4SI
+      route: otp
+
+otp:
+  length: 4
+  minutes: 5
+  attempts: 3
+  resend:
+    cooldown:
+      seconds: 60
+  
