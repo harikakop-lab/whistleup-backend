@@ -21,4 +21,8 @@ server:
     include-stacktrace: never
     include-message: always
 razorpay:
+  keyId: rzp_test_RUq0uJckU4WH99
+  keySecret: VmOy1526JxTiTsR2bQG8KAkl
+  currency: INR
+  appName: whistleup
   
