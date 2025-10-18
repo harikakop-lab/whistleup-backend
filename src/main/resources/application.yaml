@@ -20,3 +20,5 @@ server:
   error:
     include-stacktrace: never
     include-message: always
+razorpay:
+  
