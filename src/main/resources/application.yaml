@@ -29,5 +29,15 @@ sms:
   provider: fast2sms
   fast2sms:
     api:
+      url: https://www.fast2sms.com/dev/bulkV2
       key: YOUR_API_KEY_HERE
+      route: otp
+
+otp:
+  length: 4
+  minutes: 5
+  attempts: 3
+  resend:
+    cooldown:
+      seconds: 60
   
