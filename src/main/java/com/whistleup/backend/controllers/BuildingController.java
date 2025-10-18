@@ -9,12 +9,19 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/whistleup/building")
 public class BuildingController {
 
     @Autowired
     BuildingDetailsService buildingDetailsService;
+
+    @GetMapping("")
+    public ResponseEntity<List<BuildingDetailsResponseResource>> getExistingBuildingDetails() {
+        return new ResponseEntity<>(buildingDetailsService.getExistingBuildingsInformation(), HttpStatus.OK);
+    }
 
     @GetMapping("/{buildingId}")
     public ResponseEntity<BuildingDetailsResponseResource> getBuildingDetailsById(@PathVariable("buildingId") Long buildingId) {

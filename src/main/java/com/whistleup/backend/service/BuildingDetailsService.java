@@ -4,7 +4,11 @@ import com.whistleup.backend.entity.BuildingDetails;
 import com.whistleup.backend.resource.BuildingDetailsRequestResource;
 import com.whistleup.backend.resource.BuildingDetailsResponseResource;
 
+import java.util.List;
+
 public interface BuildingDetailsService {
+
+    List<BuildingDetailsResponseResource> getExistingBuildingsInformation();
 
     BuildingDetails saveBuildingDetails(BuildingDetailsRequestResource buildingDetailsRequestResource);
 
