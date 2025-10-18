@@ -40,4 +40,8 @@ public class Profile {
 
     @Column(name = "role")
     private String role;
+
+    @Version
+    @Column(name = "version")
+    private Long version;
 }
