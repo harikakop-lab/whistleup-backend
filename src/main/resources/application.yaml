@@ -30,7 +30,7 @@ sms:
   fast2sms:
     api:
       url: https://www.fast2sms.com/dev/bulkV2
-      key: YOUR_API_KEY_HERE
+      key: BCrPmWIRzyjlTNZG3FXcgwnMd1a7fh4k5uDts6vLQoJK08eYSVMyi6WhP2gN97CXerYzHuwZ0nL1x4SI
       route: otp
 
 otp:
