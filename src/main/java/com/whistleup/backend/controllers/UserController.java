@@ -3,6 +3,8 @@ package com.whistleup.backend.controllers;
 import com.whistleup.backend.entity.Users;
 import com.whistleup.backend.resource.UsersRequest;
 import com.whistleup.backend.service.UserService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,12 +21,14 @@ public class UserController {
     }
 
     @PostMapping("/register")
-    public void register(UsersRequest usersRequest) {
-      userService.createUser(usersRequest);
+    public ResponseEntity<String> register(UsersRequest usersRequest) {
+        userService.createUser(usersRequest);
+        return new ResponseEntity<>("registration Successful", HttpStatus.CREATED);
+
     }
 
     @PostMapping("/login")
-    public String logIn(@RequestBody Users user) {
-      return userService.verify(user);
+    public ResponseEntity<String> logIn(@RequestBody Users user) {
+      return new ResponseEntity<>(userService.verify(user), HttpStatus.ACCEPTED);
     }
 }

@@ -10,13 +10,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.Collection;
-import java.util.List;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -29,14 +27,20 @@ public class UserServiceImpl implements UserService {
     @Autowired
     JwtService jwtService;
 
-    public UserServiceImpl(UserRepository userRepository) {
+
+    private final PasswordEncoder passwordEncoder;
+
+
+    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
     public void createUser(UsersRequest usersRequest) {
         Users users = Users.builder().build();
         BeanUtils.copyProperties(usersRequest, users);
+        users.setPassword(passwordEncoder.encode(users.getPassword()));
         userRepository.save(users);
     }
 
@@ -50,20 +54,19 @@ public class UserServiceImpl implements UserService {
         return "login failed";
     }
 
-//    @Override
-//    public UserDetails loadUserByUsername(String phoneOrEmail) {
-//        Users users = userRepository.findByPhone(phoneOrEmail)
-//                .or(() -> userRepository.findByEmail(phoneOrEmail))
-//                .orElseThrow(() -> new UsernameNotFoundException(
-//                        "User not found with phone number or email: " + phoneOrEmail
-//                ));
-//
-//        return org.springframework.security.core.userdetails.User
-//                .withUsername(users.getEmailOrPhoneNumber())  // we choose username field as principal
-//                .password(users.getPassword())
-//                .accountLocked(false)
-//                .build();
-//    }
+    @Override
+    public UserDetails loadUserByUsername(String phoneOrEmail) {
+        Users users = userRepository.findByEmailOrPhoneNumber(phoneOrEmail)
+                .orElseThrow(() -> new UsernameNotFoundException(
+                        "User not found with phone number or email: " + phoneOrEmail
+                ));
+
+        return org.springframework.security.core.userdetails.User
+                .withUsername(users.getEmailOrPhoneNumber())  // we choose username field as principal
+                .password(users.getPassword())
+                .accountLocked(false)
+                .build();
+    }
 
 }
 
