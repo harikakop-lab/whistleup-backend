@@ -8,7 +8,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-@Table(name = "complaints")
+@Table(name = "user_details")
 @Getter
 @Setter
 @Builder
@@ -23,11 +23,14 @@ public class Users {
     @Column(name =  "name")
     private String name;
 
-    @Column(name = "user_email_or_phone", nullable = false)
-    private String emailOrPhoneNumber;
+    @Column(name = "email")
+    private String email;
+
+    @Column(name = "phoneNumber")
+    private String phoneNumber;
 
     @Column(name = "password", nullable = false)
-    @Size(min = 6, message = "assword must be at least 6 characters ")
+    @Size(min = 6, message = "password must be at least 6 characters ")
     private String password;
 
 }

@@ -21,19 +21,19 @@ public class UserServiceImpl implements UserService {
 
     private UserRepository userRepository;
 
-    @Autowired
-    AuthenticationManager authenticationManager;
 
-    @Autowired
-    JwtService jwtService;
+     private AuthenticationManager authenticationManager;
 
+     private JwtService jwtService;
 
     private final PasswordEncoder passwordEncoder;
 
 
-    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserServiceImpl(UserRepository userRepository, AuthenticationManager authenticationManager, PasswordEncoder passwordEncoder, JwtService jwtService) {
         this.userRepository = userRepository;
+        this.authenticationManager = authenticationManager;
         this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
     }
 
     @Override
@@ -46,23 +46,40 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public String verify(Users user) {
+        String email = user.getEmail();
+        if(email != null) {
+            Authentication authentication = authenticationManager
+                    .authenticate(new UsernamePasswordAuthenticationToken(email, user.getPassword()));
+            if (authentication.isAuthenticated()) {
+                return jwtService.generateToken(user.getEmail());
+            }
+        }
         Authentication authentication = authenticationManager
-                .authenticate(new UsernamePasswordAuthenticationToken(user.getEmailOrPhoneNumber(), user.getPassword()));
-        if(authentication.isAuthenticated()) {
-            return jwtService.generateToken(user.getEmailOrPhoneNumber());
+                .authenticate(new UsernamePasswordAuthenticationToken(user.getPhoneNumber(), user.getPassword()));
+        if (authentication.isAuthenticated()) {
+            return jwtService.generateToken(user.getEmail());
         }
         return "login failed";
+
     }
 
     @Override
-    public UserDetails loadUserByUsername(String phoneOrEmail) {
-        Users users = userRepository.findByEmailOrPhoneNumber(phoneOrEmail)
+    public UserDetails loadUserByUsername(String emailOrPhoneNumber) {
+        Users users = userRepository.findByEmailOrPhoneNumber(emailOrPhoneNumber)
                 .orElseThrow(() -> new UsernameNotFoundException(
-                        "User not found with phone number or email: " + phoneOrEmail
+                        "User not found with phone number or email: " + emailOrPhoneNumber
                 ));
+        String email = users.getEmail();
 
+        if (email != null) {
+            return org.springframework.security.core.userdetails.User
+                    .withUsername(email)  // we choose username field as principal
+                    .password(users.getPassword())
+                    .accountLocked(false)
+                    .build();
+        }
         return org.springframework.security.core.userdetails.User
-                .withUsername(users.getEmailOrPhoneNumber())  // we choose username field as principal
+                .withUsername(users.getPhoneNumber())  // we choose username field as principal
                 .password(users.getPassword())
                 .accountLocked(false)
                 .build();

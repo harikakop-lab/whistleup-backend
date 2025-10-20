@@ -15,8 +15,10 @@ import lombok.*;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class UsersRequest {
 
-    @NotBlank(message = "please enter email or phone")
-    private String emailOrPhoneNumber;
+    private String email;
+
+    @Size(min = 10, max = 10, message = "Password must be at least 6 characters")
+    private  String phoneNumber;
 
     private String name;
 
