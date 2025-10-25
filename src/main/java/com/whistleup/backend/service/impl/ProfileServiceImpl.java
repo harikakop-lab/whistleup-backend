@@ -10,6 +10,7 @@ import com.whistleup.backend.service.ProfileService;
 import com.whistleup.backend.util.CustomBeanUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -20,8 +21,11 @@ public class ProfileServiceImpl implements ProfileService {
 
     private final ProfileRepository profileRepository;
 
-    public ProfileServiceImpl(ProfileRepository profileRepository) {
+    private final PasswordEncoder passwordEncoder;
+
+    public ProfileServiceImpl(ProfileRepository profileRepository, PasswordEncoder passwordEncoder) {
         this.profileRepository = profileRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
@@ -31,6 +35,7 @@ public class ProfileServiceImpl implements ProfileService {
         }
         Profile profile = Profile.builder().build();
         BeanUtils.copyProperties(profileCreateResource, profile);
+        profile.setPassword(passwordEncoder.encode(profile.getPassword()));
         Profile savedProfile = profileRepository.save(profile);
         return ProfileResponseResource.builder().userId(savedProfile.getUserId()).build();
     }
