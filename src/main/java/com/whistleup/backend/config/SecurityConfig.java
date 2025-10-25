@@ -20,13 +20,8 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/whistleup/**").permitAll()
+                        .requestMatchers("/whistleup/**", "/h2-console/**").permitAll()
                         .anyRequest().authenticated()
-                )
-                .formLogin(form -> form
-                        .loginPage("/login")       // custom login page (optional)
-                        .defaultSuccessUrl("/home", true)
-                        .permitAll()
                 )
 //                .addFilterBefore()
                 .logout(LogoutConfigurer::permitAll);
