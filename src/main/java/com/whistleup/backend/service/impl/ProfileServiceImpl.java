@@ -1,5 +1,6 @@
 package com.whistleup.backend.service.impl;
 
+import com.whistleup.backend.constants.Roles;
 import com.whistleup.backend.exception.BadRequestException;
 import com.whistleup.backend.exception.NotFoundException;
 import com.whistleup.backend.repository.ProfileRepository;
@@ -76,6 +77,13 @@ public class ProfileServiceImpl implements ProfileService {
         ProfileResponseResource profileResponseResource = ProfileResponseResource.builder().build();
         BeanUtils.copyProperties(profile, profileResponseResource);
         return profileResponseResource;
+    }
+
+    @Override
+    public Roles getRole(String userName) {
+        Optional<Profile> profileOptional = profileRepository.findByEmailOrPhone(userName);
+        Profile profile = profileOptional.get();
+        return profile.getRole();
     }
 
 }

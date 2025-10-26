@@ -1,5 +1,6 @@
 package com.whistleup.backend.service;
 
+import com.whistleup.backend.constants.Roles;
 import com.whistleup.backend.resource.ProfileCreateResource;
 import com.whistleup.backend.resource.ProfileResponseResource;
 
@@ -11,4 +12,6 @@ public interface ProfileService {
     String deleteProfile(String userId);
 
     ProfileResponseResource getProfileById(String userId);
+
+    Roles getRole(String userName);
 }
