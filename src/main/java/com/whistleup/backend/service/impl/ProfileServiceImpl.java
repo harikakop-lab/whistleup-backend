@@ -1,5 +1,6 @@
 package com.whistleup.backend.service.impl;
 
+import com.whistleup.backend.constants.Roles;
 import com.whistleup.backend.exception.BadRequestException;
 import com.whistleup.backend.exception.NotFoundException;
 import com.whistleup.backend.repository.ProfileRepository;
@@ -10,6 +11,7 @@ import com.whistleup.backend.service.ProfileService;
 import com.whistleup.backend.util.CustomBeanUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -20,8 +22,11 @@ public class ProfileServiceImpl implements ProfileService {
 
     private final ProfileRepository profileRepository;
 
-    public ProfileServiceImpl(ProfileRepository profileRepository) {
+    private final PasswordEncoder passwordEncoder;
+
+    public ProfileServiceImpl(ProfileRepository profileRepository, PasswordEncoder passwordEncoder) {
         this.profileRepository = profileRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
@@ -31,6 +36,7 @@ public class ProfileServiceImpl implements ProfileService {
         }
         Profile profile = Profile.builder().build();
         BeanUtils.copyProperties(profileCreateResource, profile);
+        profile.setPassword(passwordEncoder.encode(profile.getPassword()));
         Profile savedProfile = profileRepository.save(profile);
         return ProfileResponseResource.builder().userId(savedProfile.getUserId()).build();
     }
@@ -71,6 +77,13 @@ public class ProfileServiceImpl implements ProfileService {
         ProfileResponseResource profileResponseResource = ProfileResponseResource.builder().build();
         BeanUtils.copyProperties(profile, profileResponseResource);
         return profileResponseResource;
+    }
+
+    @Override
+    public Roles getRole(String userName) {
+        Optional<Profile> profileOptional = profileRepository.findByEmailOrPhone(userName);
+        Profile profile = profileOptional.get();
+        return profile.getRole();
     }
 
 }

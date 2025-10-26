@@ -13,12 +13,12 @@ import lombok.*;
 @NoArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class UsersRequest {
+public class LoginRequest {
 
     private String email;
 
     @Size(min = 10, max = 10, message = "Password must be at least 6 characters")
-    private  String phoneNumber;
+    private  String phone;
 
     private String name;
 

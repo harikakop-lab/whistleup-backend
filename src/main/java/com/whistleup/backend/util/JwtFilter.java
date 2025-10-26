@@ -1,7 +1,7 @@
 package com.whistleup.backend.util;
 
 import com.whistleup.backend.service.JwtService;
-import com.whistleup.backend.service.UserService;
+import com.whistleup.backend.service.impl.LoginServiceImpl;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,7 +11,6 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -39,7 +38,7 @@ public class JwtFilter extends OncePerRequestFilter {
         }
 
         if(userName != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = context.getBean(UserService.class).loadUserByUsername(userName);
+            UserDetails userDetails = context.getBean(LoginServiceImpl.class).loadUserByUsername(userName);
             if(jwtService.validateToken(token, userDetails)) {
                 UsernamePasswordAuthenticationToken authToken =
                         new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
