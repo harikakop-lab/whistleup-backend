@@ -25,9 +25,15 @@ public class FlatController {
         return new ResponseEntity<>(flatResponseResourceList, HttpStatus.OK);
    }
 
-    @GetMapping("{flatId}")
-    public ResponseEntity<FlatResponseResource> getFlatDetails(@PathVariable("flatId") Long flatId) {
+    @GetMapping("/{flatId}")
+    public ResponseEntity<FlatResponseResource> getFlatDetailsById(@PathVariable("flatId") Long flatId) {
         FlatResponseResource flatResponseResource = flatService.getFlatDetailsById(flatId);
+        return new ResponseEntity<>(flatResponseResource, HttpStatus.OK);
+    }
+
+    @GetMapping("/flatNumber")
+    public ResponseEntity<FlatResponseResource> getFlatDetailsByFlatNumber(@RequestParam("flatNumber") String flatNumber) {
+        FlatResponseResource flatResponseResource = flatService.getFlatDetailsByFlatNumber(flatNumber);
         return new ResponseEntity<>(flatResponseResource, HttpStatus.OK);
     }
 

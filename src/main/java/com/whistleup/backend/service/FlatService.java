@@ -9,6 +9,8 @@ public interface FlatService {
 
     List<FlatResponseResource> getAllFlats();
 
+    FlatResponseResource getFlatDetailsByFlatNumber(String flatNumber);
+
     FlatResponseResource getFlatDetailsById(Long flatId);
 
     FlatResponseResource addFlatDetails(FlatRequestResource flatRequestResource);

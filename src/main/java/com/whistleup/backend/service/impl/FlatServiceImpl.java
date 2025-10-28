@@ -33,6 +33,14 @@ public class FlatServiceImpl implements FlatService {
     }
 
     @Override
+    public FlatResponseResource getFlatDetailsByFlatNumber(String flatNumber) {
+        FlatDetails flatDetails = flatRepository.findFlatByFlatNumber(flatNumber).orElseThrow(() -> new NotFoundException("No Flat found with this given id: " + flatNumber));
+        FlatResponseResource flatResponseResource = new FlatResponseResource();
+        BeanUtils.copyProperties(flatDetails, flatResponseResource);
+        return flatResponseResource;
+    }
+
+    @Override
     public FlatResponseResource getFlatDetailsById(Long flatId) {
         FlatDetails flatDetails = flatRepository.findById(flatId).orElseThrow(() -> new NotFoundException("No Flat found with this given id: " + flatId));
         FlatResponseResource flatResponseResource = FlatResponseResource.builder().build();
