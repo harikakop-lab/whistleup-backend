@@ -23,6 +23,12 @@ public class ProfileController {
         return new ResponseEntity<>(profileResponseResource, HttpStatus.OK);
     }
 
+    @GetMapping("/{username}")
+    public ResponseEntity<ProfileResponseResource> getProfileByUsername(@PathVariable("username") String username) {
+        ProfileResponseResource profileResponseResource = profileService.getProfileByUsername(username);
+        return new ResponseEntity<>(profileResponseResource, HttpStatus.OK);
+    }
+
     @PostMapping("/create")
     public ResponseEntity<ProfileResponseResource> createProfile(@RequestBody ProfileCreateResource profileCreateResource) {
         var profileResponse = profileService.createProfile(profileCreateResource);
