@@ -73,6 +73,9 @@ public class ProfileServiceImpl implements ProfileService {
     @Override
     public ProfileResponseResource getProfileById(String userId) {
         Optional<Profile> profileOptional = profileRepository.findById(userId);
+        if (profileOptional.isEmpty()) {
+            throw new NotFoundException("No user found with userId: " + userId);
+        }
         Profile profile = profileOptional.get();
         ProfileResponseResource profileResponseResource = ProfileResponseResource.builder().build();
         BeanUtils.copyProperties(profile, profileResponseResource);
@@ -82,8 +85,22 @@ public class ProfileServiceImpl implements ProfileService {
     @Override
     public Roles getRole(String userName) {
         Optional<Profile> profileOptional = profileRepository.findByEmailOrPhone(userName);
+        if (profileOptional.isEmpty()) {
+            throw new NotFoundException("Role not found for the provided username");
+        }
+        return profileOptional.get().getRole();
+    }
+
+    @Override
+    public ProfileResponseResource getProfileByUsername(String username) {
+        Optional<Profile> profileOptional = profileRepository.findByEmailOrPhone(username);
+        if (profileOptional.isEmpty()) {
+            throw new NotFoundException("No user found with username: " + username);
+        }
         Profile profile = profileOptional.get();
-        return profile.getRole();
+        ProfileResponseResource profileResponseResource = ProfileResponseResource.builder().build();
+        BeanUtils.copyProperties(profile, profileResponseResource);
+        return profileResponseResource;
     }
 
 }

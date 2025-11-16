@@ -14,4 +14,6 @@ public interface ProfileService {
     ProfileResponseResource getProfileById(String userId);
 
     Roles getRole(String userName);
+
+    ProfileResponseResource getProfileByUsername(String username);
 }
