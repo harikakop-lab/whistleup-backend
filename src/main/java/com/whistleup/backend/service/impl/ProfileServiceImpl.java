@@ -31,8 +31,8 @@ public class ProfileServiceImpl implements ProfileService {
 
     @Override
     public ProfileResponseResource createProfile(ProfileCreateResource profileCreateResource) {
-        if (profileRepository.findByEmail(profileCreateResource.getEmail()).isPresent()) {
-            throw new BadRequestException("Email already exists", "Try using a different email address.");
+        if (profileRepository.findByPhone(profileCreateResource.getPhone()).isPresent()) {
+            throw new BadRequestException("Phone already exists", "Try using a different phone number.");
         }
         Profile profile = Profile.builder().build();
         BeanUtils.copyProperties(profileCreateResource, profile);

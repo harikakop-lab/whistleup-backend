@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
 import java.util.Random;
 import java.util.logging.Logger;
 
@@ -62,14 +64,15 @@ public class OTPService {
 
         // Send via selected provider
         try {
-            smsProvider.sendOTP(phoneNumber, otp, null);
+//            smsProvider.sendOTP(phoneNumber, otp, null);
             otpRepository.save(otpEntity);
             logger.info("OTP generated and sent via active provider");
 
             return new OTPResponse(
                     "OTP sent successfully",
                     5,
-                    maskPhoneNumber(phoneNumber)
+                    maskPhoneNumber(phoneNumber),
+                    Integer.valueOf(otp)
             );
         } catch (Exception e) {
             logger.severe("Failed to send OTP: " + e.getMessage());
@@ -78,14 +81,18 @@ public class OTPService {
     }
 
     public VerificationResponse verifyOTP(String phoneNumber, String otp) throws Exception {
-        OTPEntity otpEntity = otpRepository.findByPhoneNumber(phoneNumber)
-                .orElseThrow(() -> new OTPException(
-                        "No OTP found for this phone number",
-                        OTPException.ErrorCode.OTP_NOT_FOUND
-                ));
+        Optional<List<OTPEntity>> otpEntity = otpRepository.findByPhoneNumberOrderByLastResendTimeDesc(phoneNumber);
+
+        if (otpEntity.isEmpty() || otpEntity.get().isEmpty()) {
+            throw new OTPException(
+                    "OTP not generated",
+                    OTPException.ErrorCode.OTP_ALREADY_VERIFIED
+            );
+        }
 
         // Check if already verified
-        if (otpEntity.getIsVerified()) {
+        OTPEntity latestOtpEntity = otpEntity.get().getFirst();
+        if (latestOtpEntity.getIsVerified()) {
             throw new OTPException(
                     "OTP already verified",
                     OTPException.ErrorCode.OTP_ALREADY_VERIFIED
@@ -93,7 +100,7 @@ public class OTPService {
         }
 
         // Check if expired
-        if (LocalDateTime.now().isAfter(otpEntity.getExpiresAt())) {
+        if (LocalDateTime.now().isAfter(latestOtpEntity.getExpiresAt())) {
             throw new OTPException(
                     "OTP has expired",
                     OTPException.ErrorCode.OTP_EXPIRED
@@ -101,7 +108,7 @@ public class OTPService {
         }
 
         // Check attempts
-        if (otpEntity.getAttemptCount() >= maxAttempts) {
+        if (latestOtpEntity.getAttemptCount() >= maxAttempts) {
             throw new OTPException(
                     "Maximum attempts exceeded. Please request a new OTP",
                     OTPException.ErrorCode.MAX_ATTEMPTS_EXCEEDED
@@ -109,11 +116,11 @@ public class OTPService {
         }
 
         // Verify OTP
-        if (!otpEntity.getOtp().equals(otp)) {
-            otpEntity.setAttemptCount(otpEntity.getAttemptCount() + 1);
-            otpRepository.save(otpEntity);
+        if (!latestOtpEntity.getOtp().equals(otp)) {
+            latestOtpEntity.setAttemptCount(latestOtpEntity.getAttemptCount() + 1);
+            otpRepository.save(latestOtpEntity);
 
-            int remainingAttempts = maxAttempts - otpEntity.getAttemptCount();
+            int remainingAttempts = maxAttempts - latestOtpEntity.getAttemptCount();
             throw new OTPException(
                     "Invalid OTP. Attempts remaining: " + remainingAttempts,
                     OTPException.ErrorCode.INVALID_OTP
@@ -121,8 +128,8 @@ public class OTPService {
         }
 
         // OTP verified
-        otpEntity.setIsVerified(true);
-        otpRepository.save(otpEntity);
+        latestOtpEntity.setIsVerified(true);
+        otpRepository.save(latestOtpEntity);
         logger.info("OTP verified successfully for phone: " + maskPhoneNumber(phoneNumber));
 
         return new VerificationResponse(

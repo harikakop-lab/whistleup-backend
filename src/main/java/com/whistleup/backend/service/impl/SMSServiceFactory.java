@@ -5,6 +5,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.util.Objects;
+
 @Service
 public class SMSServiceFactory {
     
@@ -18,14 +20,12 @@ public class SMSServiceFactory {
      * Get the active SMS provider based on configuration
      */
     public SMSProvider getProvider() throws Exception {
-        switch (activeProvider.toLowerCase()) {
-            case "fast2sms":
-                if (fast2smsProvider == null) {
-                    throw new Exception("Fast2SMS provider not configured");
-                }
-                return fast2smsProvider;
-            default:
-                throw new Exception("Unknown SMS provider: " + activeProvider);
+        if ("fast2sms".equalsIgnoreCase(activeProvider)) {
+            if (Objects.isNull(fast2smsProvider)) {
+                throw new Exception("Fast2SMS provider not configured");
+            }
+            return fast2smsProvider;
         }
+        throw new Exception("Unknown SMS provider: " + activeProvider);
     }
 }

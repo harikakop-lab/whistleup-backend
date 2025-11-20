@@ -9,7 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 
 @RestController
-@RequestMapping("/api/otp")
+@RequestMapping("whistleup/api/otp")
 @CrossOrigin(origins = "*")
 public class OTPController {
     
