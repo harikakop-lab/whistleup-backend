@@ -27,5 +27,6 @@ public class ProfileCreateResource {
     private String phone;
     private String password;
     @Enumerated(EnumType.STRING)
-    private Roles role;
+    @Builder.Default
+    private Roles role = Roles.ADMIN;
 }

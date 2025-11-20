@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/whistleup/profile")
+@CrossOrigin(origins = "*")
 public class ProfileController {
 
     private final ProfileService profileService;
