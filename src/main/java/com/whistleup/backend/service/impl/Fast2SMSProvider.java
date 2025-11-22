@@ -2,13 +2,15 @@ package com.whistleup.backend.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.whistleup.backend.config.OtpVerificationConfig;
 import com.whistleup.backend.service.SMSProvider;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Logger;
 
 @Service
@@ -28,8 +30,11 @@ public class Fast2SMSProvider implements SMSProvider {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
-    public Fast2SMSProvider(RestTemplate restTemplate) {
+    private final OtpVerificationConfig otpVerificationConfig;
+
+    public Fast2SMSProvider(RestTemplate restTemplate, OtpVerificationConfig otpVerificationConfig) {
         this.restTemplate = restTemplate;
+        this.otpVerificationConfig = otpVerificationConfig;
         this.objectMapper = new ObjectMapper();
     }
 
@@ -41,14 +46,27 @@ public class Fast2SMSProvider implements SMSProvider {
                 throw new IllegalArgumentException("Invalid phone number format");
             }
 
-            // Build the request
+            RestTemplate restTemplate = new RestTemplate();
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("authorization", otpVerificationConfig.getApiKey());
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            Map<String, Object> body = new HashMap<>();
             String fullMessage = message != null ? message : "Your OTP is: " + otp;
+            body.put("route", "q");
+            body.put("message", fullMessage);
+            body.put("numbers", phoneNumber);
 
-            String url = buildUrl(phoneNumber, otp, fullMessage);
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
 
-            // Make the API call
-            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+            ResponseEntity<String> response = restTemplate.postForEntity(otpVerificationConfig.getApiUrl(), request, String.class);
 
+//             Build the request//
+//            String url = buildUrl(phoneNumber, otp, fullMessage);
+//
+//            // Make the API call
+//            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+//
             if (response.getStatusCode() == HttpStatus.OK) {
                 // Parse response
                 JsonNode responseBody = objectMapper.readTree(response.getBody());
