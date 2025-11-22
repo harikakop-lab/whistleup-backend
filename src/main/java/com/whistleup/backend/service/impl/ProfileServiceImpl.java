@@ -38,12 +38,12 @@ public class ProfileServiceImpl implements ProfileService {
         BeanUtils.copyProperties(profileCreateResource, profile);
         profile.setPassword(passwordEncoder.encode(profile.getPassword()));
         Profile savedProfile = profileRepository.save(profile);
-        return ProfileResponseResource.builder().userId(savedProfile.getUserId()).build();
+        return ProfileResponseResource.builder().userId(savedProfile.getPhone()).build();
     }
 
     @Override
     public String updateProfile(ProfileCreateResource profileUpdateResource) {
-        Optional<Profile> profileOptional = profileRepository.findById(profileUpdateResource.getUserId());
+        Optional<Profile> profileOptional = profileRepository.findByPhone(profileUpdateResource.getPhone());
         if (profileOptional.isEmpty()) {
             log.error("Profile not found with the user id: {}", profileUpdateResource.getUserId());
             throw new NotFoundException("Profile not found");
@@ -51,13 +51,13 @@ public class ProfileServiceImpl implements ProfileService {
         Profile profileEntity = profileOptional.get();
         BeanUtils.copyProperties(profileUpdateResource, profileEntity, CustomBeanUtils.getNullPropertyNames(profileUpdateResource));
         Profile updatedProfileEntity = profileRepository.save(profileEntity);
-        return updatedProfileEntity.getUserId();
+        return updatedProfileEntity.getPhone();
     }
 
     @Override
     public String deleteProfile(String userId) {
         try {
-            Optional<Profile> profileOptional = profileRepository.findById(userId);
+            Optional<Profile> profileOptional = profileRepository.findByPhone(userId);
             if (profileOptional.isEmpty()) {
                 log.error("Profile not found with id: {}", userId);
                 throw new NotFoundException("Profile not found");

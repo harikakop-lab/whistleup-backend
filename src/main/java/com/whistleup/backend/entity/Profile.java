@@ -22,15 +22,11 @@ import lombok.Setter;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Profile {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id")
-    private String userId;
-
     @Column(name = "name")
     private String name;
 
-    @Column(name = "phone")
+    @Id
+    @Column(name = "phone", unique = true, nullable = false)
     private String phone;
 
     @Column(name = "email")

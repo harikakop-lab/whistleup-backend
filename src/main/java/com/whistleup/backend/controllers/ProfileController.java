@@ -18,12 +18,6 @@ public class ProfileController {
         this.profileService = profileService;
     }
 
-    @GetMapping("/{userId}")
-    public ResponseEntity<ProfileResponseResource> getProfileById(@PathVariable("userId") String userId) {
-        ProfileResponseResource profileResponseResource = profileService.getProfileById(userId);
-        return new ResponseEntity<>(profileResponseResource, HttpStatus.OK);
-    }
-
     @GetMapping("/{username}")
     public ResponseEntity<ProfileResponseResource> getProfileByUsername(@PathVariable("username") String username) {
         ProfileResponseResource profileResponseResource = profileService.getProfileByUsername(username);
