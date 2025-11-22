@@ -14,6 +14,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -50,6 +51,9 @@ public class ProfileServiceImpl implements ProfileService {
         }
         Profile profileEntity = profileOptional.get();
         BeanUtils.copyProperties(profileUpdateResource, profileEntity, CustomBeanUtils.getNullPropertyNames(profileUpdateResource));
+        if (Objects.nonNull(profileUpdateResource.getPassword())) {
+            profileEntity.setPassword(passwordEncoder.encode(profileEntity.getPassword()));
+        }
         Profile updatedProfileEntity = profileRepository.save(profileEntity);
         return updatedProfileEntity.getPhone();
     }
