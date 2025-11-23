@@ -64,7 +64,7 @@ public class OTPService {
 
         // Send via selected provider
         try {
-//            smsProvider.sendOTP(phoneNumber, otp, null);
+            smsProvider.sendOTP(phoneNumber, otp, null);
             otpRepository.save(otpEntity);
             logger.info("OTP generated and sent via active provider");
 

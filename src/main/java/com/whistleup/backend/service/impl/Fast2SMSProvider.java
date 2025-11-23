@@ -70,7 +70,8 @@ public class Fast2SMSProvider implements SMSProvider {
             if (response.getStatusCode() == HttpStatus.OK) {
                 // Parse response
                 JsonNode responseBody = objectMapper.readTree(response.getBody());
-                boolean success = responseBody.get("success").asBoolean();
+                boolean success = responseBody.get("return").asBoolean();
+
 
                 if (success) {
                     logger.info("OTP sent successfully via Fast2SMS to: " + maskPhoneNumber(phoneNumber));
