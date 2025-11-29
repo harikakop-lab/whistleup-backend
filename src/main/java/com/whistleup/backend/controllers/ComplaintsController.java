@@ -1,6 +1,7 @@
 package com.whistleup.backend.controllers;
 
 import com.whistleup.backend.resource.ComplaintCreateResource;
+import com.whistleup.backend.resource.ComplaintsResponseResource;
 import com.whistleup.backend.service.ComplaintsService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -9,7 +10,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/whistleup/complaints")
+@RequestMapping("/whistleup/issues")
+@CrossOrigin("*")
 public class ComplaintsController {
 
     private final ComplaintsService complaintsService;
@@ -39,8 +41,8 @@ public class ComplaintsController {
 
     @PostMapping("/register")
     public ResponseEntity<ComplaintCreateResource> registerComplaint(@RequestBody ComplaintCreateResource complaintCreateResource) {
-        complaintsService.registerComplaint(complaintCreateResource);
-        return new ResponseEntity<>(HttpStatus.CREATED);
+        ComplaintsResponseResource complaintsResponseResource = complaintsService.registerComplaint(complaintCreateResource);
+        return new ResponseEntity<>(complaintsResponseResource, HttpStatus.CREATED);
     }
 
     @DeleteMapping("/{complaintId}")

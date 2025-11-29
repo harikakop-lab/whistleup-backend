@@ -15,7 +15,7 @@ import lombok.Setter;
 public class Complaints {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "complaint_id")
     private String complaintId;
 
