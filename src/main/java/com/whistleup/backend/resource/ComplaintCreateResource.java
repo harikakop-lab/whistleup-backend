@@ -15,4 +15,5 @@ public class ComplaintCreateResource {
     private String username;
     private String timestamp;
     private String type;
+    private boolean isResolved;
 }

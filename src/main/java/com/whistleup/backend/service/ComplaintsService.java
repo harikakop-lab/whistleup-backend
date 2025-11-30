@@ -10,7 +10,7 @@ public interface ComplaintsService {
 
     ComplaintsResponseResource getAllComplaintsById(String complaintId);
 
-    ComplaintsResponseResource getComplaintsByProfileId(String profileId, boolean isAssigned);
+    List<ComplaintsResponseResource> getComplaintsByProfileId(String profileId);
 
     ComplaintsResponseResource registerComplaint(ComplaintCreateResource complaintCreateResource);
 

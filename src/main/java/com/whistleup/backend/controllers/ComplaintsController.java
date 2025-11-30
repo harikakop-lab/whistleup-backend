@@ -21,26 +21,25 @@ public class ComplaintsController {
     }
 
     @GetMapping("")
-    public ResponseEntity<List<ComplaintCreateResource>> getAllComplaints() {
-        complaintsService.getAllComplaints();
-        return new ResponseEntity<>(HttpStatus.OK);
+    public ResponseEntity<List<ComplaintsResponseResource>> getAllComplaints() {
+        List<ComplaintsResponseResource> complaints = complaintsService.getAllComplaints();
+        return new ResponseEntity<>(complaints, HttpStatus.OK);
     }
 
     @GetMapping("/{complaintId}")
-    public ResponseEntity<ComplaintCreateResource> getAllComplaints(@PathVariable String complaintId) {
-        complaintsService.getAllComplaintsById(complaintId);
-        return new ResponseEntity<>(HttpStatus.OK);
+    public ResponseEntity<ComplaintsResponseResource> getAllComplaints(@PathVariable("complaintId") String complaintId) {
+        ComplaintsResponseResource complaints = complaintsService.getAllComplaintsById(complaintId);
+        return new ResponseEntity<>(complaints, HttpStatus.OK);
     }
 
-    @GetMapping("/{profileId}")
-    public ResponseEntity<ComplaintCreateResource> getAllComplaintsAssignedToProfileId(@PathVariable String profileId,
-                                                                                       @RequestParam("isAssigned") boolean isAssigned) {
-        complaintsService.getComplaintsByProfileId(profileId, isAssigned);
-        return new ResponseEntity<>(HttpStatus.OK);
+    @GetMapping("/profile/{profileId}")
+    public ResponseEntity<List<ComplaintsResponseResource>> getAllComplaintsAssignedToProfileId(@PathVariable("profileId") String profileId) {
+        List<ComplaintsResponseResource> complaints = complaintsService.getComplaintsByProfileId(profileId);
+        return new ResponseEntity<>(complaints, HttpStatus.OK);
     }
 
     @PostMapping("/register")
-    public ResponseEntity<ComplaintCreateResource> registerComplaint(@RequestBody ComplaintCreateResource complaintCreateResource) {
+    public ResponseEntity<ComplaintsResponseResource> registerComplaint(@RequestBody ComplaintCreateResource complaintCreateResource) {
         ComplaintsResponseResource complaintsResponseResource = complaintsService.registerComplaint(complaintCreateResource);
         return new ResponseEntity<>(complaintsResponseResource, HttpStatus.CREATED);
     }

@@ -2,9 +2,7 @@ package com.whistleup.backend.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 @Entity
 @Table(name = "complaints")
@@ -12,6 +10,8 @@ import lombok.Setter;
 @Setter
 @Builder
 @JsonIgnoreProperties(ignoreUnknown = true)
+@NoArgsConstructor
+@AllArgsConstructor
 public class Complaints {
 
     @Id
@@ -36,4 +36,7 @@ public class Complaints {
 
     @Column(name = "description")
     private String description;
+
+    @Column(name = "is_resolved")
+    private boolean isResolved;
 }
