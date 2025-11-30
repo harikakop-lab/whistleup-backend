@@ -10,6 +10,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class ComplaintsServiceImpl implements ComplaintsService {
@@ -39,17 +40,20 @@ public class ComplaintsServiceImpl implements ComplaintsService {
     }
 
     @Override
-    public ComplaintsResponseResource getComplaintsByProfileId(String profileId, boolean isAssigned) {
-        Complaints complaintsOptional = complaintsRepository.findByProfileId(profileId).orElseThrow(() -> new NotFoundException("No Complaints/suggestions found for this given profile id: " + profileId));
-        ComplaintsResponseResource complaintsResponseResource = ComplaintsResponseResource.builder().build();
-        BeanUtils.copyProperties(complaintsOptional, complaintsResponseResource);
-        return complaintsResponseResource;
+    public List<ComplaintsResponseResource> getComplaintsByProfileId(String profileId) {
+        List<Complaints> complaints = complaintsRepository.findByProfileId(profileId).orElseThrow(() -> new NotFoundException("No Complaints/suggestions found for this given profile id: " + profileId));
+        return complaints.stream().map(complaint -> {
+            ComplaintsResponseResource complaintsResponseResource = ComplaintsResponseResource.builder().build();
+            BeanUtils.copyProperties(complaint, complaintsResponseResource);
+            return complaintsResponseResource;
+        }).toList();
     }
 
     @Override
     public ComplaintsResponseResource registerComplaint(ComplaintCreateResource complaintCreateResource) {
         Complaints complaintEntity = Complaints.builder().build();
         BeanUtils.copyProperties(complaintCreateResource, complaintEntity);
+        complaintEntity.setProfileId(complaintCreateResource.getUsername());
         Complaints savedEntity = complaintsRepository.save(complaintEntity);
         ComplaintsResponseResource complaintsResponseResource = ComplaintsResponseResource.builder().build();
         BeanUtils.copyProperties(savedEntity, complaintsResponseResource);
