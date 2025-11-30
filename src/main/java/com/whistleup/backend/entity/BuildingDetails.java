@@ -48,4 +48,10 @@ public class BuildingDetails {
     @Column(name = "last_updated_date")
     @LastModifiedDate
     private String lastUpdatedDate;
+
+    @Column(name = "floors")
+    private Long floors;
+
+    @Column(name = "profile_id")
+    private String profileId;
 }

@@ -13,4 +13,5 @@ public class BuildingDetailsResponseResource {
     private Long buildingId;
     private String buildingName;
     private AddressResource buildingAddress;
+    private Long floors;
 }

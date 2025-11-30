@@ -15,5 +15,8 @@ public class FlatRequestResource {
     private String flatNumber;
     private String ownerName;
     private String buildingName;
+    private String buildingId;
     private String tenantName;
+    private String phone;
+    private Long floorNo;
 }

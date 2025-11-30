@@ -13,6 +13,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/whistleup/building")
+@CrossOrigin("*")
 public class BuildingController {
 
     @Autowired
@@ -33,12 +34,13 @@ public class BuildingController {
     public BuildingDetailsResponseResource buildResponseResource(BuildingDetails buildingDetails) {
         BuildingDetailsResponseResource buildingDetailsResponseResource = new BuildingDetailsResponseResource();
         buildingDetailsResponseResource.setBuildingId(buildingDetails.getBuildingId());
-        buildingDetailsResponseResource.setBuildingName(buildingDetailsResponseResource.getBuildingName());
+        buildingDetailsResponseResource.setBuildingName(buildingDetails.getBuildingName());
         buildingDetailsResponseResource.setBuildingAddress(buildingDetails.getBuildingAddress());
+        buildingDetailsResponseResource.setFloors(buildingDetails.getFloors());
         return buildingDetailsResponseResource;
     }
 
-    @PostMapping("/save")
+    @PostMapping("/create")
     public ResponseEntity<BuildingDetailsResponseResource> saveBuildingDetails(@RequestBody BuildingDetailsRequestResource buildingDetailsRequestResource) {
         BuildingDetails buildingDetails = buildingDetailsService.saveBuildingDetails(buildingDetailsRequestResource);
         return new ResponseEntity<>(buildResponseResource(buildingDetails), HttpStatus.CREATED);

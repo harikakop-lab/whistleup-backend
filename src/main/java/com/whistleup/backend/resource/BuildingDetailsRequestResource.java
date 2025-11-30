@@ -12,4 +12,5 @@ public class BuildingDetailsRequestResource {
 
     private String buildingName;
     private AddressResource buildingAddress;
+    private Long floors;
 }
