@@ -26,12 +26,16 @@ public class FlatDetails {
     @Column(name = "flat_number")
     private String flatNumber;
 
-    @Column(name = "building_name")
-    private String buildingName;
+    // Many flats belong to one building
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "building_id", nullable = false)
+    private BuildingDetails building;
 
-    @Column(name = "owner_name")
-    private String ownerName;
+    // One flat mapped to one resident (Profile)
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "profile_id")
+    private Profile resident;
 
-    @Column(name = "tenant_name")
-    private String tenantName;
+    @Column(name = "floor_no")
+    private Long floor;
 }

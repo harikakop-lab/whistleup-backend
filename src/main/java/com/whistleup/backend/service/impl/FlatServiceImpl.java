@@ -1,8 +1,12 @@
 package com.whistleup.backend.service.impl;
 
+import com.whistleup.backend.entity.BuildingDetails;
 import com.whistleup.backend.entity.FlatDetails;
+import com.whistleup.backend.entity.Profile;
 import com.whistleup.backend.exception.NotFoundException;
+import com.whistleup.backend.repository.BuildingDetailsRepository;
 import com.whistleup.backend.repository.FlatRepository;
+import com.whistleup.backend.repository.ProfileRepository;
 import com.whistleup.backend.resource.FlatRequestResource;
 import com.whistleup.backend.resource.FlatResponseResource;
 import com.whistleup.backend.service.FlatService;
@@ -11,6 +15,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @Slf4j
@@ -18,8 +23,14 @@ public class FlatServiceImpl implements FlatService {
 
     private final FlatRepository flatRepository;
 
-    public FlatServiceImpl(FlatRepository flatRepository) {
+    private final ProfileRepository profileRepository;
+
+    private final BuildingDetailsRepository buildingDetailsRepository;
+
+    public FlatServiceImpl(FlatRepository flatRepository, ProfileRepository profileRepository, BuildingDetailsRepository buildingDetailsRepository) {
         this.flatRepository = flatRepository;
+        this.profileRepository = profileRepository;
+        this.buildingDetailsRepository = buildingDetailsRepository;
     }
 
     @Override
@@ -52,6 +63,11 @@ public class FlatServiceImpl implements FlatService {
     public FlatResponseResource addFlatDetails(FlatRequestResource flatRequestResource) {
         FlatDetails flatDetails = FlatDetails.builder().build();
         BeanUtils.copyProperties(flatRequestResource, flatDetails);
+        BuildingDetails buildingDetails = buildingDetailsRepository.findById(Long.valueOf(flatRequestResource.getBuildingId())).orElse(null);
+        flatDetails.setBuilding(buildingDetails);
+        Profile profile = profileRepository.findById(flatRequestResource.getPhone()).orElse(null);
+        flatDetails.setResident(profile);
+        flatDetails.setFloor(flatRequestResource.getFloorNo());
         FlatDetails savedFlatDetails = flatRepository.save(flatDetails);
         FlatResponseResource flatResponseResource = FlatResponseResource.builder().build();
         BeanUtils.copyProperties(savedFlatDetails, flatResponseResource);

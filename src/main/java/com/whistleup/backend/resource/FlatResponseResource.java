@@ -17,4 +17,5 @@ public class FlatResponseResource {
     private String ownerName;
     private String buildingName;
     private String tenantName;
+    private String floorNo;
 }
