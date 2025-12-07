@@ -1,5 +1,8 @@
 package com.whistleup.backend.resource;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.util.List;
@@ -10,7 +13,17 @@ import java.util.List;
 @NoArgsConstructor
 public class BuildingDetailsRequestResource {
 
+    @NotEmpty
     private String buildingName;
+
+    @Valid
+    @NotNull
     private AddressResource buildingAddress;
     private Long floors;
+    private ServiceResource plumbingService;
+    private ServiceResource electricService;
+    private ServiceResource carpenterService;
+    private ServiceResource cleaningService;
+    private ServiceResource watchmen;
+    private String profileId;
 }

@@ -20,4 +20,5 @@ public interface BuildingDetailsService {
 
     void deleteBuildingDetails(Long buildingId);
 
+    BuildingDetails getBuildingServicesByProfileId(String username);
 }

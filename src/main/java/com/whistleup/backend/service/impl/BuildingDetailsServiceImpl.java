@@ -72,4 +72,10 @@ public class BuildingDetailsServiceImpl implements BuildingDetailsService {
                 .orElseThrow(() -> new NotFoundException("No Buildings found with this id"));
         buildingDetailsRepository.deleteById(buildingId);
     }
+
+    @Override
+    public BuildingDetails getBuildingServicesByProfileId(String username) {
+        return buildingDetailsRepository.findByProfileId(username)
+                .orElseThrow(() -> new NotFoundException("No Buildings found with this id"));
+    }
 }

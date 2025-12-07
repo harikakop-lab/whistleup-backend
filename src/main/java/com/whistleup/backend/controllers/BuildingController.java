@@ -4,6 +4,8 @@ import com.whistleup.backend.entity.BuildingDetails;
 import com.whistleup.backend.resource.BuildingDetailsRequestResource;
 import com.whistleup.backend.resource.BuildingDetailsResponseResource;
 import com.whistleup.backend.service.BuildingDetailsService;
+import jakarta.validation.Valid;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +35,7 @@ public class BuildingController {
 
     public BuildingDetailsResponseResource buildResponseResource(BuildingDetails buildingDetails) {
         BuildingDetailsResponseResource buildingDetailsResponseResource = new BuildingDetailsResponseResource();
+        BeanUtils.copyProperties(buildingDetails, buildingDetailsResponseResource);
         buildingDetailsResponseResource.setBuildingId(buildingDetails.getBuildingId());
         buildingDetailsResponseResource.setBuildingName(buildingDetails.getBuildingName());
         buildingDetailsResponseResource.setBuildingAddress(buildingDetails.getBuildingAddress());
@@ -41,7 +44,7 @@ public class BuildingController {
     }
 
     @PostMapping("/create")
-    public ResponseEntity<BuildingDetailsResponseResource> saveBuildingDetails(@RequestBody BuildingDetailsRequestResource buildingDetailsRequestResource) {
+    public ResponseEntity<BuildingDetailsResponseResource> saveBuildingDetails(@Valid @RequestBody BuildingDetailsRequestResource buildingDetailsRequestResource) {
         BuildingDetails buildingDetails = buildingDetailsService.saveBuildingDetails(buildingDetailsRequestResource);
         return new ResponseEntity<>(buildResponseResource(buildingDetails), HttpStatus.CREATED);
     }
@@ -50,7 +53,7 @@ public class BuildingController {
     public ResponseEntity<BuildingDetailsResponseResource> updateBuildingDetails(@PathVariable("buildingId") Long buildingId,
                                                                                  @RequestBody BuildingDetailsRequestResource updateRequestResource) {
         BuildingDetails buildingDetails = buildingDetailsService.updateBuildingDetails(buildingId, updateRequestResource);
-        return new ResponseEntity<>(buildResponseResource(buildingDetails), HttpStatus.ACCEPTED);
+        return new ResponseEntity<>(buildResponseResource(buildingDetails), HttpStatus.OK);
     }
 
     @PatchMapping("/update/{buildingId}/address")
@@ -59,6 +62,12 @@ public class BuildingController {
 
         BuildingDetails buildingDetails = buildingDetailsService.updateBuildingAddress(buildingId, buildingDetailsRequestResource);
         return new ResponseEntity<>(buildResponseResource(buildingDetails), HttpStatus.ACCEPTED);
+    }
+
+    @GetMapping("/profile/{username}")
+    public ResponseEntity<BuildingDetailsResponseResource> getBuildingDetailsByProfileId(@PathVariable("username") String username) {
+        BuildingDetails buildingDetails = buildingDetailsService.getBuildingServicesByProfileId(username);
+        return new ResponseEntity<>(buildResponseResource(buildingDetails), HttpStatus.OK);
     }
 
     @DeleteMapping("/delete/{buildingId}")
