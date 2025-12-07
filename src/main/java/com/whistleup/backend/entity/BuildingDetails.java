@@ -1,6 +1,8 @@
 package com.whistleup.backend.entity;
 
+import com.whistleup.backend.entity.converter.ServiceResourceConverter;
 import com.whistleup.backend.resource.AddressResource;
+import com.whistleup.backend.resource.ServiceResource;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -26,12 +28,32 @@ public class BuildingDetails {
     @Column(name = "id")
     private Long buildingId;
 
-    @Column(name = "building_name")
+    @Column(name = "building_name", nullable = false)
     private String buildingName;
 
-    @Column(name = "building_address")
+    @Column(name = "building_address", nullable = false)
     @Embedded
     private AddressResource buildingAddress;
+
+    @Column(name = "plumbing_service")
+    @Convert(converter = ServiceResourceConverter.class)
+    private ServiceResource plumbingService;
+
+    @Column(name = "electric_service")
+    @Convert(converter = ServiceResourceConverter.class)
+    private ServiceResource electricService;
+
+    @Column(name = "cleaning_service")
+    @Convert(converter = ServiceResourceConverter.class)
+    private ServiceResource cleaningService;
+
+    @Column(name = "carpenter_service")
+    @Convert(converter = ServiceResourceConverter.class)
+    private ServiceResource carpenterService;
+
+    @Column(name = "watchmen")
+    @Convert(converter = ServiceResourceConverter.class)
+    private ServiceResource watchmen;
 
     @Column(name = "created_by")
     @CreatedBy
@@ -52,6 +74,6 @@ public class BuildingDetails {
     @Column(name = "floors")
     private Long floors;
 
-    @Column(name = "profile_id")
+    @Column(name = "profile_id", nullable = false)
     private String profileId;
 }
