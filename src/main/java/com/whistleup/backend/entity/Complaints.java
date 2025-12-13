@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.List;
+
 @Entity
 @Table(name = "complaints")
 @Getter
@@ -39,4 +41,13 @@ public class Complaints {
 
     @Column(name = "is_resolved")
     private boolean isResolved;
+
+    @ElementCollection
+    @CollectionTable(
+            name = "complaint_images",
+            joinColumns = @JoinColumn(name = "complaint_id")
+    )
+    @Column(name = "image_path")
+    private List<String> imagePaths;
+
 }

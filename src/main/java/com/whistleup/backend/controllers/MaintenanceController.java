@@ -1,0 +1,58 @@
+package com.whistleup.backend.controllers;
+
+import com.whistleup.backend.entity.Maintenance;
+import com.whistleup.backend.resource.MaintenanceCreateResource;
+import com.whistleup.backend.resource.MaintenanceResponseResource;
+import com.whistleup.backend.service.MaintenanceService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
+
+@RestController
+@RequestMapping("/whistleup/maintenance")
+@RequiredArgsConstructor
+@CrossOrigin("*")
+public class MaintenanceController {
+
+    private final MaintenanceService service;
+
+    @PostMapping("/create")
+    public ResponseEntity<Void> create(@RequestBody MaintenanceCreateResource req) {
+        service.createMaintenance(req);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    @GetMapping("/{username}")
+    public ResponseEntity<List<MaintenanceResponseResource>> getAll(@PathVariable String username) {
+        return ResponseEntity.ok(service.getByProfile(username));
+    }
+
+    @PatchMapping("/{id}/pay")
+    public ResponseEntity<Void> markPaid(@PathVariable Long id) {
+        service.markAsPaid(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/{id}/invoice")
+    public ResponseEntity<Resource> downloadInvoice(@PathVariable Long id) {
+        Maintenance m = service.getEntity(id);
+
+        Path path = Paths.get(m.getInvoicePath());
+        Resource resource = new FileSystemResource(path);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=" + path.getFileName())
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(resource);
+    }
+}
