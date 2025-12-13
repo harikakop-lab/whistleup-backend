@@ -12,8 +12,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.List;
-
 @Getter
 @Setter
 @Builder
@@ -21,16 +19,7 @@ import java.util.List;
 @NoArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class ProfileCreateResource {
-
-    private String userId;
+public class ContactResource {
     private String name;
-    private String email;
     private String phone;
-    private String password;
-    @Enumerated(EnumType.STRING)
-    @Builder.Default
-    private Roles role = Roles.ADMIN;
-
-    private List<ContactResource> contacts;
 }

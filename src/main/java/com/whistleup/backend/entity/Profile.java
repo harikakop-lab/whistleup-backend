@@ -11,6 +11,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.List;
+
 @Entity
 @Table(name = "profile")
 @Getter
@@ -42,4 +44,11 @@ public class Profile {
     @Version
     @Column(name = "version")
     private Long version;
+
+    @Column(name = "profile_image_path")
+    private String profileImagePath;
+
+    @OneToMany(mappedBy = "profile", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Contact> contacts;
+
 }
