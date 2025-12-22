@@ -102,7 +102,6 @@ public class ProfileServiceImpl implements ProfileService {
             );
         }
 
-        // ✅ APPEND CONTACTS (NO DELETE)
         if (profileUpdateResource.getContacts() != null
                 && !profileUpdateResource.getContacts().isEmpty()) {
 
