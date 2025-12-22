@@ -15,15 +15,19 @@ public class BuildingDetailsRequestResource {
 
     @NotEmpty
     private String buildingName;
-
     @Valid
     @NotNull
     private AddressResource buildingAddress;
     private Long floors;
+    private Long flatStartNumber;
+    private Long flatEndNumber;
     private ServiceResource plumbingService;
     private ServiceResource electricService;
     private ServiceResource carpenterService;
     private ServiceResource cleaningService;
     private ServiceResource watchmen;
     private String profileId;
+    private String adminName;
+    private String adminPhone;
+    private String adminEmail;
 }
