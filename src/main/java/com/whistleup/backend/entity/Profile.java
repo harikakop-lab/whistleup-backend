@@ -51,4 +51,7 @@ public class Profile {
     @OneToMany(mappedBy = "profile", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Contact> contacts;
 
+    @Column(name = "upi_id")
+    private String upiId;
+
 }
