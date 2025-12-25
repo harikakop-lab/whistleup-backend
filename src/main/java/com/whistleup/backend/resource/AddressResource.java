@@ -14,11 +14,13 @@ import lombok.Setter;
 @Embeddable
 public class AddressResource {
 
-    private String street;
     @NotEmpty
     private String city;
     @NotEmpty
     private String state;
     @NotEmpty
     private String pincode;
+    private String fullAddress;
+    private String landmark;
+    private String streetName;
 }
