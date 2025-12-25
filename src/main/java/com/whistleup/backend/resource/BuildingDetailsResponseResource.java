@@ -8,7 +8,7 @@ import java.util.List;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class BuildingDetailsResponseResource {
+public class BuildingDetailsResponseResource extends BuildingDetailsRequestResource {
 
     private Long buildingId;
     private String buildingName;
