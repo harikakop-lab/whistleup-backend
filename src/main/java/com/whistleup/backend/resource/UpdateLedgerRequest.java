@@ -19,5 +19,8 @@ public class UpdateLedgerRequest {
     @NotNull
     private List<LedgerItemRequest> items;
 
+    @NotNull
+    private String buildingId;
+
     // getters & setters
 }

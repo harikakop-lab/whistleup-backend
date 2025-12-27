@@ -31,7 +31,7 @@ public class LedgerServiceImpl implements LedgerService {
         ledger.setMonth(request.getMonth());
         ledger.setTotalFlats(request.getTotalFlats());
         ledger.setCreatedAt(LocalDateTime.now());
-
+        ledger.setBuildingId(request.getBuildingId());
         mapItems(request.getItems(), ledger);
 
         calculateTotals(ledger);
@@ -56,6 +56,7 @@ public class LedgerServiceImpl implements LedgerService {
         mapItems(request.getItems(), ledger);
         calculateTotals(ledger);
         ledger.setUpdatedAt(LocalDateTime.now());
+        ledger.setBuildingId(request.getBuildingId());
 
         return toResponse(ledger);
     }
@@ -114,7 +115,7 @@ public class LedgerServiceImpl implements LedgerService {
                 .map(i -> new LedgerItemResponse(i.getId(), i.getName(), i.getAmount()))
                 .toList();
 
-        return new LedgerResponse(
+        LedgerResponse ledgerResponse = new LedgerResponse(
                 ledger.getId(),
                 ledger.getYear(),
                 ledger.getMonth(),
@@ -123,5 +124,7 @@ public class LedgerServiceImpl implements LedgerService {
                 ledger.getPerFlatAmount(),
                 items
         );
+        ledgerResponse.setBuildingId(ledger.getBuildingId());
+        return ledgerResponse;
     }
 }

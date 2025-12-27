@@ -7,13 +7,13 @@ import lombok.*;
 
 @Getter
 @Setter
-@Builder
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class LedgerResponse {
 
     private Long id;
+    private String buildingId;
     private int year;
     private String month;
     private double totalAmount;
