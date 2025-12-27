@@ -58,6 +58,9 @@ public class Ledger {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "building_id")
+    private String buildingId;
+
     /* ---------- Lifecycle hooks ---------- */
 
     @PrePersist
