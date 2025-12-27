@@ -14,12 +14,11 @@ import lombok.Setter;
 
 @Getter
 @Setter
-@Builder
 @AllArgsConstructor
 @NoArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class ProfileResponseResource {
+public class ProfileResponseResource extends ProfileCreateResource {
 
     private String userId;
     private String name;

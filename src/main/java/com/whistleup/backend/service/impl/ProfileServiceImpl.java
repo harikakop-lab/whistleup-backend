@@ -70,9 +70,9 @@ public class ProfileServiceImpl implements ProfileService {
 
         Profile savedProfile = profileRepository.save(profile);
 
-        return ProfileResponseResource.builder()
-                .userId(savedProfile.getPhone())
-                .build();
+        ProfileResponseResource profileResponseResource = new ProfileResponseResource();
+        profileResponseResource.setUserId(savedProfile.getPhone());
+        return profileResponseResource;
     }
 
     @Override
@@ -156,7 +156,7 @@ public class ProfileServiceImpl implements ProfileService {
             throw new NotFoundException("No user found with userId: " + userId);
         }
         Profile profile = profileOptional.get();
-        ProfileResponseResource profileResponseResource = ProfileResponseResource.builder().build();
+        ProfileResponseResource profileResponseResource = new ProfileResponseResource();
         BeanUtils.copyProperties(profile, profileResponseResource);
         return profileResponseResource;
     }
@@ -177,7 +177,7 @@ public class ProfileServiceImpl implements ProfileService {
             throw new NotFoundException("No user found with username: " + username);
         }
         Profile profile = profileOptional.get();
-        ProfileResponseResource profileResponseResource = ProfileResponseResource.builder().build();
+        ProfileResponseResource profileResponseResource = new ProfileResponseResource();
         BeanUtils.copyProperties(profile, profileResponseResource);
         return profileResponseResource;
     }
