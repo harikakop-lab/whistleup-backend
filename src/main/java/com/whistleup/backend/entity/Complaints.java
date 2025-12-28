@@ -17,9 +17,9 @@ import java.util.List;
 public class Complaints {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "complaint_id")
-    private String complaintId;
+    private Long complaintId;
 
     @Column(name = "username")
     private String username;
@@ -41,6 +41,9 @@ public class Complaints {
 
     @Column(name = "is_resolved")
     private boolean isResolved;
+
+    @Column(name = "assignee_profile")
+    private String assigneeProfile;
 
     @ElementCollection
     @CollectionTable(

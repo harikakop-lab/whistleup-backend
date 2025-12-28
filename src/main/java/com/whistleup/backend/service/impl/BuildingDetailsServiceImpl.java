@@ -5,12 +5,16 @@ import com.whistleup.backend.exception.NotFoundException;
 import com.whistleup.backend.repository.BuildingDetailsRepository;
 import com.whistleup.backend.resource.BuildingDetailsRequestResource;
 import com.whistleup.backend.resource.BuildingDetailsResponseResource;
+import com.whistleup.backend.resource.BuildingServices;
+import com.whistleup.backend.resource.ServiceResource;
 import com.whistleup.backend.service.BuildingDetailsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 @Service
 @Slf4j
@@ -89,5 +93,26 @@ public class BuildingDetailsServiceImpl implements BuildingDetailsService {
             buildingDetailsResponseResource.setFloors(buildingDetails.getFloors());
             return buildingDetailsResponseResource;
         }).toList();
+    }
+
+    @Override
+    public void updateBuildingServices(Long buildingId, BuildingServices buildingServices) {
+        BuildingDetails buildingDetails = buildingDetailsRepository.findById(buildingId).orElseThrow(() -> new NotFoundException("No Buildings found with this id"));
+        if (Objects.nonNull(buildingServices.getWatchmen())) {
+            buildingDetails.setWatchmen(buildingServices.getWatchmen());
+        }
+        if (Objects.nonNull(buildingServices.getCarpenterService())) {
+            buildingDetails.setCarpenterService(buildingServices.getCarpenterService());
+        }
+        if (Objects.nonNull(buildingServices.getCleaningService())) {
+            buildingDetails.setCleaningService(buildingServices.getCarpenterService());
+        }
+        if (Objects.nonNull(buildingServices.getElectricService())) {
+            buildingDetails.setElectricService(buildingServices.getElectricService());
+        }
+        if (Objects.nonNull(buildingServices.getPlumbingService())) {
+            buildingDetails.setPlumbingService(buildingServices.getPlumbingService());
+        }
+        buildingDetailsRepository.save(buildingDetails);
     }
 }

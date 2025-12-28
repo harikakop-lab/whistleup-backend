@@ -3,6 +3,7 @@ package com.whistleup.backend.controllers;
 import com.whistleup.backend.entity.BuildingDetails;
 import com.whistleup.backend.resource.BuildingDetailsRequestResource;
 import com.whistleup.backend.resource.BuildingDetailsResponseResource;
+import com.whistleup.backend.resource.BuildingServices;
 import com.whistleup.backend.service.BuildingDetailsService;
 import jakarta.validation.Valid;
 import org.springframework.beans.BeanUtils;
@@ -59,6 +60,12 @@ public class BuildingController {
                                                                                  @RequestBody BuildingDetailsRequestResource updateRequestResource) {
         BuildingDetails buildingDetails = buildingDetailsService.updateBuildingDetails(buildingId, updateRequestResource);
         return new ResponseEntity<>(buildResponseResource(buildingDetails), HttpStatus.OK);
+    }
+
+    @PutMapping("/update/services")
+    public ResponseEntity<Void> updateWatchmanDetails(@RequestBody BuildingServices buildingServices) {
+        buildingDetailsService.updateBuildingServices(Long.valueOf(buildingServices.getBuildingId()), buildingServices);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @PatchMapping("/update/{buildingId}/address")

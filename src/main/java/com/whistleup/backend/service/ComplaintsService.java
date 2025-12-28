@@ -14,6 +14,8 @@ public interface ComplaintsService {
 
     List<ComplaintsResponseResource> getComplaintsByProfileId(String profileId);
 
+    List<ComplaintsResponseResource> getComplaintsByAssigneeProfileId(String profileId);
+
     ComplaintsResponseResource registerComplaint(ComplaintCreateResource complaintCreateResource, MultipartFile[] files);
 
     void deleteComplaint(String complaintId);

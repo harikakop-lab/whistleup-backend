@@ -10,5 +10,5 @@ import lombok.*;
 @NoArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ComplaintsResponseResource extends ComplaintCreateResource {
-    private String complaintId;
+    private Long complaintId;
 }

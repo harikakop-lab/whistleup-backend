@@ -62,6 +62,16 @@ public class ComplaintsServiceImpl implements ComplaintsService {
     }
 
     @Override
+    public List<ComplaintsResponseResource> getComplaintsByAssigneeProfileId(String profileId) {
+        List<Complaints> complaints = complaintsRepository.findByAssigneeProfile(profileId).orElseThrow(() -> new NotFoundException("No Complaints/suggestions found for this given profile id: " + profileId));
+        return complaints.stream().map(complaint -> {
+            ComplaintsResponseResource complaintsResponseResource = ComplaintsResponseResource.builder().build();
+            BeanUtils.copyProperties(complaint, complaintsResponseResource);
+            return complaintsResponseResource;
+        }).toList();
+    }
+
+    @Override
     public ComplaintsResponseResource registerComplaint(ComplaintCreateResource complaintCreateResource, MultipartFile[] files) {
         Complaints complaintEntity = Complaints.builder().build();
         BeanUtils.copyProperties(complaintCreateResource, complaintEntity);
