@@ -4,8 +4,11 @@ import com.whistleup.backend.entity.OTPEntity;
 import com.whistleup.backend.exception.OTPException;
 import com.whistleup.backend.repository.OTPRepository;
 import com.whistleup.backend.resource.OTPResponse;
+import com.whistleup.backend.resource.SmsRequest;
 import com.whistleup.backend.resource.VerificationResponse;
 import com.whistleup.backend.service.SMSProvider;
+import com.whistleup.backend.service.SmsCountryClient;
+import com.whistleup.backend.service.SmsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -27,7 +30,7 @@ public class OTPService {
     private OTPRepository otpRepository;
 
     @Autowired
-    private SMSServiceFactory smsServiceFactory;
+    private SmsService smsService;
 
     @Value("${otp.length:4}")
     private int otpLength;
@@ -50,7 +53,6 @@ public class OTPService {
         }
 
         // Get active SMS provider
-        SMSProvider smsProvider = smsServiceFactory.getProvider();
 
         // Create OTP
         String otp = generateRandomOTP();
@@ -64,7 +66,7 @@ public class OTPService {
 
         // Send via selected provider
         try {
-//            smsProvider.sendOTP(phoneNumber, otp, null);
+            smsService.sendOtp(phoneNumber, otp);
             otpRepository.save(otpEntity);
             logger.info("OTP generated and sent via active provider");
 
