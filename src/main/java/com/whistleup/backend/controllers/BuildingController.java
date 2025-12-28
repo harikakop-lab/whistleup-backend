@@ -21,9 +21,14 @@ public class BuildingController {
     @Autowired
     BuildingDetailsService buildingDetailsService;
 
-    @GetMapping("")
+    @GetMapping("/")
     public ResponseEntity<List<BuildingDetailsResponseResource>> getExistingBuildingDetails() {
         return new ResponseEntity<>(buildingDetailsService.getExistingBuildingsInformation(), HttpStatus.OK);
+    }
+
+    @GetMapping("/all")
+    public ResponseEntity<List<BuildingDetailsResponseResource>> getBuildingDetailsDropDown() {
+        return new ResponseEntity<>(buildingDetailsService.getBuildingDetailsDropDown(), HttpStatus.OK);
     }
 
     @GetMapping("/{buildingId}")

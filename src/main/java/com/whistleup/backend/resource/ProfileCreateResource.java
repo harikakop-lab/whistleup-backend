@@ -35,4 +35,7 @@ public class ProfileCreateResource {
     private List<ContactResource> contacts;
 
     private String upiId;
+    private String buildingId;
+    private String floor;
+    private String flatNo;
 }

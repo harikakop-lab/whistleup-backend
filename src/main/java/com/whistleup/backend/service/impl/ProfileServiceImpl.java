@@ -1,10 +1,14 @@
 package com.whistleup.backend.service.impl;
 
 import com.whistleup.backend.constants.Roles;
+import com.whistleup.backend.entity.BuildingDetails;
 import com.whistleup.backend.entity.Contact;
+import com.whistleup.backend.entity.FlatDetails;
 import com.whistleup.backend.entity.Profile;
 import com.whistleup.backend.exception.BadRequestException;
 import com.whistleup.backend.exception.NotFoundException;
+import com.whistleup.backend.repository.BuildingDetailsRepository;
+import com.whistleup.backend.repository.FlatRepository;
 import com.whistleup.backend.repository.ProfileRepository;
 import com.whistleup.backend.resource.ContactResource;
 import com.whistleup.backend.resource.ProfileCreateResource;
@@ -34,10 +38,16 @@ public class ProfileServiceImpl implements ProfileService {
 
     private final ProfileRepository profileRepository;
 
+    private final FlatRepository flatRepository;
+
+    private final BuildingDetailsRepository buildingRepository;
+
     private final PasswordEncoder passwordEncoder;
 
-    public ProfileServiceImpl(ProfileRepository profileRepository, PasswordEncoder passwordEncoder) {
+    public ProfileServiceImpl(ProfileRepository profileRepository, FlatRepository flatRepository, BuildingDetailsRepository buildingRepository, PasswordEncoder passwordEncoder) {
         this.profileRepository = profileRepository;
+        this.flatRepository = flatRepository;
+        this.buildingRepository = buildingRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -69,7 +79,13 @@ public class ProfileServiceImpl implements ProfileService {
         }
 
         Profile savedProfile = profileRepository.save(profile);
-
+        FlatDetails flatDetails = FlatDetails.builder().build();
+        flatDetails.setResident(savedProfile);
+        flatDetails.setFloor(Objects.isNull(savedProfile.getFloor()) ? null : Long.valueOf(savedProfile.getFloor()));
+        flatDetails.setFlatNumber(savedProfile.getFlatNo());
+        BuildingDetails buildingDetails = buildingRepository.findById(Long.valueOf(savedProfile.getBuildingId())).orElse(null);
+        flatDetails.setBuilding(buildingDetails);
+        flatRepository.save(flatDetails);
         ProfileResponseResource profileResponseResource = new ProfileResponseResource();
         profileResponseResource.setUserId(savedProfile.getPhone());
         return profileResponseResource;
@@ -213,6 +229,11 @@ public class ProfileServiceImpl implements ProfileService {
                 .orElseThrow(() -> new RuntimeException("Profile not found"));
         Path imagePath = Paths.get(profile.getProfileImagePath());
         return new UrlResource(imagePath.toUri());
+    }
+
+    @Override
+    public boolean doesProfileExists(String username) {
+        return profileRepository.findByEmailOrPhone(username).isPresent();
     }
 
     @Override

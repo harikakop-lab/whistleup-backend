@@ -78,4 +78,16 @@ public class BuildingDetailsServiceImpl implements BuildingDetailsService {
         return buildingDetailsRepository.findByProfileId(username)
                 .orElseThrow(() -> new NotFoundException("No Buildings found with this id"));
     }
+
+    @Override
+    public List<BuildingDetailsResponseResource> getBuildingDetailsDropDown() {
+        List<BuildingDetails> buildingDetailsList = buildingDetailsRepository.findAll();
+        return buildingDetailsList.stream().map(buildingDetails -> {
+            BuildingDetailsResponseResource buildingDetailsResponseResource = new BuildingDetailsResponseResource();
+            buildingDetailsResponseResource.setBuildingId(buildingDetails.getBuildingId());
+            buildingDetailsResponseResource.setBuildingName(buildingDetails.getBuildingName());
+            buildingDetailsResponseResource.setFloors(buildingDetails.getFloors());
+            return buildingDetailsResponseResource;
+        }).toList();
+    }
 }

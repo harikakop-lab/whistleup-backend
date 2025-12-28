@@ -9,7 +9,6 @@ import lombok.NoArgsConstructor;
 
 @Builder
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -18,5 +17,13 @@ public class ResidentsResponse {
     private String phone;
 
     private String name;
+
+    private Long floorNo;
+
+    public ResidentsResponse(String phone, String name, Long floorNo) {
+        this.phone = phone;
+        this.name = name;
+        this.floorNo = floorNo;
+    }
 
 }

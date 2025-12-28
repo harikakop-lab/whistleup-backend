@@ -22,6 +22,11 @@ public class ResidentsController {
     public ResponseEntity<List<ResidentsResponse>> getAllResidentsByBuildingAndFloor(@PathVariable("buildingId") String buildingId, @PathVariable("floorNo") String floorNo) {
         List<ResidentsResponse> listOfResidents = residentsService.getAllResidentsByBuildingAndFloor(buildingId, floorNo);
         return new ResponseEntity<>(listOfResidents, HttpStatus.OK);
+    }
 
+    @GetMapping("/building/{buildingId}")
+    public ResponseEntity<List<ResidentsResponse>> getAllResidentsByBuildingId(@PathVariable("buildingId") String buildingId) {
+        List<ResidentsResponse> listOfResidents = residentsService.getAllResidentsByBuilding(buildingId);
+        return new ResponseEntity<>(listOfResidents, HttpStatus.OK);
     }
 }
