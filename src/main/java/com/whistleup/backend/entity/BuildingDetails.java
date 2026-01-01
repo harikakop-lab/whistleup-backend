@@ -88,4 +88,7 @@ public class BuildingDetails {
 
     @Column(name = "total_residents")
     private Long totalResidents;
+
+    @Column(name = "upi_id")
+    private String upiId;
 }

@@ -31,4 +31,5 @@ public class BuildingDetailsRequestResource {
     private String adminPhone;
     private String adminEmail;
     private Long totalResidents;
+    private String upiId;
 }
