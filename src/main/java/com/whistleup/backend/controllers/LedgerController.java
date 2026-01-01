@@ -27,25 +27,18 @@ public class LedgerController {
     }
 
     @GetMapping
-    public LedgerResponse getLedger(
-            @RequestParam int year,
-            @RequestParam String month
-    ) {
+    public LedgerResponse getLedger(@RequestParam int year, @RequestParam String month) {
         return ledgerService.getLedgerByYearAndMonth(year, month);
     }
 
     @PutMapping("/{ledgerId}")
-    public LedgerResponse updateLedger(
-            @PathVariable Long ledgerId,
-            @Valid @RequestBody UpdateLedgerRequest request
-    ) {
+    public LedgerResponse updateLedger(@PathVariable Long ledgerId, @Valid @RequestBody UpdateLedgerRequest request) {
         return ledgerService.updateLedger(ledgerId, request);
     }
 
     @GetMapping("/{ledgerId}/pdf")
     public ResponseEntity<byte[]> downloadPdf(@PathVariable Long ledgerId) {
         byte[] pdf = ledgerService.generateLedgerPdf(ledgerId);
-
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         "attachment; filename=Ledger_" + ledgerId + ".pdf")

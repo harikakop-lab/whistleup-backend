@@ -23,28 +23,34 @@ import java.util.List;
 @CrossOrigin("*")
 public class MaintenanceController {
 
-    private final MaintenanceService service;
+    private final MaintenanceService maintenanceService;
 
     @PostMapping("/create")
     public ResponseEntity<Void> create(@RequestBody MaintenanceCreateResource req) {
-        service.createMaintenance(req);
+        maintenanceService.createOrUpdateMaintenance(req);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
+    @GetMapping("/building/{buildingId}")
+    public ResponseEntity<List<MaintenanceResponseResource>> getAllMaintenanceByBuilding(@PathVariable String buildingId) {
+        return ResponseEntity.ok(maintenanceService.getByBuilding(buildingId));
+    }
+
+
     @GetMapping("/{username}")
-    public ResponseEntity<List<MaintenanceResponseResource>> getAll(@PathVariable String username) {
-        return ResponseEntity.ok(service.getByProfile(username));
+    public ResponseEntity<List<MaintenanceResponseResource>> getAllMaintenanceByProfileId(@PathVariable String username) {
+        return ResponseEntity.ok(maintenanceService.getMaintenanceByProfileId(username));
     }
 
     @PatchMapping("/{id}/pay")
     public ResponseEntity<Void> markPaid(@PathVariable Long id) {
-        service.markAsPaid(id);
+        maintenanceService.markAsPaid(id);
         return ResponseEntity.ok().build();
     }
 
     @GetMapping("/{id}/invoice")
     public ResponseEntity<Resource> downloadInvoice(@PathVariable Long id) {
-        Maintenance m = service.getEntity(id);
+        Maintenance m = maintenanceService.getEntity(id);
 
         Path path = Paths.get(m.getInvoicePath());
         Resource resource = new FileSystemResource(path);

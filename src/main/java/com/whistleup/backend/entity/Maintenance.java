@@ -28,7 +28,7 @@ public class Maintenance {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "profile_id", nullable = false)
+    @Column(name ="profile_id", nullable = false)
     private String profileId;
 
     @Column(name = "maintenance_year", nullable = false)
@@ -60,4 +60,7 @@ public class Maintenance {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private Instant updatedAt;
+
+    @Column(name = "building_id")
+    private String buildingId;
 }
