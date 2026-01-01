@@ -8,9 +8,11 @@ import com.whistleup.backend.resource.ComplaintCreateResource;
 import com.whistleup.backend.resource.ComplaintImageResponse;
 import com.whistleup.backend.resource.ComplaintsResponseResource;
 import com.whistleup.backend.service.ComplaintsService;
+import com.whistleup.backend.service.FileStorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -30,6 +32,11 @@ import java.util.UUID;
 public class ComplaintsServiceImpl implements ComplaintsService {
 
     private final ComplaintsRepository complaintsRepository;
+
+    private final FileStorageService fileStorageService;
+
+    @Value("${app.base-url}")
+    private String baseUrl;
 
 //    private final ComplaintImageRepository imageRepository;
 
@@ -78,20 +85,11 @@ public class ComplaintsServiceImpl implements ComplaintsService {
         complaintEntity.setProfileId(complaintCreateResource.getUsername());
         Complaints savedEntity = complaintsRepository.save(complaintEntity);
         List<String> imagePaths = new ArrayList<>();
-        if (files != null && files.length > 0) {
-            String baseDir = "whistleup/issues/" + savedEntity.getComplaintId();
-            File dir = new File(baseDir);
-            if (!dir.exists()) dir.mkdirs();
-
+        if (files != null) {
             for (MultipartFile file : files) {
-                try {
-                    String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
-                    Path filePath = Paths.get(baseDir, fileName);
-                    Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-                    imagePaths.add(filePath.toString());
-                } catch (IOException e) {
-                    throw new RuntimeException("Failed to store complaint image", e);
-                }
+                String savedFileName =
+                        fileStorageService.saveComplaintFile(savedEntity.getComplaintId(), file);
+                imagePaths.add(savedFileName);
             }
         }
 
@@ -99,6 +97,11 @@ public class ComplaintsServiceImpl implements ComplaintsService {
         complaintsRepository.save(savedEntity);
         ComplaintsResponseResource complaintsResponseResource = ComplaintsResponseResource.builder().build();
         BeanUtils.copyProperties(savedEntity, complaintsResponseResource);
+        List<String> imageUrls = imagePaths.stream()
+                .map(name -> baseUrl + "/media/complaints/" +
+                        savedEntity.getComplaintId() + "/" + name)
+                .toList();
+        complaintsResponseResource.setImageUrls(imageUrls);
         return complaintsResponseResource;
     }
 

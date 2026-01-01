@@ -29,7 +29,10 @@ razorpay:
   keySecret: VmOy1526JxTiTsR2bQG8KAkl
   currency: INR
   appName: whistleup
-
+app:
+  file-storage:
+    root: /opt/whistleup/uploads
+  base-url: http://localhost:8080
 sms:
   provider: fast2sms
   fast2sms:

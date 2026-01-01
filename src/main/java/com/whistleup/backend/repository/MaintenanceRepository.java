@@ -9,12 +9,18 @@ import java.util.Optional;
 public interface MaintenanceRepository extends JpaRepository<Maintenance, Long> {
 
 
-    List<Maintenance> findByProfileIdOrderByMaintenanceYearDescMaintenanceMonthDesc(
-            String profileId
+    List<Maintenance> findByBuildingIdOrderByMaintenanceYearDescMaintenanceMonthDesc(
+            String buildingId
     );
 
-    Optional<Maintenance> findByProfileIdAndMaintenanceYearAndMaintenanceMonth(
-            String profileId,
+
+    // By Profile Id to display it to the user
+    List<Maintenance> findByProfileIdOrderByMaintenanceYearDescMaintenanceMonthDesc(
+            String buildingId
+    );
+
+    Optional<Maintenance> findByBuildingIdAndMaintenanceYearAndMaintenanceMonth(
+            String buildingId,
             Integer maintenanceYear,
             Integer maintenanceMonth
     );

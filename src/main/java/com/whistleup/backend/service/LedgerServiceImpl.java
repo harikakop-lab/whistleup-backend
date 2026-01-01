@@ -8,11 +8,16 @@ import com.whistleup.backend.entity.LedgerItem;
 import com.whistleup.backend.repository.LedgerRepository;
 import com.whistleup.backend.resource.*;
 import jakarta.transaction.Transactional;
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import java.io.ByteArrayOutputStream;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -20,8 +25,11 @@ public class LedgerServiceImpl implements LedgerService {
 
     private final LedgerRepository ledgerRepository;
 
-    public LedgerServiceImpl(LedgerRepository ledgerRepository) {
+    private final MaintenanceService maintenanceService;
+
+    public LedgerServiceImpl(LedgerRepository ledgerRepository, MaintenanceService maintenanceService) {
         this.ledgerRepository = ledgerRepository;
+        this.maintenanceService = maintenanceService;
     }
 
     @Override
@@ -35,8 +43,37 @@ public class LedgerServiceImpl implements LedgerService {
         mapItems(request.getItems(), ledger);
 
         calculateTotals(ledger);
-
+        MaintenanceCreateResource maintenanceCreateResource = MaintenanceCreateResource.builder().build();
+        maintenanceCreateResource.setYear(request.getYear());
+        maintenanceCreateResource.setMonth(getMonthValue(request.getMonth()));
+        BigDecimal maintenanceAmount = new BigDecimal(0);
+        if (!CollectionUtils.isEmpty(request.getItems())) {
+            Double totalMaintenanceAmount = request.getItems().stream().mapToDouble(LedgerItemRequest::getAmount).sum();
+            maintenanceAmount = BigDecimal.valueOf(totalMaintenanceAmount / request.getTotalFlats());
+        }
+        maintenanceCreateResource.setAmount(maintenanceAmount);
+        maintenanceCreateResource.setDueDate(YearMonth.now().atEndOfMonth());
+        maintenanceCreateResource.setBuildingId(request.getBuildingId());
+        maintenanceService.createOrUpdateMaintenance(maintenanceCreateResource);
         return toResponse(ledgerRepository.save(ledger));
+    }
+
+    private Integer getMonthValue(@NotBlank String month) {
+        return switch (month.toUpperCase()) {
+            case "JANUARY" -> 1;
+            case "FEBRUARY" -> 2;
+            case "MARCH" -> 3;
+            case "APRIL" -> 4;
+            case "MAY" -> 5;
+            case "JUNE" -> 6;
+            case "JULY" -> 7;
+            case "AUGUST" -> 8;
+            case "SEPTEMBER" -> 9;
+            case "OCTOBER" -> 10;
+            case "NOVEMBER" -> 11;
+            case "DECEMBER" -> 12;
+            default -> throw new IllegalStateException("Unexpected value: " + month.toUpperCase());
+        };
     }
 
     @Override
@@ -51,7 +88,6 @@ public class LedgerServiceImpl implements LedgerService {
     @Override
     public LedgerResponse updateLedger(Long ledgerId, UpdateLedgerRequest request) {
         Ledger ledger = ledgerRepository.findById(ledgerId).orElseThrow();
-
         ledger.getItems().clear();
         mapItems(request.getItems(), ledger);
         calculateTotals(ledger);
@@ -102,7 +138,6 @@ public class LedgerServiceImpl implements LedgerService {
                 .stream()
                 .mapToDouble(LedgerItem::getAmount)
                 .sum();
-
         ledger.setTotalAmount(total);
         ledger.setPerFlatAmount(
                 ledger.getTotalFlats() == 0 ? 0 : total / ledger.getTotalFlats()
