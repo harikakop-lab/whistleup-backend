@@ -20,6 +20,8 @@ public interface ComplaintsService {
 
     void deleteComplaint(String complaintId);
 
+    void resolveTicket(String complaintId);
+
 //    List<ComplaintImageResponse> getImagesByComplaintId(String complaintId);
 //
 //    ComplaintImage getImage(Long imageId);

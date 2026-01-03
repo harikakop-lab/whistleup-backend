@@ -14,4 +14,6 @@ import java.util.List;
 public class ComplaintsResponseResource extends ComplaintCreateResource {
     private Long complaintId;
     private List<String> imageUrls;
+    private String raisedBy;
+    private String flatNumber;
 }

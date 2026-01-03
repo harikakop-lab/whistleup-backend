@@ -1,6 +1,8 @@
 package com.whistleup.backend.controllers;
 
 //import com.whistleup.backend.entity.ComplaintImage;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.whistleup.backend.resource.ComplaintCreateResource;
 import com.whistleup.backend.resource.ComplaintImageResponse;
 import com.whistleup.backend.resource.ComplaintsResponseResource;
@@ -32,9 +34,15 @@ public class ComplaintsController {
     }
 
     @GetMapping("/{complaintId}")
-    public ResponseEntity<ComplaintsResponseResource> getAllComplaints(@PathVariable("complaintId") String complaintId) {
+    public ResponseEntity<ComplaintsResponseResource> getComplaint(@PathVariable("complaintId") String complaintId) {
         ComplaintsResponseResource complaints = complaintsService.getAllComplaintsById(complaintId);
         return new ResponseEntity<>(complaints, HttpStatus.OK);
+    }
+
+    @PutMapping("/{complaintId}")
+    public ResponseEntity<Void> markComplaintAsResolved(@PathVariable("complaintId") String complaintId) {
+        complaintsService.resolveTicket(complaintId);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @GetMapping("/profile/{profileId}")
@@ -50,11 +58,15 @@ public class ComplaintsController {
     }
 
     @PostMapping(value = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ComplaintsResponseResource> registerComplaint(@RequestPart("complaint") ComplaintCreateResource complaintCreateResource,
-                                                                        @RequestPart(value = "files", required = false) MultipartFile[] files) {
-        ComplaintsResponseResource response = complaintsService.registerComplaint(complaintCreateResource, files);
+    public ResponseEntity<ComplaintsResponseResource> registerComplaint(@RequestPart("complaint") String complaintJson,
+        @RequestPart(value = "files", required = false) MultipartFile[] files) throws Exception {
+        ComplaintCreateResource complaint =
+                new ObjectMapper().readValue(complaintJson, ComplaintCreateResource.class);
+        ComplaintsResponseResource response =
+                complaintsService.registerComplaint(complaint, files);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
+
 
 //    @GetMapping("/{complaintId}/images")
 //    public ResponseEntity<List<ComplaintImageResponse>> getImagesByComplaintId(

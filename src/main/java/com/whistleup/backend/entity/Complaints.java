@@ -17,7 +17,7 @@ import java.util.List;
 public class Complaints {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "complaint_id")
     private Long complaintId;
 

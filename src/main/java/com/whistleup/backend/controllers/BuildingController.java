@@ -6,6 +6,7 @@ import com.whistleup.backend.resource.BuildingDetailsResponseResource;
 import com.whistleup.backend.resource.BuildingServices;
 import com.whistleup.backend.service.BuildingDetailsService;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/whistleup/building")
 @CrossOrigin("*")
@@ -34,7 +36,7 @@ public class BuildingController {
 
     @GetMapping("/{buildingId}")
     public ResponseEntity<BuildingDetailsResponseResource> getBuildingDetailsById(@PathVariable("buildingId") Long buildingId) {
-
+        log.info("Received call from FE: {}", buildingId);
         BuildingDetails buildingDetails = buildingDetailsService.getBuildingDetails(buildingId);
         return new ResponseEntity<>(buildResponseResource(buildingDetails), HttpStatus.OK);
     }
