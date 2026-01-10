@@ -91,4 +91,7 @@ public class BuildingDetails {
 
     @Column(name = "upi_id")
     private String upiId;
+
+    @Column(name = "water_bill_required")
+    private boolean isWaterBillRequired;
 }

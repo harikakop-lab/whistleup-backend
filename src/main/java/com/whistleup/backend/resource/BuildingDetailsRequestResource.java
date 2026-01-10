@@ -32,4 +32,5 @@ public class BuildingDetailsRequestResource {
     private String adminEmail;
     private Long totalResidents;
     private String upiId;
+    private boolean isWaterBillRequired;
 }
