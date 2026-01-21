@@ -9,16 +9,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/water-bill")
+@RequestMapping("/whistleup/water-bill")
 @RequiredArgsConstructor
 public class WaterBillController {
 
     private final WaterBillService waterBillService;
 
     @PostMapping
-    public ResponseEntity<?> createWaterBill(
-            @Valid @RequestBody WaterBillRequest request
-    ) {
+    public ResponseEntity<?> createWaterBill(@Valid @RequestBody WaterBillRequest request) {
         waterBillService.createWaterBill(request);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }

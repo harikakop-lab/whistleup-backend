@@ -18,7 +18,10 @@ public class WaterBill {
 
     private Long buildingId;
 
+    @Column(name = "bill_year")
     private Integer year;
+
+    @Column(name = "bill_month")
     private String month;
 
     private Double liftCurrentBill;
