@@ -4,13 +4,13 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
 @Table(name = "complaints")
 @Getter
 @Setter
-@Builder
 @JsonIgnoreProperties(ignoreUnknown = true)
 @NoArgsConstructor
 @AllArgsConstructor
@@ -45,12 +45,7 @@ public class Complaints {
     @Column(name = "assignee_profile")
     private String assigneeProfile;
 
-    @ElementCollection
-    @CollectionTable(
-            name = "complaint_images",
-            joinColumns = @JoinColumn(name = "complaint_id")
-    )
-    @Column(name = "image_path")
-    private List<String> imagePaths;
+    @OneToMany(mappedBy = "complaint", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ComplaintImage> images = new ArrayList<>();
 
 }

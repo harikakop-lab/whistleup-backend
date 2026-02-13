@@ -3,6 +3,10 @@ package com.whistleup.backend.controllers;
 //import com.whistleup.backend.entity.ComplaintImage;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.whistleup.backend.entity.ComplaintImage;
+import com.whistleup.backend.entity.Complaints;
+import com.whistleup.backend.repository.ComplaintImageRepository;
+import com.whistleup.backend.repository.ComplaintsRepository;
 import com.whistleup.backend.resource.ComplaintCreateResource;
 import com.whistleup.backend.resource.ComplaintImageResponse;
 import com.whistleup.backend.resource.ComplaintsResponseResource;
@@ -23,8 +27,14 @@ public class ComplaintsController {
 
     private final ComplaintsService complaintsService;
 
-    public ComplaintsController(ComplaintsService complaintsService) {
+    private final ComplaintsRepository complaintsRepository;
+
+    private final ComplaintImageRepository complaintImageRepository;
+
+    public ComplaintsController(ComplaintsService complaintsService, ComplaintsRepository complaintsRepository, ComplaintImageRepository complaintImageRepository) {
         this.complaintsService = complaintsService;
+        this.complaintsRepository = complaintsRepository;
+        this.complaintImageRepository = complaintImageRepository;
     }
 
     @GetMapping("")
@@ -67,6 +77,27 @@ public class ComplaintsController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
+    @GetMapping("/{complaintId}/images")
+    public ResponseEntity<List<String>> getImageUrls(
+            @PathVariable Long complaintId) {
+        Complaints complaint = complaintsRepository.findById(complaintId)
+                .orElseThrow(() -> new RuntimeException("Complaint not found"));
+        List<String> urls = complaint.getImages()
+                .stream()
+                .map(img -> "/issues/images/" + img.getId())
+                .toList();
+        return ResponseEntity.ok(urls);
+    }
+
+    @GetMapping("/images/{imageId}")
+    public ResponseEntity<byte[]> getImage(@PathVariable Long imageId) {
+        ComplaintImage image = complaintImageRepository.findById(imageId)
+                .orElseThrow(() -> new RuntimeException("Image not found"));
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(image.getContentType()))
+                .body(image.getImageData());
+    }
 
 //    @GetMapping("/{complaintId}/images")
 //    public ResponseEntity<List<ComplaintImageResponse>> getImagesByComplaintId(
