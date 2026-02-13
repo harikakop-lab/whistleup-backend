@@ -7,7 +7,6 @@ import com.whistleup.backend.constants.Roles;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -26,4 +25,5 @@ public class ProfileResponseResource extends ProfileCreateResource {
     private String phone;
     @Enumerated(EnumType.STRING)
     private Roles role;
+    private String avatarUri;
 }

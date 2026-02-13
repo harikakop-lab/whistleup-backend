@@ -30,6 +30,8 @@ razorpay:
   currency: INR
   appName: whistleup
 app:
+  upload:
+    dir: uploads/profile
   file-storage:
     root: /opt/whistleup/uploads
   base-url: http://localhost:8080
