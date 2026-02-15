@@ -1,7 +1,7 @@
 package com.whistleup.backend.constants;
 
 public enum Roles {
-    SERVICE,
+    SYSTEM_ADMIN,
     ADMIN,
     USER
 }
