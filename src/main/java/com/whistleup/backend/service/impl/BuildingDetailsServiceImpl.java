@@ -45,6 +45,7 @@ public class BuildingDetailsServiceImpl implements BuildingDetailsService {
     private BuildingDetails convertToBuildingDetails(BuildingDetailsRequestResource buildingDetailsRequestResource) {
         BuildingDetails buildingDetails = new BuildingDetails();
         BeanUtils.copyProperties(buildingDetailsRequestResource, buildingDetails);
+        buildingDetails.setProfileId(buildingDetailsRequestResource.getAdminPhone());
         return buildingDetails;
     }
 
@@ -59,6 +60,7 @@ public class BuildingDetailsServiceImpl implements BuildingDetailsService {
                 .orElseThrow(() -> new NotFoundException("No Buildings found with this id"));
         existingBuildingDetails.setBuildingName(updateBuildingDetailsRequestResource.getBuildingName());
         existingBuildingDetails.setBuildingAddress(updateBuildingDetailsRequestResource.getBuildingAddress());
+        existingBuildingDetails.setProfileId(updateBuildingDetailsRequestResource.getAdminPhone());
         return buildingDetailsRepository.save(existingBuildingDetails);
     }
 
