@@ -26,4 +26,5 @@ public class ProfileResponseResource extends ProfileCreateResource {
     @Enumerated(EnumType.STRING)
     private Roles role;
     private String avatarUri;
+    private String buildingName;
 }

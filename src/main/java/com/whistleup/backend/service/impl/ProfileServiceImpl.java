@@ -195,6 +195,8 @@ public class ProfileServiceImpl implements ProfileService {
         Profile profile = profileOptional.get();
         ProfileResponseResource profileResponseResource = new ProfileResponseResource();
         BeanUtils.copyProperties(profile, profileResponseResource);
+        Optional<BuildingDetails> buildingDetailsOptional = buildingRepository.findById(Long.valueOf(profile.getBuildingId()));
+        buildingDetailsOptional.ifPresent(buildingDetails -> profileResponseResource.setBuildingName(buildingDetails.getBuildingName()));
         return profileResponseResource;
     }
 
