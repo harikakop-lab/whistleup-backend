@@ -25,11 +25,6 @@ public class NotificationService {
             .toList();
     }
 
-    @Transactional
-    public void saveNotification() {
-
-    }
-
     private NotificationResponse mapToResponse(NotificationEntity n) {
         return NotificationResponse.builder()
                 .id(n.getId())

@@ -22,7 +22,6 @@ public class NotificationSendService {
      */
     @Transactional
     public void notifyUser(Long userId, String title, String body, String type) {
-
         // 1️⃣ Save to DB
         notificationRepository.save(
                 NotificationEntity.builder()
@@ -37,7 +36,6 @@ public class NotificationSendService {
         // 2️⃣ Fetch active tokens
         List<String> tokens =
                 deviceTokenRepository.findActiveTokensByUserId(userId);
-
         // 3️⃣ Send push
         tokens.forEach(token ->
                 expoPushService.send(token, title, body)

@@ -1,5 +1,6 @@
 package com.whistleup.backend.service.impl;
 
+import com.whistleup.backend.constants.IssueType;
 import com.whistleup.backend.entity.ComplaintImage;
 import com.whistleup.backend.entity.Complaints;
 import com.whistleup.backend.entity.Profile;
@@ -12,8 +13,10 @@ import com.whistleup.backend.resource.ComplaintImageResponse;
 import com.whistleup.backend.resource.ComplaintsResponseResource;
 import com.whistleup.backend.service.ComplaintsService;
 import com.whistleup.backend.service.FileStorageService;
+import com.whistleup.backend.service.NotificationSendService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
@@ -40,6 +43,8 @@ public class ComplaintsServiceImpl implements ComplaintsService {
     private final FileStorageService fileStorageService;
 
     private final ProfileRepository profileRepository;
+
+    private final NotificationSendService notificationSendService;
 
     @Value("${app.base-url}")
     private String baseUrl;
@@ -125,12 +130,8 @@ public class ComplaintsServiceImpl implements ComplaintsService {
         }
 
         complaintsRepository.save(savedEntity);
-
-
         ComplaintsResponseResource response = ComplaintsResponseResource.builder().build();
         BeanUtils.copyProperties(savedEntity, response);
-//        List<String> imageUrls = imagePaths.stream()
-//                .map(fileName -> buildComplaintImageUrl(savedEntity.getComplaintId(), fileName)).toList();
         List<String> imageUrls = savedEntity.getImages().stream()
                 .map(img -> "/issues/" + savedEntity.getComplaintId() +
                         "/images/" + img.getId())
@@ -138,6 +139,10 @@ public class ComplaintsServiceImpl implements ComplaintsService {
 
         response.setImageUrls(imageUrls);
         response.setImageUrls(imageUrls);
+        val assigneeProfile = Long.valueOf(savedEntity.getAssigneeProfile());
+        val title = "A new issue created";
+        val body = "Please check in All issues section for more details";
+        notificationSendService.notifyUser(assigneeProfile, title, body, IssueType.INFO.name());
         return response;
     }
 

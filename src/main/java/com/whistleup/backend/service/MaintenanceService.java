@@ -1,5 +1,6 @@
 package com.whistleup.backend.service;
 
+import com.whistleup.backend.constants.IssueType;
 import com.whistleup.backend.constants.MaintenanceStatus;
 import com.whistleup.backend.controllers.ResidentsResponse;
 import com.whistleup.backend.entity.Maintenance;
@@ -8,7 +9,9 @@ import com.whistleup.backend.repository.MaintenanceRepository;
 import com.whistleup.backend.repository.ProfileRepository;
 import com.whistleup.backend.resource.MaintenanceCreateResource;
 import com.whistleup.backend.resource.MaintenanceResponseResource;
+import com.whistleup.backend.scheduler.NotificationScheduler;
 import lombok.RequiredArgsConstructor;
+import lombok.val;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
@@ -25,27 +28,35 @@ public class MaintenanceService {
     private final MaintenanceRepository repository;
     private final InvoiceService invoiceService;
     private final ProfileRepository profileRepository;
+    private final NotificationSendService notificationSendService;
 
     public void createOrUpdateMaintenance(MaintenanceCreateResource maintenanceCreateResource) {
-        Optional<Maintenance> maintenanceOptional = repository.findByBuildingIdAndMaintenanceYearAndMaintenanceMonth(
-                maintenanceCreateResource.getBuildingId(),
+        Optional<Maintenance> maintenanceOptional = repository
+                .findByBuildingIdAndMaintenanceYearAndMaintenanceMonth(maintenanceCreateResource.getBuildingId(),
                 maintenanceCreateResource.getYear(),
                 maintenanceCreateResource.getMonth());
         Maintenance maintenance;
-        List<ResidentsResponse> residentsInTheBuilding = profileRepository.getListOfResidentsByBuilding(Long.valueOf(maintenanceCreateResource.getBuildingId()));
+        List<ResidentsResponse> residentsInTheBuilding = profileRepository
+                .getListOfResidentsByBuilding(Long.valueOf(maintenanceCreateResource.getBuildingId()));
         if (!CollectionUtils.isEmpty(residentsInTheBuilding)) {
             for (ResidentsResponse residentsResponse : residentsInTheBuilding) {
+                val phone = residentsResponse.getPhone();
+                val amount = maintenanceCreateResource.getAmount();
                 maintenance = maintenanceOptional.orElseGet(() -> Maintenance.builder()
-                        .profileId(residentsResponse.getPhone())
+                        .profileId(phone)
                         .maintenanceYear(maintenanceCreateResource.getYear())
                         .maintenanceMonth(maintenanceCreateResource.getMonth())
-                        .amount(maintenanceCreateResource.getAmount())
+                        .amount(amount)
                         .dueDate(YearMonth.now().atEndOfMonth())
                         .status(MaintenanceStatus.PENDING)
                         .buildingId(maintenanceCreateResource.getBuildingId())
                         .build());
-                maintenance.setAmount(maintenanceCreateResource.getAmount());
+                maintenance.setAmount(amount);
                 repository.save(maintenance);
+                notificationSendService.notifyUser(Long.valueOf(phone),
+                        "Maintenance",
+                        "Please pay your maintenance amount of " + amount + " rupees for this month.",
+                        IssueType.ALERT.name());
             }
         }
     }
@@ -96,5 +107,11 @@ public class MaintenanceService {
                 .stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    public List<Maintenance> getListOfPendingMaintenanceForCurrentMonth() {
+        val year = LocalDate.now().getYear();
+        val month = LocalDate.now().getMonthValue();
+        return repository.findPendingMaintenanceByCurrentMonthAndYear(month, year);
     }
 }
