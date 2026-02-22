@@ -9,5 +9,5 @@ public interface NoticeService {
 
     NoticeResponseResource createNotice(NoticeCreateResource resource);
 
-    List<NoticeResponseResource> getNoticesByProfile(String profileId);
+    List<NoticeResponseResource> getNoticesByBuilding(String profileId);
 }

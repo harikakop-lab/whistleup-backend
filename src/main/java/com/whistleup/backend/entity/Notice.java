@@ -32,6 +32,9 @@ public class Notice {
     @Column(name = "profile_id", nullable = false, length = 20)
     private String profileId;
 
+    @Column(name = "building_id", nullable = false, length = 20)
+    private String buildingId;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 }

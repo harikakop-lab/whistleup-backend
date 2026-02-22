@@ -25,12 +25,12 @@ public class NoticeServiceImpl implements NoticeService {
 
     @Override
     public NoticeResponseResource createNotice(NoticeCreateResource resource) {
-
         Notice notice = Notice.builder()
                 .title(resource.getTitle())
                 .description(resource.getDescription())
                 .type(resource.getType())
                 .profileId(resource.getProfileId())
+                .buildingId(resource.getBuildingId())
                 .createdAt(LocalDateTime.now())
                 .build();
         Notice saved = noticeRepository.save(notice);
@@ -48,8 +48,8 @@ public class NoticeServiceImpl implements NoticeService {
     }
 
     @Override
-    public List<NoticeResponseResource> getNoticesByProfile(String profileId) {
-        return noticeRepository.findByProfileIdOrderByCreatedAtDesc(profileId)
+    public List<NoticeResponseResource> getNoticesByBuilding(String buildingId) {
+        return noticeRepository.findByBuildingIdOrderByCreatedAtDesc(buildingId)
                 .stream()
                 .map(this::map)
                 .toList();
