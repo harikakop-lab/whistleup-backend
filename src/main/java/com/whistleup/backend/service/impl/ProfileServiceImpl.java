@@ -93,17 +93,13 @@ public class ProfileServiceImpl implements ProfileService {
 
     @Override
     public String updateProfile(ProfileCreateResource profileUpdateResource) {
-
         Optional<Profile> profileOptional =
                 profileRepository.findByPhone(profileUpdateResource.getPhone());
-
         if (profileOptional.isEmpty()) {
             log.error("Profile not found with phone: {}", profileUpdateResource.getPhone());
             throw new NotFoundException("Profile not found");
         }
-
         Profile profileEntity = profileOptional.get();
-
         // Copy non-null basic fields
         BeanUtils.copyProperties(
                 profileUpdateResource,

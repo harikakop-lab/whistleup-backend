@@ -23,7 +23,7 @@ public class NotificationScheduler {
     /**
      * Runs every 1 minute
      */
-    @Scheduled(cron = "0 0 6,18 * * *")
+    @Scheduled(cron = "0 0 6,18 * * *", zone = "Asia/Kolkata")
     public void sendMinuteNotifications() {
         log.info("⏰ Notification scheduler triggered at {}", LocalDateTime.now());
         val pendingMaintenances = maintenanceService.getListOfPendingMaintenanceForCurrentMonth();
