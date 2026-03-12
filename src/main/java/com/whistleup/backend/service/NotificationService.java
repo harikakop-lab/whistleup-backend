@@ -1,38 +1,70 @@
 package com.whistleup.backend.service;
 
-import com.whistleup.backend.notifications.entity.NotificationEntity;
+import com.whistleup.backend.entity.NotificationEntity;
 import com.whistleup.backend.repository.NotificationRepository;
+import com.whistleup.backend.repository.UserPushTokenRepository;
 import com.whistleup.backend.resource.NotificationResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 public class NotificationService {
 
-    private final NotificationRepository repository;
+    private final NotificationRepository notificationRepo;
+    private final UserPushTokenRepository tokenRepo;
+    private final PushNotificationService pushService;
 
-    @Transactional(readOnly = true)
-    public List<NotificationResponse> getUserNotifications(Long userId) {
+    public void createAndPushNotification(
+            String phone,
+            String title,
+            String message,
+            String type,
+            String referenceId
+    ) {
+        NotificationEntity n = NotificationEntity.builder()
+                .phone(phone)
+                .title(title)
+                .message(message)
+                .type(type)
+                .referenceId(referenceId)
+                .read(false)
+                .pushed(false)
+                .createdAt(LocalDateTime.now())
+                .build();
 
-        return repository
-            .findByUserIdOrderByCreatedAtDesc(userId)
-            .stream()
-            .map(this::mapToResponse)
-            .toList();
+        notificationRepo.save(n);
+
+        tokenRepo.findById(phone).ifPresent(token -> {
+            pushService.sendPush(
+                    token.getPushToken(),
+                    title,
+                    message,
+                    Map.of(
+                        "type", type,
+                        "referenceId", referenceId
+                    )
+            );
+            n.setPushed(true);
+            notificationRepo.save(n);
+        });
     }
 
-    private NotificationResponse mapToResponse(NotificationEntity n) {
-        return NotificationResponse.builder()
-                .id(n.getId())
-                .title(n.getTitle())
-                .body(n.getBody())
-                .type(n.getType())
-                .isRead(n.getIsRead())
-                .createdAt(n.getCreatedAt())
-                .build();
+    public List<NotificationResponse> getNotifications(String phone) {
+        return notificationRepo.findByPhoneOrderByCreatedAtDesc(phone)
+                .stream()
+                .map(NotificationResponse::from)
+                .toList();
+    }
+
+    public void markAsRead(Long id) {
+        notificationRepo.findById(id).ifPresent(n -> {
+            n.setRead(true);
+            notificationRepo.save(n);
+        });
     }
 }
