@@ -33,4 +33,9 @@ public class ProfileCreateResource {
     private Roles role = Roles.ADMIN;
 
     private List<ContactResource> contacts;
+
+    private String upiId;
+    private String buildingId;
+    private String floor;
+    private String flatNo;
 }

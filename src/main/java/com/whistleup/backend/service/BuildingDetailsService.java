@@ -3,6 +3,7 @@ package com.whistleup.backend.service;
 import com.whistleup.backend.entity.BuildingDetails;
 import com.whistleup.backend.resource.BuildingDetailsRequestResource;
 import com.whistleup.backend.resource.BuildingDetailsResponseResource;
+import com.whistleup.backend.resource.BuildingServices;
 
 import java.util.List;
 
@@ -21,4 +22,9 @@ public interface BuildingDetailsService {
     void deleteBuildingDetails(Long buildingId);
 
     BuildingDetails getBuildingServicesByProfileId(String username);
+
+    List<BuildingDetailsResponseResource> getBuildingDetailsDropDown();
+
+    void updateBuildingServices(Long buildingId, BuildingServices buildingServices);
+
 }

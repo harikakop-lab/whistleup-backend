@@ -1,10 +1,14 @@
 package com.whistleup.backend.service.impl;
 
 import com.whistleup.backend.constants.Roles;
+import com.whistleup.backend.entity.BuildingDetails;
 import com.whistleup.backend.entity.Contact;
+import com.whistleup.backend.entity.FlatDetails;
 import com.whistleup.backend.entity.Profile;
 import com.whistleup.backend.exception.BadRequestException;
 import com.whistleup.backend.exception.NotFoundException;
+import com.whistleup.backend.repository.BuildingDetailsRepository;
+import com.whistleup.backend.repository.FlatRepository;
 import com.whistleup.backend.repository.ProfileRepository;
 import com.whistleup.backend.resource.ContactResource;
 import com.whistleup.backend.resource.ProfileCreateResource;
@@ -34,10 +38,16 @@ public class ProfileServiceImpl implements ProfileService {
 
     private final ProfileRepository profileRepository;
 
+    private final FlatRepository flatRepository;
+
+    private final BuildingDetailsRepository buildingRepository;
+
     private final PasswordEncoder passwordEncoder;
 
-    public ProfileServiceImpl(ProfileRepository profileRepository, PasswordEncoder passwordEncoder) {
+    public ProfileServiceImpl(ProfileRepository profileRepository, FlatRepository flatRepository, BuildingDetailsRepository buildingRepository, PasswordEncoder passwordEncoder) {
         this.profileRepository = profileRepository;
+        this.flatRepository = flatRepository;
+        this.buildingRepository = buildingRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -69,25 +79,27 @@ public class ProfileServiceImpl implements ProfileService {
         }
 
         Profile savedProfile = profileRepository.save(profile);
-
-        return ProfileResponseResource.builder()
-                .userId(savedProfile.getPhone())
-                .build();
+        FlatDetails flatDetails = FlatDetails.builder().build();
+        flatDetails.setResident(savedProfile);
+        flatDetails.setFloor(Objects.isNull(savedProfile.getFloor()) ? null : Long.valueOf(savedProfile.getFloor()));
+        flatDetails.setFlatNumber(savedProfile.getFlatNo());
+        BuildingDetails buildingDetails = buildingRepository.findById(Long.valueOf(savedProfile.getBuildingId())).orElse(null);
+        flatDetails.setBuilding(buildingDetails);
+        flatRepository.save(flatDetails);
+        ProfileResponseResource profileResponseResource = new ProfileResponseResource();
+        profileResponseResource.setUserId(savedProfile.getPhone());
+        return profileResponseResource;
     }
 
     @Override
     public String updateProfile(ProfileCreateResource profileUpdateResource) {
-
         Optional<Profile> profileOptional =
                 profileRepository.findByPhone(profileUpdateResource.getPhone());
-
         if (profileOptional.isEmpty()) {
             log.error("Profile not found with phone: {}", profileUpdateResource.getPhone());
             throw new NotFoundException("Profile not found");
         }
-
         Profile profileEntity = profileOptional.get();
-
         // Copy non-null basic fields
         BeanUtils.copyProperties(
                 profileUpdateResource,
@@ -102,7 +114,6 @@ public class ProfileServiceImpl implements ProfileService {
             );
         }
 
-        // ✅ APPEND CONTACTS (NO DELETE)
         if (profileUpdateResource.getContacts() != null
                 && !profileUpdateResource.getContacts().isEmpty()) {
 
@@ -157,7 +168,7 @@ public class ProfileServiceImpl implements ProfileService {
             throw new NotFoundException("No user found with userId: " + userId);
         }
         Profile profile = profileOptional.get();
-        ProfileResponseResource profileResponseResource = ProfileResponseResource.builder().build();
+        ProfileResponseResource profileResponseResource = new ProfileResponseResource();
         BeanUtils.copyProperties(profile, profileResponseResource);
         return profileResponseResource;
     }
@@ -178,8 +189,10 @@ public class ProfileServiceImpl implements ProfileService {
             throw new NotFoundException("No user found with username: " + username);
         }
         Profile profile = profileOptional.get();
-        ProfileResponseResource profileResponseResource = ProfileResponseResource.builder().build();
+        ProfileResponseResource profileResponseResource = new ProfileResponseResource();
         BeanUtils.copyProperties(profile, profileResponseResource);
+        Optional<BuildingDetails> buildingDetailsOptional = buildingRepository.findById(Long.valueOf(profile.getBuildingId()));
+        buildingDetailsOptional.ifPresent(buildingDetails -> profileResponseResource.setBuildingName(buildingDetails.getBuildingName()));
         return profileResponseResource;
     }
 
@@ -214,6 +227,11 @@ public class ProfileServiceImpl implements ProfileService {
                 .orElseThrow(() -> new RuntimeException("Profile not found"));
         Path imagePath = Paths.get(profile.getProfileImagePath());
         return new UrlResource(imagePath.toUri());
+    }
+
+    @Override
+    public boolean doesProfileExists(String username) {
+        return profileRepository.findByEmailOrPhone(username).isPresent();
     }
 
     @Override

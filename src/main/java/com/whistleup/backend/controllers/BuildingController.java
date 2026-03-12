@@ -3,8 +3,10 @@ package com.whistleup.backend.controllers;
 import com.whistleup.backend.entity.BuildingDetails;
 import com.whistleup.backend.resource.BuildingDetailsRequestResource;
 import com.whistleup.backend.resource.BuildingDetailsResponseResource;
+import com.whistleup.backend.resource.BuildingServices;
 import com.whistleup.backend.service.BuildingDetailsService;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/whistleup/building")
 @CrossOrigin("*")
@@ -21,14 +24,19 @@ public class BuildingController {
     @Autowired
     BuildingDetailsService buildingDetailsService;
 
-    @GetMapping("")
+    @GetMapping("/")
     public ResponseEntity<List<BuildingDetailsResponseResource>> getExistingBuildingDetails() {
         return new ResponseEntity<>(buildingDetailsService.getExistingBuildingsInformation(), HttpStatus.OK);
     }
 
+    @GetMapping("/all")
+    public ResponseEntity<List<BuildingDetailsResponseResource>> getBuildingDetailsDropDown() {
+        return new ResponseEntity<>(buildingDetailsService.getBuildingDetailsDropDown(), HttpStatus.OK);
+    }
+
     @GetMapping("/{buildingId}")
     public ResponseEntity<BuildingDetailsResponseResource> getBuildingDetailsById(@PathVariable("buildingId") Long buildingId) {
-
+        log.info("Received call from FE: {}", buildingId);
         BuildingDetails buildingDetails = buildingDetailsService.getBuildingDetails(buildingId);
         return new ResponseEntity<>(buildResponseResource(buildingDetails), HttpStatus.OK);
     }
@@ -54,6 +62,12 @@ public class BuildingController {
                                                                                  @RequestBody BuildingDetailsRequestResource updateRequestResource) {
         BuildingDetails buildingDetails = buildingDetailsService.updateBuildingDetails(buildingId, updateRequestResource);
         return new ResponseEntity<>(buildResponseResource(buildingDetails), HttpStatus.OK);
+    }
+
+    @PutMapping("/update/services")
+    public ResponseEntity<Void> updateWatchmanDetails(@RequestBody BuildingServices buildingServices) {
+        buildingDetailsService.updateBuildingServices(Long.valueOf(buildingServices.getBuildingId()), buildingServices);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @PatchMapping("/update/{buildingId}/address")

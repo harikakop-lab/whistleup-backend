@@ -51,4 +51,15 @@ public class Profile {
     @OneToMany(mappedBy = "profile", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Contact> contacts;
 
+    @Column(name = "upi_id")
+    private String upiId;
+
+    @Column(name = "building_id")
+    private String buildingId;
+
+    @Column(name = "floor")
+    private String floor;
+
+    @Column(name = "flat_no")
+    private String flatNo;
 }

@@ -28,5 +28,7 @@ public interface ProfileService {
 
     Resource getProfileImage(String username) throws MalformedURLException;
 
+    boolean doesProfileExists(String username);
+
     List<ContactResource> getContactsByUsername(String username);
 }

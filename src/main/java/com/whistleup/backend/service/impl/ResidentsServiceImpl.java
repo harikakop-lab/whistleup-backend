@@ -28,4 +28,14 @@ public class ResidentsServiceImpl implements ResidentsService {
         }
         return Collections.emptyList();
     }
+
+    @Override
+    public List<ResidentsResponse> getAllResidentsByBuilding(String buildingId) {
+        try {
+            return profileRepository.getListOfResidentsByBuilding(Long.valueOf(buildingId));
+        } catch (Exception exception) {
+            log.error("Error while fetching residents: {}", exception.getMessage(), exception);
+        }
+        return Collections.emptyList();
+    }
 }

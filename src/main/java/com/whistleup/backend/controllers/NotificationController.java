@@ -7,11 +7,11 @@ import com.whistleup.backend.resource.RegisterPushTokenRequest;
 import com.whistleup.backend.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-
+import lombok.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/notifications")
+@RequestMapping("/whistleup/notifications")
 @RequiredArgsConstructor
 public class NotificationController {
 
@@ -23,12 +23,10 @@ public class NotificationController {
             @RequestBody RegisterPushTokenRequest req
     ) {
         tokenRepo.save(
-                new UserPushTokenEntity(
                         req.getPhone(),
                         req.getPushToken(),
                         req.getPlatform()
-                )
-        );
+                );
     }
 
     @GetMapping

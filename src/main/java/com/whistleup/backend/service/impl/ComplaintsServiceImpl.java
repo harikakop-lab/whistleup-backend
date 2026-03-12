@@ -1,18 +1,29 @@
 package com.whistleup.backend.service.impl;
 
+import com.whistleup.backend.constants.IssueType;
+import com.whistleup.backend.entity.ComplaintImage;
 import com.whistleup.backend.entity.Complaints;
+import com.whistleup.backend.entity.Profile;
 import com.whistleup.backend.exception.NotFoundException;
 //import com.whistleup.backend.repository.ComplaintImageRepository;
 import com.whistleup.backend.repository.ComplaintsRepository;
+import com.whistleup.backend.repository.ProfileRepository;
 import com.whistleup.backend.resource.ComplaintCreateResource;
 import com.whistleup.backend.resource.ComplaintImageResponse;
 import com.whistleup.backend.resource.ComplaintsResponseResource;
 import com.whistleup.backend.service.ComplaintsService;
+import com.whistleup.backend.service.FileStorageService;
+import com.whistleup.backend.service.NotificationSendService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,9 +31,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @Slf4j
@@ -30,6 +39,15 @@ import java.util.UUID;
 public class ComplaintsServiceImpl implements ComplaintsService {
 
     private final ComplaintsRepository complaintsRepository;
+
+    private final FileStorageService fileStorageService;
+
+    private final ProfileRepository profileRepository;
+
+    private final NotificationSendService notificationSendService;
+
+    @Value("${app.base-url}")
+    private String baseUrl;
 
 //    private final ComplaintImageRepository imageRepository;
 
@@ -57,39 +75,75 @@ public class ComplaintsServiceImpl implements ComplaintsService {
         return complaints.stream().map(complaint -> {
             ComplaintsResponseResource complaintsResponseResource = ComplaintsResponseResource.builder().build();
             BeanUtils.copyProperties(complaint, complaintsResponseResource);
+            Optional<Profile> profileOptional = profileRepository.findByPhone(complaint.getProfileId());
+            complaintsResponseResource.setRaisedBy(profileOptional.isPresent() ? profileOptional.get().getName() : "");
+            complaintsResponseResource.setFlatNumber(profileOptional.isPresent() ? profileOptional.get().getFlatNo() : "");
+//            complaintsResponseResource.setImageUrls(complaint.getImagePaths());
             return complaintsResponseResource;
         }).toList();
     }
 
     @Override
-    public ComplaintsResponseResource registerComplaint(ComplaintCreateResource complaintCreateResource, MultipartFile[] files) {
-        Complaints complaintEntity = Complaints.builder().build();
+    public List<ComplaintsResponseResource> getComplaintsByAssigneeProfileId(String profileId) {
+        List<Complaints> complaints = complaintsRepository.findByAssigneeProfile(profileId)
+                .orElseThrow(() -> new NotFoundException("No Complaints/suggestions found for profile id: " + profileId));
+        return complaints.stream().map(complaint -> {
+            ComplaintsResponseResource response = ComplaintsResponseResource.builder().build();
+            BeanUtils.copyProperties(complaint, response);
+            Optional<Profile> profileOptional = profileRepository.findByPhone(complaint.getProfileId());
+            response.setRaisedBy(profileOptional.map(Profile::getName).orElse(""));
+            response.setFlatNumber(profileOptional.map(Profile::getFlatNo).orElse(""));
+
+            List<String> imageUrls = new ArrayList<>();
+            List<String> imagePaths = new ArrayList<>();
+
+            if (!CollectionUtils.isEmpty(imagePaths)) {
+                for (String fileName : imagePaths) {
+//                    imageUrls.add(buildComplaintImageUrl(complaint.getComplaintId(), fileName));
+                }
+            }
+            response.setImageUrls(imageUrls);
+            return response;
+        }).toList();
+    }
+
+    @Override
+    public ComplaintsResponseResource registerComplaint(ComplaintCreateResource complaintCreateResource, MultipartFile[] files) throws IOException {
+
+        // 1️⃣ Create & save complaint entity
+        Complaints complaintEntity = new Complaints();
         BeanUtils.copyProperties(complaintCreateResource, complaintEntity);
         complaintEntity.setProfileId(complaintCreateResource.getUsername());
-        Complaints savedEntity = complaintsRepository.save(complaintEntity);
-        List<String> imagePaths = new ArrayList<>();
-        if (files != null && files.length > 0) {
-            String baseDir = "whistleup/issues/" + savedEntity.getComplaintId();
-            File dir = new File(baseDir);
-            if (!dir.exists()) dir.mkdirs();
 
+        Complaints savedEntity = complaintsRepository.save(complaintEntity);
+        if (files != null) {
             for (MultipartFile file : files) {
-                try {
-                    String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
-                    Path filePath = Paths.get(baseDir, fileName);
-                    Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-                    imagePaths.add(filePath.toString());
-                } catch (IOException e) {
-                    throw new RuntimeException("Failed to store complaint image", e);
-                }
+                ComplaintImage image = ComplaintImage.builder()
+                        .complaint(savedEntity)
+                        .imageData(file.getBytes())
+                        .fileName(file.getOriginalFilename())
+                        .contentType(file.getContentType())
+                        .build();
+
+                savedEntity.getImages().add(image);
             }
         }
 
-        savedEntity.setImagePaths(imagePaths);
         complaintsRepository.save(savedEntity);
-        ComplaintsResponseResource complaintsResponseResource = ComplaintsResponseResource.builder().build();
-        BeanUtils.copyProperties(savedEntity, complaintsResponseResource);
-        return complaintsResponseResource;
+        ComplaintsResponseResource response = ComplaintsResponseResource.builder().build();
+        BeanUtils.copyProperties(savedEntity, response);
+        List<String> imageUrls = savedEntity.getImages().stream()
+                .map(img -> "/issues/" + savedEntity.getComplaintId() +
+                        "/images/" + img.getId())
+                .toList();
+
+        response.setImageUrls(imageUrls);
+        response.setImageUrls(imageUrls);
+        val assigneeProfile = Long.valueOf(savedEntity.getAssigneeProfile());
+        val title = "A new issue created";
+        val body = "Please check in All issues section for more details";
+        notificationSendService.notifyUser(assigneeProfile, title, body, IssueType.INFO.name());
+        return response;
     }
 
 //    public List<ComplaintImageResponse> getImagesByComplaintId(String complaintId) {
@@ -113,5 +167,13 @@ public class ComplaintsServiceImpl implements ComplaintsService {
     @Override
     public void deleteComplaint(String complaintId) {
         complaintsRepository.deleteById(Long.valueOf(complaintId));
+    }
+
+    @Override
+    public void resolveTicket(String complaintId) {
+        Complaints complaint = complaintsRepository.findById(Long.valueOf(complaintId))
+                .orElseThrow(() -> new NotFoundException("No Complaint found"));
+        complaint.setResolved(Boolean.TRUE);
+        complaintsRepository.save(complaint);
     }
 }

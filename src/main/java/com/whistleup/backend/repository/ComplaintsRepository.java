@@ -10,4 +10,6 @@ import java.util.Optional;
 @Repository
 public interface ComplaintsRepository extends JpaRepository<Complaints, Long> {
     Optional<List<Complaints>> findByProfileId(String profileId);
+
+    Optional<List<Complaints>> findByAssigneeProfile(String profileId);
 }

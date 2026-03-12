@@ -55,6 +55,15 @@ public class BuildingDetails {
     @Convert(converter = ServiceResourceConverter.class)
     private ServiceResource watchmen;
 
+    @Column(name = "admin_email")
+    private String adminEmail;
+
+    @Column(name = "admin_phone")
+    private String adminPhone;
+
+    @Column(name = "admin_name")
+    private String adminName;
+
     @Column(name = "created_by")
     @CreatedBy
     private String createdBy;
@@ -76,4 +85,13 @@ public class BuildingDetails {
 
     @Column(name = "profile_id", nullable = false)
     private String profileId;
+
+    @Column(name = "total_residents")
+    private Long totalResidents;
+
+    @Column(name = "upi_id")
+    private String upiId;
+
+    @Column(name = "water_bill_required")
+    private boolean isWaterBillRequired;
 }

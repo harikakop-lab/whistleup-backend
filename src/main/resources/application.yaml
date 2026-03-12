@@ -1,34 +1,55 @@
 spring:
   application:
     name: backend
+
   main:
     allow-bean-definition-overriding: true
     allow-circular-references: true
-  datasource:
-    url: jdbc:h2:file:./data/demo-db      # stores data in ./data/demo-db.mv.db file
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
 
+  datasource:
+    url: jdbc:mysql://nestiti.cby40cccm2ac.eu-north-1.rds.amazonaws.com:3306/nestiti
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: admin
+    password: Nestiti123$
+
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
 
   jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
+    database-platform: org.hibernate.dialect.MySQL8Dialect
     hibernate:
-      ddl-auto: update
+      ddl-auto: update   # change to validate in prod
     show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  # ❌ H2 disabled (no longer needed)
   h2:
     console:
-      enabled: true
-      path: /h2-console
+      enabled: false
+
 server:
   error:
     include-stacktrace: never
     include-message: always
+
 razorpay:
   keyId: rzp_test_RUq0uJckU4WH99
   keySecret: VmOy1526JxTiTsR2bQG8KAkl
   currency: INR
   appName: whistleup
+
+app:
+  upload:
+    dir: uploads/profile
+  file-storage:
+    root: /opt/whistleup/uploads
+  base-url: http://localhost:8080
 
 sms:
   provider: fast2sms
@@ -50,4 +71,3 @@ otp:
   resend:
     cooldown:
       seconds: 60
-  

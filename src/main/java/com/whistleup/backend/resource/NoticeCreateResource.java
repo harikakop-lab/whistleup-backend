@@ -12,4 +12,5 @@ public class NoticeCreateResource {
     private String description;
     private String type;      // INFO / ALERT
     private String profileId;
+    private String buildingId;
 }

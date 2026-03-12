@@ -8,5 +8,5 @@ import java.util.UUID;
 
 public interface NoticeRepository extends JpaRepository<Notice, UUID> {
 
-    List<Notice> findByProfileIdOrderByCreatedAtDesc(String profileId);
+    List<Notice> findByBuildingIdOrderByCreatedAtDesc(String buildingId);
 }

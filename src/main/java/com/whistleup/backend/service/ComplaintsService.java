@@ -5,6 +5,7 @@ import com.whistleup.backend.resource.ComplaintImageResponse;
 import com.whistleup.backend.resource.ComplaintsResponseResource;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 public interface ComplaintsService {
@@ -14,9 +15,13 @@ public interface ComplaintsService {
 
     List<ComplaintsResponseResource> getComplaintsByProfileId(String profileId);
 
-    ComplaintsResponseResource registerComplaint(ComplaintCreateResource complaintCreateResource, MultipartFile[] files);
+    List<ComplaintsResponseResource> getComplaintsByAssigneeProfileId(String profileId);
+
+    ComplaintsResponseResource registerComplaint(ComplaintCreateResource complaintCreateResource, MultipartFile[] files) throws IOException;
 
     void deleteComplaint(String complaintId);
+
+    void resolveTicket(String complaintId);
 
 //    List<ComplaintImageResponse> getImagesByComplaintId(String complaintId);
 //

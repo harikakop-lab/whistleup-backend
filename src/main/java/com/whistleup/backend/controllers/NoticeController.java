@@ -19,19 +19,13 @@ public class NoticeController {
     private final NoticeService noticeService;
 
     @PostMapping("/create")
-    public ResponseEntity<NoticeResponseResource> createNotice(
-            @RequestBody NoticeCreateResource resource) {
-        return new ResponseEntity<>(
-                noticeService.createNotice(resource),
-                HttpStatus.CREATED
-        );
+    public ResponseEntity<NoticeResponseResource> createNotice(@RequestBody NoticeCreateResource resource) {
+        return new ResponseEntity<>(noticeService.createNotice(resource), HttpStatus.CREATED);
     }
 
-    @GetMapping("/{profileId}")
+    @GetMapping("/{buildingId}")
     public ResponseEntity<List<NoticeResponseResource>> getNotices(
-            @PathVariable String profileId) {
-        return ResponseEntity.ok(
-                noticeService.getNoticesByProfile(profileId)
-        );
+            @PathVariable String buildingId) {
+        return ResponseEntity.ok(noticeService.getNoticesByBuilding(buildingId));
     }
 }

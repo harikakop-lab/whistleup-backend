@@ -1,5 +1,6 @@
 package com.whistleup.backend.controllers;
 
+import com.whistleup.backend.service.ProfileService;
 import com.whistleup.backend.service.impl.OTPService;
 import com.whistleup.backend.exception.OTPException;
 import com.whistleup.backend.resource.*;
@@ -15,6 +16,9 @@ public class OTPController {
     
     @Autowired
     private OTPService otpService;
+
+    @Autowired
+    private ProfileService profileService;
     
     /**
      * Request OTP
@@ -22,11 +26,18 @@ public class OTPController {
      * Body: {"phoneNumber": "9876543210"}
      */
     @PostMapping("/send")
-    public ResponseEntity<?> requestOTP(@RequestBody OTPRequest request) {
+    public ResponseEntity<?> requestOTP(@RequestBody OTPRequest request, @RequestParam(value = "forgotPassword", required = false) boolean forgotPasswordFlow) {
         try {
             if (request.getPhoneNumber() == null || request.getPhoneNumber().isEmpty()) {
                 return ResponseEntity.badRequest()
                     .body(new ErrorResponse("Phone number is required"));
+            }
+
+            if (forgotPasswordFlow) {
+                if (!profileService.doesProfileExists(request.getPhoneNumber())) {
+                    return ResponseEntity.badRequest()
+                            .body(new ErrorResponse("Phone number does not exists"));
+                }
             }
             
             OTPResponse response = otpService.generateOTP(request.getPhoneNumber());

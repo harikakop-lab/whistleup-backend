@@ -1,6 +1,12 @@
 package com.whistleup.backend.controllers;
 
 //import com.whistleup.backend.entity.ComplaintImage;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.whistleup.backend.entity.ComplaintImage;
+import com.whistleup.backend.entity.Complaints;
+import com.whistleup.backend.repository.ComplaintImageRepository;
+import com.whistleup.backend.repository.ComplaintsRepository;
 import com.whistleup.backend.resource.ComplaintCreateResource;
 import com.whistleup.backend.resource.ComplaintImageResponse;
 import com.whistleup.backend.resource.ComplaintsResponseResource;
@@ -21,8 +27,14 @@ public class ComplaintsController {
 
     private final ComplaintsService complaintsService;
 
-    public ComplaintsController(ComplaintsService complaintsService) {
+    private final ComplaintsRepository complaintsRepository;
+
+    private final ComplaintImageRepository complaintImageRepository;
+
+    public ComplaintsController(ComplaintsService complaintsService, ComplaintsRepository complaintsRepository, ComplaintImageRepository complaintImageRepository) {
         this.complaintsService = complaintsService;
+        this.complaintsRepository = complaintsRepository;
+        this.complaintImageRepository = complaintImageRepository;
     }
 
     @GetMapping("")
@@ -32,22 +44,59 @@ public class ComplaintsController {
     }
 
     @GetMapping("/{complaintId}")
-    public ResponseEntity<ComplaintsResponseResource> getAllComplaints(@PathVariable("complaintId") String complaintId) {
+    public ResponseEntity<ComplaintsResponseResource> getComplaint(@PathVariable("complaintId") String complaintId) {
         ComplaintsResponseResource complaints = complaintsService.getAllComplaintsById(complaintId);
         return new ResponseEntity<>(complaints, HttpStatus.OK);
     }
 
+    @PutMapping("/{complaintId}")
+    public ResponseEntity<Void> markComplaintAsResolved(@PathVariable("complaintId") String complaintId) {
+        complaintsService.resolveTicket(complaintId);
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
     @GetMapping("/profile/{profileId}")
-    public ResponseEntity<List<ComplaintsResponseResource>> getAllComplaintsAssignedToProfileId(@PathVariable("profileId") String profileId) {
+    public ResponseEntity<List<ComplaintsResponseResource>> getAllComplaintsRaisedByProfileId(@PathVariable("profileId") String profileId) {
         List<ComplaintsResponseResource> complaints = complaintsService.getComplaintsByProfileId(profileId);
         return new ResponseEntity<>(complaints, HttpStatus.OK);
     }
 
+    @GetMapping("/assignee/{profileId}")
+    public ResponseEntity<List<ComplaintsResponseResource>> getAllComplaintsAssignedToProfileId(@PathVariable("profileId") String profileId) {
+        List<ComplaintsResponseResource> complaints = complaintsService.getComplaintsByAssigneeProfileId(profileId);
+        return new ResponseEntity<>(complaints, HttpStatus.OK);
+    }
+
     @PostMapping(value = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ComplaintsResponseResource> registerComplaint(@RequestPart("complaint") ComplaintCreateResource complaintCreateResource,
-                                                                        @RequestPart(value = "files", required = false) MultipartFile[] files) {
-        ComplaintsResponseResource response = complaintsService.registerComplaint(complaintCreateResource, files);
+    public ResponseEntity<ComplaintsResponseResource> registerComplaint(@RequestPart("complaint") String complaintJson,
+        @RequestPart(value = "files", required = false) MultipartFile[] files) throws Exception {
+        ComplaintCreateResource complaint =
+                new ObjectMapper().readValue(complaintJson, ComplaintCreateResource.class);
+        ComplaintsResponseResource response =
+                complaintsService.registerComplaint(complaint, files);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
+    }
+
+    @GetMapping("/{complaintId}/images")
+    public ResponseEntity<List<String>> getImageUrls(
+            @PathVariable Long complaintId) {
+        Complaints complaint = complaintsRepository.findById(complaintId)
+                .orElseThrow(() -> new RuntimeException("Complaint not found"));
+        List<String> urls = complaint.getImages()
+                .stream()
+                .map(img -> "/issues/images/" + img.getId())
+                .toList();
+        return ResponseEntity.ok(urls);
+    }
+
+    @GetMapping("/images/{imageId}")
+    public ResponseEntity<byte[]> getImage(@PathVariable Long imageId) {
+        ComplaintImage image = complaintImageRepository.findById(imageId)
+                .orElseThrow(() -> new RuntimeException("Image not found"));
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(image.getContentType()))
+                .body(image.getImageData());
     }
 
 //    @GetMapping("/{complaintId}/images")
