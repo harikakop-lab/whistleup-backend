@@ -1,6 +1,7 @@
 package com.whistleup.backend.repository;
 
 import com.whistleup.backend.constants.OrderStatus;
+import com.whistleup.backend.constants.ServiceIssueStatus;
 import com.whistleup.backend.entity.ServiceOrder;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -14,4 +15,8 @@ public interface ServiceOrderRepository extends JpaRepository<ServiceOrder, UUID
     List<ServiceOrder> findAllByProfileId(String profileId);
 
     List<ServiceOrder> findAllByProfileIdAndOrderStatus(String profileId, OrderStatus orderStatus);
+
+    List<ServiceOrder> findAllByProfileIdAndIssueStatus(String profileId, ServiceIssueStatus issueStatus);
+
+    List<ServiceOrder> findAllByBuildingId(String buildingId);
 }

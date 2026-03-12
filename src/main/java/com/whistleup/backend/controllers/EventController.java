@@ -38,4 +38,10 @@ public class EventController {
             @PathVariable String profileId) {
         return ResponseEntity.ok(eventService.getEventsByProfileId(profileId));
     }
+
+    @GetMapping("/building/{buildingId}")
+    public ResponseEntity<List<EventResponseResource>> getEventsByBuildingId(
+            @PathVariable String buildingId) {
+        return ResponseEntity.ok(eventService.getEventsByBuildingId(buildingId));
+    }
 }

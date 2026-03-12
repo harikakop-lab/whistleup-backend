@@ -32,8 +32,10 @@ public class ServicePersonController {
 
     @GetMapping("/type/{serviceType}")
     public ResponseEntity<List<ServicePersonResource>> getActiveByServiceType(
-            @PathVariable ServiceOrderType serviceType) {
-        return ResponseEntity.ok(servicePersonService.getActiveServicePersonsByType(serviceType));
+            @PathVariable String serviceType) {
+        return ResponseEntity.ok(
+                servicePersonService.getActiveServicePersonsByType(
+                        ServiceOrderType.valueOf(serviceType.trim().toUpperCase())));
     }
 
     @PostMapping("/create")

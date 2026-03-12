@@ -36,6 +36,14 @@ public class MaintenanceController {
         return ResponseEntity.ok(maintenanceService.getByBuilding(buildingId));
     }
 
+    @GetMapping("/building/{buildingId}/period")
+    public ResponseEntity<List<MaintenanceResponseResource>> getMaintenanceByBuildingAndPeriod(
+            @PathVariable String buildingId,
+            @RequestParam Integer year,
+            @RequestParam Integer month) {
+        return ResponseEntity.ok(maintenanceService.getByBuildingAndPeriod(buildingId, year, month));
+    }
+
 
     @GetMapping("/{username}")
     public ResponseEntity<List<MaintenanceResponseResource>> getAllMaintenanceByProfileId(@PathVariable String username) {

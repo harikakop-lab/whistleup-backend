@@ -5,11 +5,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface ComplaintsRepository extends JpaRepository<Complaints, Long> {
-    Optional<List<Complaints>> findByProfileId(String profileId);
+    List<Complaints> findByProfileIdOrderByComplaintIdDesc(String profileId);
 
-    Optional<List<Complaints>> findByAssigneeProfile(String profileId);
+    List<Complaints> findByAssigneeProfileOrderByComplaintIdDesc(String profileId);
+
+    List<Complaints> findByBuildingIdOrderByComplaintIdDesc(String buildingId);
 }

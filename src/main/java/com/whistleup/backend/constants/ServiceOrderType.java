@@ -6,6 +6,7 @@ public enum ServiceOrderType {
     PLUMBER,
     ELECTRICIAN,
     CLEANER,
+    PAINTER,
     WATER_CAN,
     NEWSPAPER,
     WATER_TANKER

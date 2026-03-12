@@ -22,7 +22,14 @@ public interface MaintenanceRepository extends JpaRepository<Maintenance, Long> 
             String buildingId
     );
 
-    Optional<Maintenance> findByBuildingIdAndMaintenanceYearAndMaintenanceMonth(
+    Optional<Maintenance> findByProfileIdAndBuildingIdAndMaintenanceYearAndMaintenanceMonth(
+            String profileId,
+            String buildingId,
+            Integer maintenanceYear,
+            Integer maintenanceMonth
+    );
+
+    List<Maintenance> findByBuildingIdAndMaintenanceYearAndMaintenanceMonth(
             String buildingId,
             Integer maintenanceYear,
             Integer maintenanceMonth

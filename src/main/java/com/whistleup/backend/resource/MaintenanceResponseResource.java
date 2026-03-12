@@ -13,6 +13,10 @@ import java.time.LocalDate;
 @Builder
 public class MaintenanceResponseResource {
     private Long id;
+    private String profileId;
+    private String buildingId;
+    private Integer year;
+    private Integer month;
     private String monthLabel;     // "April Maintenance"
     private BigDecimal amount;
     private LocalDate dueDate;

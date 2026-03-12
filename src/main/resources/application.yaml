@@ -7,10 +7,13 @@ spring:
     allow-circular-references: true
 
   datasource:
-    url: jdbc:mysql://nestiti.cby40cccm2ac.eu-north-1.rds.amazonaws.com:3306/nestiti
+    # url: jdbc:mysql://nestiti.cby40cccm2ac.eu-north-1.rds.amazonaws.com:3306/nestiti
     driver-class-name: com.mysql.cj.jdbc.Driver
-    username: admin
-    password: Nestiti123$
+    # username: admin
+    # password: Nestiti123$
+    url: jdbc:mysql://localhost:3306/nestiti?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: root
+    password:
 
     hikari:
       maximum-pool-size: 10
@@ -22,7 +25,7 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.MySQL8Dialect
     hibernate:
-      ddl-auto: update   # change to validate in prod
+      ddl-auto: update # change to validate in prod
     show-sql: true
     properties:
       hibernate:

@@ -1,5 +1,6 @@
 package com.whistleup.backend.resource;
 
+import com.whistleup.backend.constants.NoticeAudience;
 import lombok.*;
 
 @Getter
@@ -13,4 +14,5 @@ public class NoticeCreateResource {
     private String type;      // INFO / ALERT
     private String profileId;
     private String buildingId;
+    private NoticeAudience audience;
 }

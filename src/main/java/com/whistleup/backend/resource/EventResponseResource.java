@@ -15,5 +15,6 @@ public class EventResponseResource {
     private String title;
     private String description;
     private String profileId;
+    private String buildingId;
     private LocalDateTime createdAt;
 }

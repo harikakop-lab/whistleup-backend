@@ -13,6 +13,7 @@ public class ServicePersonMapper {
                 .phoneNumber(resource.getPhoneNumber())
                 .address(resource.getAddress())
                 .experienceYears(resource.getExperienceYears())
+                .rating(resource.getRating())
                 .serviceTypes(resource.getServiceTypes())
                 .build();
     }
@@ -24,6 +25,7 @@ public class ServicePersonMapper {
                 .phoneNumber(entity.getPhoneNumber())
                 .address(entity.getAddress())
                 .experienceYears(entity.getExperienceYears())
+                .rating(entity.getRating())
                 .serviceTypes(entity.getServiceTypes())
                 .isActive(entity.getIsActive())
                 .registeredDate(entity.getRegisteredDate())

@@ -83,6 +83,15 @@ public class BuildingDetails {
     @Column(name = "floors")
     private Long floors;
 
+    @Column(name = "flat_start_number")
+    private Long flatStartNumber;
+
+    @Column(name = "flat_end_number")
+    private Long flatEndNumber;
+
+    @Column(name = "total_flats")
+    private Long totalFlats;
+
     @Column(name = "profile_id", nullable = false)
     private String profileId;
 

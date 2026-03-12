@@ -48,6 +48,15 @@ public class BuildingController {
         buildingDetailsResponseResource.setBuildingName(buildingDetails.getBuildingName());
         buildingDetailsResponseResource.setBuildingAddress(buildingDetails.getBuildingAddress());
         buildingDetailsResponseResource.setFloors(buildingDetails.getFloors());
+        buildingDetailsResponseResource.setTotalFlats(buildingDetails.getTotalFlats());
+        buildingDetailsResponseResource.setFlatStartNumber(buildingDetails.getFlatStartNumber());
+        buildingDetailsResponseResource.setFlatEndNumber(buildingDetails.getFlatEndNumber());
+        buildingDetailsResponseResource.setTotalResidents(buildingDetails.getTotalResidents());
+        buildingDetailsResponseResource.setAdminName(buildingDetails.getAdminName());
+        buildingDetailsResponseResource.setAdminPhone(buildingDetails.getAdminPhone());
+        buildingDetailsResponseResource.setAdminEmail(buildingDetails.getAdminEmail());
+        buildingDetailsResponseResource.setWaterBillRequired(buildingDetails.isWaterBillRequired());
+        buildingDetailsResponseResource.setUpiId(buildingDetails.getUpiId());
         return buildingDetailsResponseResource;
     }
 

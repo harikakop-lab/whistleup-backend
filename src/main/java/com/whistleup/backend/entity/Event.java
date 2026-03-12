@@ -28,6 +28,9 @@ public class Event {
     @Column(name = "profile_id", nullable = false)
     private String profileId;
 
+    @Column(name = "building_id")
+    private String buildingId;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 

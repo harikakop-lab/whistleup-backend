@@ -19,7 +19,7 @@ import java.time.LocalDate;
 import java.time.Month;
 import java.time.YearMonth;
 import java.util.List;
-import java.util.Optional;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -31,10 +31,6 @@ public class MaintenanceService {
     private final NotificationSendService notificationSendService;
 
     public void createOrUpdateMaintenance(MaintenanceCreateResource maintenanceCreateResource) {
-        Optional<Maintenance> maintenanceOptional = repository
-                .findByBuildingIdAndMaintenanceYearAndMaintenanceMonth(maintenanceCreateResource.getBuildingId(),
-                maintenanceCreateResource.getYear(),
-                maintenanceCreateResource.getMonth());
         Maintenance maintenance;
         List<ResidentsResponse> residentsInTheBuilding = profileRepository
                 .getListOfResidentsByBuilding(Long.valueOf(maintenanceCreateResource.getBuildingId()));
@@ -42,16 +38,27 @@ public class MaintenanceService {
             for (ResidentsResponse residentsResponse : residentsInTheBuilding) {
                 val phone = residentsResponse.getPhone();
                 val amount = maintenanceCreateResource.getAmount();
-                maintenance = maintenanceOptional.orElseGet(() -> Maintenance.builder()
-                        .profileId(phone)
-                        .maintenanceYear(maintenanceCreateResource.getYear())
-                        .maintenanceMonth(maintenanceCreateResource.getMonth())
-                        .amount(amount)
-                        .dueDate(YearMonth.now().atEndOfMonth())
-                        .status(MaintenanceStatus.PENDING)
-                        .buildingId(maintenanceCreateResource.getBuildingId())
-                        .build());
+                maintenance = repository.findByProfileIdAndBuildingIdAndMaintenanceYearAndMaintenanceMonth(
+                                phone,
+                                maintenanceCreateResource.getBuildingId(),
+                                maintenanceCreateResource.getYear(),
+                                maintenanceCreateResource.getMonth()
+                        )
+                        .orElseGet(() -> Maintenance.builder()
+                                .profileId(phone)
+                                .maintenanceYear(maintenanceCreateResource.getYear())
+                                .maintenanceMonth(maintenanceCreateResource.getMonth())
+                                .amount(amount)
+                                .dueDate(YearMonth.now().atEndOfMonth())
+                                .status(MaintenanceStatus.PENDING)
+                                .buildingId(maintenanceCreateResource.getBuildingId())
+                                .build());
                 maintenance.setAmount(amount);
+                if (Objects.nonNull(maintenanceCreateResource.getDueDate())) {
+                    maintenance.setDueDate(maintenanceCreateResource.getDueDate());
+                } else if (maintenance.getDueDate() == null) {
+                    maintenance.setDueDate(YearMonth.now().atEndOfMonth());
+                }
                 repository.save(maintenance);
                 notificationSendService.notifyUser(Long.valueOf(phone),
                         "Maintenance",
@@ -63,6 +70,13 @@ public class MaintenanceService {
 
     public List<MaintenanceResponseResource> getByBuilding(String buildingId) {
         return repository.findByBuildingIdOrderByMaintenanceYearDescMaintenanceMonthDesc(buildingId)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    public List<MaintenanceResponseResource> getByBuildingAndPeriod(String buildingId, Integer year, Integer month) {
+        return repository.findByBuildingIdAndMaintenanceYearAndMaintenanceMonth(buildingId, year, month)
                 .stream()
                 .map(this::toResponse)
                 .toList();
@@ -87,6 +101,10 @@ public class MaintenanceService {
     private MaintenanceResponseResource toResponse(Maintenance m) {
         return MaintenanceResponseResource.builder()
                 .id(m.getId())
+                .profileId(m.getProfileId())
+                .buildingId(m.getBuildingId())
+                .year(m.getMaintenanceYear())
+                .month(m.getMaintenanceMonth())
                 .monthLabel(
                     Month.of(m.getMaintenanceMonth()).name() + " Maintenance"
                 )

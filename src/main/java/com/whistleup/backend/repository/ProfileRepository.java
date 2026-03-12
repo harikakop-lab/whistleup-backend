@@ -1,6 +1,7 @@
 package com.whistleup.backend.repository;
 
 import com.whistleup.backend.controllers.ResidentsResponse;
+import com.whistleup.backend.constants.Roles;
 import com.whistleup.backend.entity.Profile;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -35,4 +36,8 @@ public interface ProfileRepository extends JpaRepository<Profile, String> {
        where f.building.buildingId = :buildingId
        """)
     List<ResidentsResponse> getListOfResidentsByBuilding(Long buildingId);
+
+    List<Profile> findByBuildingId(String buildingId);
+
+    List<Profile> findByBuildingIdAndRole(String buildingId, Roles role);
 }

@@ -27,7 +27,13 @@ public class LedgerController {
     }
 
     @GetMapping
-    public LedgerResponse getLedger(@RequestParam int year, @RequestParam String month) {
+    public LedgerResponse getLedger(
+            @RequestParam int year,
+            @RequestParam String month,
+            @RequestParam(required = false) String buildingId) {
+        if (buildingId != null && !buildingId.trim().isEmpty()) {
+            return ledgerService.getLedgerByYearAndMonthAndBuilding(year, month, buildingId);
+        }
         return ledgerService.getLedgerByYearAndMonth(year, month);
     }
 

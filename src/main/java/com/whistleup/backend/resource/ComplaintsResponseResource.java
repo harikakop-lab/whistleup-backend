@@ -1,6 +1,7 @@
 package com.whistleup.backend.resource;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.whistleup.backend.constants.ComplaintStatus;
 import lombok.*;
 
 import java.util.List;
@@ -16,4 +17,7 @@ public class ComplaintsResponseResource extends ComplaintCreateResource {
     private List<String> imageUrls;
     private String raisedBy;
     private String flatNumber;
+    private ComplaintStatus status;
+    private String createdAt;
+    private String updatedAt;
 }

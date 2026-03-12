@@ -34,6 +34,9 @@ public class ProfileController {
     @Value("${app.upload.dir}")
     private String uploadDir;
 
+    @Value("${app.base-url:http://localhost:8080}")
+    private String baseUrl;
+
     private Path uploadPath;
 
     public ProfileController(ProfileService profileService) {
@@ -50,7 +53,7 @@ public class ProfileController {
     public ResponseEntity<ProfileResponseResource> getProfileByUsername(@PathVariable("username") String username) {
         ProfileResponseResource profileResponseResource = profileService.getProfileByUsername(username);
         profileResponseResource.setPassword(null);
-        profileResponseResource.setAvatarUri("http://16.170.115.179:8080/whistleup/profile/" + username + "/image");
+        profileResponseResource.setAvatarUri(baseUrl + "/whistleup/profile/" + username + "/image");
         return new ResponseEntity<>(profileResponseResource, HttpStatus.OK);
     }
 
@@ -89,7 +92,7 @@ public class ProfileController {
     @DeleteMapping("/delete/{userId}")
     public ResponseEntity<String> deleteProfile(@PathVariable("userId") String userId) {
         String response = profileService.deleteProfile(userId);
-        return new ResponseEntity<>(HttpStatus.OK);
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     /* -------------------------------------------------

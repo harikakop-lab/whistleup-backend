@@ -68,6 +68,7 @@ public class ServicePersonService {
         existing.setPhoneNumber(resource.getPhoneNumber());
         existing.setAddress(resource.getAddress());
         existing.setExperienceYears(resource.getExperienceYears());
+        existing.setRating(resource.getRating());
         existing.setServiceTypes(resource.getServiceTypes());
 
         return servicePersonMapper.toResource(servicePersonRepository.save(existing));
