@@ -26,9 +26,8 @@ public class MaintenanceController {
     private final MaintenanceService maintenanceService;
 
     @PostMapping("/create")
-    public ResponseEntity<Void> create(@RequestBody MaintenanceCreateResource req) {
-        maintenanceService.createOrUpdateMaintenance(req);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+    public ResponseEntity<List<MaintenanceResponseResource>> create(@RequestBody MaintenanceCreateResource req) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(maintenanceService.createOrUpdateMaintenance(req));
     }
 
     @GetMapping("/building/{buildingId}")

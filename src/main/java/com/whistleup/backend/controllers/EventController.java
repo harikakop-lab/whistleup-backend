@@ -33,10 +33,16 @@ public class EventController {
         return ResponseEntity.ok(eventService.updateEvent(eventId, request));
     }
 
-    @GetMapping("/{profileId}")
+    @GetMapping("/profile/{profileId}")
     public ResponseEntity<List<EventResponseResource>> getEventsByProfileId(
             @PathVariable String profileId) {
         return ResponseEntity.ok(eventService.getEventsByProfileId(profileId));
+    }
+
+    @GetMapping("/{buildingId}")
+    public ResponseEntity<List<EventResponseResource>> getEventsByBuildingIdCompat(
+            @PathVariable String buildingId) {
+        return ResponseEntity.ok(eventService.getEventsByBuildingId(buildingId));
     }
 
     @GetMapping("/building/{buildingId}")
