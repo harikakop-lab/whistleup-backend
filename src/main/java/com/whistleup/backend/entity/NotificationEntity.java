@@ -1,19 +1,12 @@
-package com.whistleup.backend.notifications.entity;
+package com.whistleup.backend.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
 @Entity
-@Table(
-        name = "notifications",
-        indexes = {
-                @Index(name = "idx_user_created", columnList = "user_id, created_at"),
-                @Index(name = "idx_user_read", columnList = "user_id, is_read")
-        }
-)
+@Table(name = "notifications")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -22,28 +15,33 @@ import java.time.LocalDateTime;
 public class NotificationEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // MySQL AUTO_INCREMENT
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
+    @Column(nullable = false)
+    private String phone;
 
-    @Column(nullable = false, length = 255)
+    @Column(nullable = false)
     private String title;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
-    private String body;
+    @Column(nullable = false, length = 500)
+    private String message;
 
-    @Column(length = 50)
-    private String type; // ALERT | INFO | SUCCESS | SYSTEM | NOTICE
+    @Column(nullable = false)
+    private String type; // EVENT, MAINTENANCE, BILL
 
-    @Column(name = "entity_id", length = 100)
-    private String entityId;
+    @Column(nullable = false)
+    private String referenceId; // eventId / billId
 
-    @Column(name = "is_read", nullable = false)
-    private Boolean isRead = false;
+    @Column(nullable = false)
+    private boolean read;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(nullable = false)
+    private boolean pushed;
+
+    private LocalDateTime lastRemindedAt;
+
+    @Column(nullable = false)
     private LocalDateTime createdAt;
 }
+
