@@ -62,7 +62,7 @@ public class BuildingController {
 
     @PostMapping("/create")
     public ResponseEntity<BuildingDetailsResponseResource> saveBuildingDetails(@Valid @RequestBody BuildingDetailsRequestResource buildingDetailsRequestResource) {
-        BuildingDetails buildingDetails = buildingDetailsService.saveBuildingDetails(buildingDetailsRequestResource);
+        BuildingDetails buildingDetails = buildingDetailsService.createBuilding(buildingDetailsRequestResource);
         return new ResponseEntity<>(buildResponseResource(buildingDetails), HttpStatus.CREATED);
     }
 

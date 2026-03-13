@@ -1,13 +1,11 @@
 package com.whistleup.backend.service.impl;
 
 import com.whistleup.backend.entity.Profile;
-import com.whistleup.backend.entity.Users;
 import com.whistleup.backend.repository.ProfileRepository;
 import com.whistleup.backend.repository.UserRepository;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -31,7 +29,7 @@ public class LoginServiceImpl implements UserDetailsService {
 
         return org.springframework.security.core.userdetails.User
                 .withUsername(username)
-                .password(profile.getPassword())
+                .password(profile.getPin())
                 .accountLocked(false)
                 .build();
     }

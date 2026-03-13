@@ -18,30 +18,30 @@ public class NotificationEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column
     private String phone;
 
-    @Column(nullable = false)
+    @Column
     private String title;
 
-    @Column(nullable = false, length = 500)
+    @Column
     private String message;
 
-    @Column(nullable = false)
+    @Column
     private String type; // EVENT, MAINTENANCE, BILL
 
-    @Column(nullable = false)
+    @Column
     private String referenceId; // eventId / billId
 
-    @Column(nullable = false)
+    @Column(name = "is_read")
     private boolean read;
 
-    @Column(nullable = false)
+    @Column
     private boolean pushed;
 
     private LocalDateTime lastRemindedAt;
 
-    @Column(nullable = false)
+    @Column
     private LocalDateTime createdAt;
 }
 

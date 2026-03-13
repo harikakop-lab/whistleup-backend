@@ -37,6 +37,16 @@ public class MaintenanceService {
     private final NotificationSendService notificationSendService;
 
     public List<MaintenanceResponseResource> createOrUpdateMaintenance(MaintenanceCreateResource maintenanceCreateResource) {
+        return upsertMaintenanceRows(maintenanceCreateResource, false);
+    }
+
+    public List<MaintenanceResponseResource> updateMaintenance(MaintenanceCreateResource maintenanceCreateResource) {
+        return upsertMaintenanceRows(maintenanceCreateResource, true);
+    }
+
+    private List<MaintenanceResponseResource> upsertMaintenanceRows(
+            MaintenanceCreateResource maintenanceCreateResource,
+            boolean additiveUpdate) {
         List<Profile> residentsInTheBuilding = profileRepository.findByBuildingId(maintenanceCreateResource.getBuildingId());
         if (CollectionUtils.isEmpty(residentsInTheBuilding)) {
             return List.of();
@@ -49,6 +59,12 @@ public class MaintenanceService {
         BigDecimal basePerFlat = residentsInTheBuilding.isEmpty()
                 ? BigDecimal.ZERO
                 : sharedExpenseTotal.divide(BigDecimal.valueOf(residentsInTheBuilding.size()), 2, RoundingMode.HALF_UP);
+        BigDecimal watchmanPerFlat = splitPerFlat(maintenanceCreateResource.getWatchmanSalary(), residentsInTheBuilding.size());
+        BigDecimal garbagePerFlat = splitPerFlat(maintenanceCreateResource.getGarbageCollection(), residentsInTheBuilding.size());
+        BigDecimal liftPerFlat = splitPerFlat(maintenanceCreateResource.getLiftMaintenance(), residentsInTheBuilding.size());
+        BigDecimal electricityPerFlat = splitPerFlat(maintenanceCreateResource.getElectricityCommon(), residentsInTheBuilding.size());
+        BigDecimal motorPerFlat = splitPerFlat(maintenanceCreateResource.getMotorPump(), residentsInTheBuilding.size());
+        BigDecimal miscPerFlat = splitPerFlat(maintenanceCreateResource.getMiscellaneous(), residentsInTheBuilding.size());
 
         List<Maintenance> savedRows = residentsInTheBuilding.stream()
                 .map(profile -> upsertMaintenanceRow(
@@ -57,7 +73,14 @@ public class MaintenanceService {
                         explicitAmountByFlat,
                         basePerFlat,
                         waterByFlat,
-                        defaultWaterPerFlat
+                        defaultWaterPerFlat,
+                        additiveUpdate,
+                        watchmanPerFlat,
+                        garbagePerFlat,
+                        liftPerFlat,
+                        electricityPerFlat,
+                        motorPerFlat,
+                        miscPerFlat
                 ))
                 .toList();
 
@@ -71,7 +94,14 @@ public class MaintenanceService {
             Map<String, BigDecimal> explicitAmountByFlat,
             BigDecimal basePerFlat,
             Map<String, BigDecimal> waterByFlat,
-            BigDecimal defaultWaterPerFlat) {
+            BigDecimal defaultWaterPerFlat,
+            boolean additiveUpdate,
+            BigDecimal watchmanPerFlat,
+            BigDecimal garbagePerFlat,
+            BigDecimal liftPerFlat,
+            BigDecimal electricityPerFlat,
+            BigDecimal motorPerFlat,
+            BigDecimal miscPerFlat) {
         Maintenance maintenance;
         String phone = profile.getPhone();
         String flatNo = normalizeFlatNo(profile.getFlatNo());
@@ -102,13 +132,50 @@ public class MaintenanceService {
                         .status(MaintenanceStatus.PENDING)
                         .buildingId(req.getBuildingId())
                         .build());
-        maintenance.setAmount(resolvedAmount);
+        if (additiveUpdate && maintenance.getId() != null) {
+            maintenance.setAmount(addNullable(maintenance.getAmount(), resolvedAmount));
+        } else {
+            maintenance.setAmount(resolvedAmount);
+        }
         if (Objects.nonNull(req.getDueDate())) {
             maintenance.setDueDate(req.getDueDate());
         } else if (maintenance.getDueDate() == null) {
             maintenance.setDueDate(YearMonth.now().atEndOfMonth());
         }
+        maintenance.setWaterMode(normalizeMode(req.getWaterMode()));
+        if (additiveUpdate && maintenance.getId() != null) {
+            maintenance.setWatchmanSalary(addNullable(maintenance.getWatchmanSalary(), watchmanPerFlat));
+            maintenance.setGarbageCollection(addNullable(maintenance.getGarbageCollection(), garbagePerFlat));
+            maintenance.setLiftMaintenance(addNullable(maintenance.getLiftMaintenance(), liftPerFlat));
+            maintenance.setElectricityCommon(addNullable(maintenance.getElectricityCommon(), electricityPerFlat));
+            maintenance.setMotorPump(addNullable(maintenance.getMotorPump(), motorPerFlat));
+            maintenance.setMiscellaneous(addNullable(maintenance.getMiscellaneous(), miscPerFlat));
+            maintenance.setWaterAmount(addNullable(
+                    maintenance.getWaterAmount(),
+                    waterByFlat.getOrDefault(flatNo, defaultWaterPerFlat)
+            ));
+        } else {
+            maintenance.setWatchmanSalary(watchmanPerFlat);
+            maintenance.setGarbageCollection(garbagePerFlat);
+            maintenance.setLiftMaintenance(liftPerFlat);
+            maintenance.setElectricityCommon(electricityPerFlat);
+            maintenance.setMotorPump(motorPerFlat);
+            maintenance.setMiscellaneous(miscPerFlat);
+            maintenance.setWaterAmount(waterByFlat.getOrDefault(flatNo, defaultWaterPerFlat));
+        }
         return repository.save(maintenance);
+    }
+
+    private BigDecimal splitPerFlat(BigDecimal value, int totalProfiles) {
+        if (value == null || totalProfiles <= 0) {
+            return BigDecimal.ZERO;
+        }
+        return value.divide(BigDecimal.valueOf(totalProfiles), 2, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal addNullable(BigDecimal existing, BigDecimal incoming) {
+        return Objects.requireNonNullElse(existing, BigDecimal.ZERO)
+                .add(Objects.requireNonNullElse(incoming, BigDecimal.ZERO));
     }
 
     private void notifyResidents(List<Maintenance> rows) {
@@ -293,6 +360,14 @@ public class MaintenanceService {
                     Month.of(m.getMaintenanceMonth()).name() + " Maintenance"
                 )
                 .amount(m.getAmount())
+                .watchmanSalary(m.getWatchmanSalary())
+                .garbageCollection(m.getGarbageCollection())
+                .liftMaintenance(m.getLiftMaintenance())
+                .electricityCommon(m.getElectricityCommon())
+                .motorPump(m.getMotorPump())
+                .miscellaneous(m.getMiscellaneous())
+                .waterAmount(m.getWaterAmount())
+                .waterMode(m.getWaterMode())
                 .dueDate(m.getDueDate())
                 .status(m.getStatus())
                 .paidDate(m.getPaidDate())

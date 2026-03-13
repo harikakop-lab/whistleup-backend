@@ -19,6 +19,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.format.TextStyle;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -103,19 +104,23 @@ public class LedgerServiceImpl implements LedgerService {
 
     @Override
     public LedgerResponse getLedgerByYearAndMonthAndBuilding(int year, String month, String buildingId) {
+        List<Maintenance> maintenanceRows = maintenanceRepository.findByBuildingIdAndMaintenanceYearAndMaintenanceMonth(
+                buildingId,
+                year,
+                getMonthValue(month)
+        );
         Optional<Ledger> existing = ledgerRepository.findByYearAndMonthAndBuildingIdWithItems(
                 year,
                 normalizeMonth(month),
                 buildingId
         );
         if (existing.isPresent()) {
-            return toResponse(existing.get());
+            LedgerResponse response = toResponse(existing.get());
+            if (!maintenanceRows.isEmpty()) {
+                enrichFromMaintenanceRows(response, maintenanceRows);
+            }
+            return response;
         }
-        List<Maintenance> maintenanceRows = maintenanceRepository.findByBuildingIdAndMaintenanceYearAndMaintenanceMonth(
-                buildingId,
-                year,
-                getMonthValue(month)
-        );
         if (maintenanceRows.isEmpty()) {
             throw new IllegalStateException("No ledger/maintenance found for requested month");
         }
@@ -123,18 +128,13 @@ public class LedgerServiceImpl implements LedgerService {
                 null,
                 year,
                 normalizeMonth(month),
-                maintenanceRows.stream().mapToDouble(m -> m.getAmount().doubleValue()).sum(),
-                maintenanceRows.size(),
-                maintenanceRows.stream().mapToDouble(m -> m.getAmount().doubleValue()).average().orElse(0.0),
-                List.of()
+                0,
+                0,
+                0,
+                buildItemsFromMaintenanceRows(maintenanceRows)
         );
         response.setBuildingId(buildingId);
-        response.setFlatsPaid(maintenanceRows.stream().filter(m -> m.getStatus().name().equals("PAID")).count());
-        response.setDueDate(maintenanceRows.stream()
-                .map(Maintenance::getDueDate)
-                .filter(java.util.Objects::nonNull)
-                .findFirst()
-                .orElse(null));
+        enrichFromMaintenanceRows(response, maintenanceRows);
         return response;
     }
 
@@ -218,10 +218,56 @@ public class LedgerServiceImpl implements LedgerService {
                 getMonthValue(ledger.getMonth())
         );
         if (!rows.isEmpty()) {
-            ledgerResponse.setFlatsPaid(rows.stream().filter(m -> m.getStatus().name().equals("PAID")).count());
-            ledgerResponse.setDueDate(rows.stream().map(Maintenance::getDueDate).findFirst().orElse(null));
+            enrichFromMaintenanceRows(ledgerResponse, rows);
+            if (CollectionUtils.isEmpty(ledgerResponse.getItems())) {
+                ledgerResponse.setItems(buildItemsFromMaintenanceRows(rows));
+            }
         }
         return ledgerResponse;
+    }
+
+    private void enrichFromMaintenanceRows(LedgerResponse response, List<Maintenance> rows) {
+        double totalAmount = rows.stream().mapToDouble(m -> m.getAmount().doubleValue()).sum();
+        int totalFlats = rows.size();
+        response.setTotalAmount(totalAmount);
+        response.setTotalFlats(totalFlats);
+        response.setPerFlatAmount(totalFlats == 0 ? 0 : totalAmount / totalFlats);
+        response.setFlatsPaid(rows.stream().filter(m -> "PAID".equals(m.getStatus().name())).count());
+        response.setDueDate(rows.stream()
+                .map(Maintenance::getDueDate)
+                .filter(java.util.Objects::nonNull)
+                .findFirst()
+                .orElse(null));
+    }
+
+    private List<LedgerItemResponse> buildItemsFromMaintenanceRows(List<Maintenance> rows) {
+        if (CollectionUtils.isEmpty(rows)) {
+            return List.of();
+        }
+        double watchman = rows.stream().map(Maintenance::getWatchmanSalary)
+                .filter(java.util.Objects::nonNull).mapToDouble(BigDecimal::doubleValue).sum();
+        double garbage = rows.stream().map(Maintenance::getGarbageCollection)
+                .filter(java.util.Objects::nonNull).mapToDouble(BigDecimal::doubleValue).sum();
+        double lift = rows.stream().map(Maintenance::getLiftMaintenance)
+                .filter(java.util.Objects::nonNull).mapToDouble(BigDecimal::doubleValue).sum();
+        double electricity = rows.stream().map(Maintenance::getElectricityCommon)
+                .filter(java.util.Objects::nonNull).mapToDouble(BigDecimal::doubleValue).sum();
+        double motor = rows.stream().map(Maintenance::getMotorPump)
+                .filter(java.util.Objects::nonNull).mapToDouble(BigDecimal::doubleValue).sum();
+        double misc = rows.stream().map(Maintenance::getMiscellaneous)
+                .filter(java.util.Objects::nonNull).mapToDouble(BigDecimal::doubleValue).sum();
+        double water = rows.stream().map(Maintenance::getWaterAmount)
+                .filter(java.util.Objects::nonNull).mapToDouble(BigDecimal::doubleValue).sum();
+
+        List<LedgerItemResponse> items = new ArrayList<>();
+        if (watchman > 0) items.add(new LedgerItemResponse(null, "Watchman Salary", watchman));
+        if (garbage > 0) items.add(new LedgerItemResponse(null, "Garbage Collection", garbage));
+        if (lift > 0) items.add(new LedgerItemResponse(null, "Lift Maintenance", lift));
+        if (electricity > 0) items.add(new LedgerItemResponse(null, "Common Area Electricity", electricity));
+        if (motor > 0) items.add(new LedgerItemResponse(null, "Motor Maintenance", motor));
+        if (misc > 0) items.add(new LedgerItemResponse(null, "Miscellaneous", misc));
+        if (water > 0) items.add(new LedgerItemResponse(null, "Water Charges", water));
+        return items;
     }
 
     private String normalizeMonth(String month) {

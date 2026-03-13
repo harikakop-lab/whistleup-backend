@@ -64,13 +64,13 @@ public class ProfileServiceImpl implements ProfileService {
         Profile profile = Profile.builder().build();
         BeanUtils.copyProperties(profileCreateResource, profile);
         if (profile.getRole() == null) {
-            profile.setRole(Roles.ADMIN);
+            profile.setRole(Roles.USER);
         }
-        if (profile.getPassword() == null || profile.getPassword().isBlank()) {
-            throw new BadRequestException("Password is required", "Please provide a valid password/PIN.");
+        if (profile.getPin() == null || profile.getPin().isBlank()) {
+            throw new BadRequestException("PIN is required", "Please provide a valid 4-digit PIN.");
         }
 
-        profile.setPassword(passwordEncoder.encode(profile.getPassword()));
+        profile.setPin(passwordEncoder.encode(profile.getPin()));
 
         if (profileCreateResource.getContacts() != null) {
             profile.setContacts(new ArrayList<>());
@@ -108,9 +108,9 @@ public class ProfileServiceImpl implements ProfileService {
         );
 
         // Password update (only if provided)
-        if (Objects.nonNull(profileUpdateResource.getPassword())) {
-            profileEntity.setPassword(
-                    passwordEncoder.encode(profileUpdateResource.getPassword())
+        if (Objects.nonNull(profileUpdateResource.getPin())) {
+            profileEntity.setPin(
+                    passwordEncoder.encode(profileUpdateResource.getPin())
             );
         }
 

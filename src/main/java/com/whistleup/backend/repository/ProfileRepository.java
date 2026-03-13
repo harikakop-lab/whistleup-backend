@@ -22,16 +22,16 @@ public interface ProfileRepository extends JpaRepository<Profile, String> {
 
     @Query("""
        select new com.whistleup.backend.controllers.ResidentsResponse(
-       f.resident.phone, f.resident.name, f.floor)
+       f.resident.phone, f.resident.name, f.resident.flatNo)
        from FlatDetails f
        where f.building.buildingId = :buildingId
-         and f.floor = :floorNo
+         and f.resident.flatNo = :flatNo
        """)
-    List<ResidentsResponse> getListOfResidents(Long buildingId, Long floorNo);
+    List<ResidentsResponse> getListOfResidents(Long buildingId, Long flatNo);
 
     @Query("""
        select new com.whistleup.backend.controllers.ResidentsResponse(
-       f.resident.phone, f.resident.name, f.floor)
+       f.resident.phone, f.resident.name, f.resident.flatNo)
        from FlatDetails f
        where f.building.buildingId = :buildingId
        """)

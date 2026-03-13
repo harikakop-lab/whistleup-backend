@@ -52,7 +52,7 @@ public class ProfileController {
     @GetMapping("/{username}")
     public ResponseEntity<ProfileResponseResource> getProfileByUsername(@PathVariable("username") String username) {
         ProfileResponseResource profileResponseResource = profileService.getProfileByUsername(username);
-        profileResponseResource.setPassword(null);
+        profileResponseResource.setPin(null);
         profileResponseResource.setAvatarUri(baseUrl + "/whistleup/profile/" + username + "/image");
         return new ResponseEntity<>(profileResponseResource, HttpStatus.OK);
     }
@@ -60,7 +60,6 @@ public class ProfileController {
     @PostMapping("/create")
     public ResponseEntity<ProfileResponseResource> createProfile(@RequestBody ProfileCreateResource profileCreateResource) {
         var profileResponse = profileService.createProfile(profileCreateResource);
-        profileResponse.setPassword(null);
         return new ResponseEntity<>(profileResponse, HttpStatus.CREATED);
     }
 

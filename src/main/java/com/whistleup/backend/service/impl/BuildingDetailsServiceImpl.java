@@ -35,7 +35,7 @@ public class BuildingDetailsServiceImpl implements BuildingDetailsService {
     }
 
     @Override
-    public BuildingDetails saveBuildingDetails(BuildingDetailsRequestResource buildingDetailsRequestResource) {
+    public BuildingDetails createBuilding(BuildingDetailsRequestResource buildingDetailsRequestResource) {
         BuildingDetails buildingDetails = convertToBuildingDetails(buildingDetailsRequestResource);
         return buildingDetailsRepository.save(buildingDetails);
     }

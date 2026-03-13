@@ -1,12 +1,13 @@
 package com.whistleup.backend.service;
 
-import com.whistleup.backend.notifications.entity.NotificationEntity;
+import com.whistleup.backend.entity.NotificationEntity;
 import com.whistleup.backend.repository.DeviceTokenRepository;
 import com.whistleup.backend.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -23,13 +24,17 @@ public class NotificationSendService {
     @Transactional
     public void notifyUser(Long userId, String title, String body, String type) {
         // 1️⃣ Save to DB
+        LocalDateTime currentTime = LocalDateTime.now();
         notificationRepository.save(
                 NotificationEntity.builder()
-                        .userId(userId)
+                        .phone(userId.toString())
                         .title(title)
-                        .body(body)
+                        .message(body)
                         .type(type)
-                        .isRead(false)
+                        .referenceId(String.valueOf(userId))
+                        .read(false)
+                        .pushed(true)
+                        .createdAt(currentTime)
                         .build()
         );
 

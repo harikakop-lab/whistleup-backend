@@ -19,6 +19,14 @@ public class MaintenanceResponseResource {
     private Integer month;
     private String monthLabel;     // "April Maintenance"
     private BigDecimal amount;
+    private BigDecimal watchmanSalary;
+    private BigDecimal garbageCollection;
+    private BigDecimal liftMaintenance;
+    private BigDecimal electricityCommon;
+    private BigDecimal motorPump;
+    private BigDecimal miscellaneous;
+    private BigDecimal waterAmount;
+    private String waterMode;
     private LocalDate dueDate;
     private MaintenanceStatus status;
     private LocalDate paidDate;

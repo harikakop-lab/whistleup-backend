@@ -34,8 +34,8 @@ public class Profile {
     @Column(name = "email")
     private String email;
 
-    @Column(name = "password")
-    private String password;
+    @Column(name = "pin")
+    private String pin;
 
     @Column(name = "role")
     @Enumerated(EnumType.STRING)

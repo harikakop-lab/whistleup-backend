@@ -30,6 +30,11 @@ public class MaintenanceController {
         return ResponseEntity.status(HttpStatus.CREATED).body(maintenanceService.createOrUpdateMaintenance(req));
     }
 
+    @PatchMapping("/update")
+    public ResponseEntity<List<MaintenanceResponseResource>> update(@RequestBody MaintenanceCreateResource req) {
+        return ResponseEntity.ok(maintenanceService.updateMaintenance(req));
+    }
+
     @GetMapping("/building/{buildingId}")
     public ResponseEntity<List<MaintenanceResponseResource>> getAllMaintenanceByBuilding(@PathVariable String buildingId) {
         return ResponseEntity.ok(maintenanceService.getByBuilding(buildingId));

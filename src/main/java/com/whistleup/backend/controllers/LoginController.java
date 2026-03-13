@@ -51,9 +51,6 @@ public class LoginController {
         if (hasText(loginRequest.getPin())) {
             return loginRequest.getPin().trim();
         }
-        if (hasText(loginRequest.getPassword())) {
-            return loginRequest.getPassword().trim();
-        }
         throw new IllegalArgumentException("Either pin or password is required");
     }
 
