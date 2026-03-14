@@ -78,6 +78,12 @@ public class ComplaintsController {
         return new ResponseEntity<>(complaints, HttpStatus.OK);
     }
 
+    @GetMapping("/building/{buildingId}")
+    public ResponseEntity<List<ComplaintsResponseResource>> getAllComplaintsByBuildingId(@PathVariable("buildingId") String buildingId) {
+        List<ComplaintsResponseResource> complaints = complaintsService.getComplaintsByBuildingId(buildingId);
+        return new ResponseEntity<>(complaints, HttpStatus.OK);
+    }
+
     @PostMapping(value = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ComplaintsResponseResource> registerComplaint(@RequestPart("complaint") String complaintJson,
         @RequestPart(value = "files", required = false) MultipartFile[] files) throws Exception {

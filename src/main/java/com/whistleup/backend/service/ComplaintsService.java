@@ -18,6 +18,8 @@ public interface ComplaintsService {
 
     List<ComplaintsResponseResource> getComplaintsByAssigneeProfileId(String profileId);
 
+    List<ComplaintsResponseResource> getComplaintsByBuildingId(String buildingId);
+
     ComplaintsResponseResource registerComplaint(ComplaintCreateResource complaintCreateResource, MultipartFile[] files) throws IOException;
 
     void deleteComplaint(String complaintId);

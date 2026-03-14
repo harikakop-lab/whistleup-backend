@@ -70,6 +70,14 @@ public class ComplaintsServiceImpl implements ComplaintsService {
     }
 
     @Override
+    public List<ComplaintsResponseResource> getComplaintsByBuildingId(String buildingId) {
+        return complaintsRepository.findByBuildingIdOrderByComplaintIdDesc(buildingId)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Override
     public ComplaintsResponseResource registerComplaint(ComplaintCreateResource complaintCreateResource, MultipartFile[] files) throws IOException {
         Complaints complaintEntity = new Complaints();
         BeanUtils.copyProperties(complaintCreateResource, complaintEntity);
