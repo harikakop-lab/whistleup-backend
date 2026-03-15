@@ -40,4 +40,15 @@ public interface ProfileRepository extends JpaRepository<Profile, String> {
     List<Profile> findByBuildingId(String buildingId);
 
     List<Profile> findByBuildingIdAndRole(String buildingId, Roles role);
+
+    @Query("""
+       select new com.whistleup.backend.controllers.ResidentsResponse(
+       p.phone, p.name, p.flatNo)
+       from Profile p
+       where p.buildingId = :buildingId
+         and p.isAssigned = false
+         and p.role in :roles
+       """)
+    List<ResidentsResponse> getPendingResidentsByBuilding(@Param("buildingId") String buildingId,
+                                                          @Param("roles") List<Roles> roles);
 }

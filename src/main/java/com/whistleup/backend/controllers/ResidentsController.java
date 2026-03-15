@@ -1,5 +1,6 @@
 package com.whistleup.backend.controllers;
 
+import com.whistleup.backend.resource.ResidentApprovalRequest;
 import com.whistleup.backend.service.ResidentsService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,5 +29,24 @@ public class ResidentsController {
     public ResponseEntity<List<ResidentsResponse>> getAllResidentsByBuildingId(@PathVariable("buildingId") String buildingId) {
         List<ResidentsResponse> listOfResidents = residentsService.getAllResidentsByBuilding(buildingId);
         return new ResponseEntity<>(listOfResidents, HttpStatus.OK);
+    }
+
+    @GetMapping("/building/{buildingId}/pending")
+    public ResponseEntity<List<ResidentsResponse>> getPendingResidentsByBuilding(@PathVariable("buildingId") String buildingId) {
+        List<ResidentsResponse> pendingResidents = residentsService.getPendingResidentsByBuilding(buildingId);
+        return new ResponseEntity<>(pendingResidents, HttpStatus.OK);
+    }
+
+    @PatchMapping("/{phone}/approve")
+    public ResponseEntity<Void> approveResident(@PathVariable("phone") String phone,
+                                                @RequestBody ResidentApprovalRequest request) {
+        residentsService.approveResident(phone, request.getFlatNo());
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @DeleteMapping("/{phone}/reject")
+    public ResponseEntity<Void> rejectResident(@PathVariable("phone") String phone) {
+        residentsService.rejectResident(phone);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 }

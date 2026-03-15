@@ -36,4 +36,5 @@ public class ProfileCreateResource {
     private String buildingId;
     private String floor;
     private String flatNo;
+    private Boolean isAssigned;
 }

@@ -27,4 +27,5 @@ public class ProfileResponseResource extends ProfileCreateResource {
     private Roles role;
     private String avatarUri;
     private String buildingName;
+    private Boolean isAssigned;
 }

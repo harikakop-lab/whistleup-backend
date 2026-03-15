@@ -69,6 +69,15 @@ public class ProfileServiceImpl implements ProfileService {
         if (profile.getPin() == null || profile.getPin().isBlank()) {
             throw new BadRequestException("PIN is required", "Please provide a valid 4-digit PIN.");
         }
+        if (profile.getIsAssigned() == null) {
+            // New user/owner self-signups wait for admin approval unless flat is already assigned.
+            if (profile.getRole() == Roles.USER || profile.getRole() == Roles.OWNER) {
+                boolean hasFlat = profile.getFlatNo() != null && !profile.getFlatNo().isBlank();
+                profile.setIsAssigned(hasFlat);
+            } else {
+                profile.setIsAssigned(true);
+            }
+        }
 
         profile.setPin(passwordEncoder.encode(profile.getPin()));
 

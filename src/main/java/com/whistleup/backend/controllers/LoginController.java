@@ -1,7 +1,10 @@
 package com.whistleup.backend.controllers;
 
+import com.whistleup.backend.constants.Roles;
+import com.whistleup.backend.exception.BadRequestException;
 import com.whistleup.backend.resource.LoginRequest;
 import com.whistleup.backend.resource.LoginResponse;
+import com.whistleup.backend.resource.ProfileResponseResource;
 import com.whistleup.backend.service.AuthenticationService;
 import com.whistleup.backend.service.ProfileService;
 import jakarta.validation.Valid;
@@ -25,13 +28,21 @@ public class LoginController {
     public ResponseEntity<LoginResponse> logIn(@Valid @RequestBody LoginRequest loginRequest) {
         final String username = resolveUsername(loginRequest);
         final String secret = resolveSecret(loginRequest);
+        final ProfileResponseResource profile = profileService.getProfileByUsername(username);
+        if ((profile.getRole() == Roles.USER || profile.getRole() == Roles.OWNER)
+                && !Boolean.TRUE.equals(profile.getIsAssigned())) {
+            throw new BadRequestException(
+                    "Your profile is waiting for admin approval.",
+                    "Please wait until your apartment admin assigns your flat."
+            );
+        }
         final String token = authenticationService.authenticate(username, secret);
 
         LoginResponse loginResponse = LoginResponse.builder()
                 .jwtToken(token)
                 .username(username)
                 .profileId(username)
-                .role(profileService.getRole(username))
+                .role(profile.getRole())
                 .build();
 
         return new ResponseEntity<>(loginResponse, HttpStatus.OK);

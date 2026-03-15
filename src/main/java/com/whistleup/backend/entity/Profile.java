@@ -62,4 +62,7 @@ public class Profile {
 
     @Column(name = "flat_no")
     private String flatNo;
+
+    @Column(name = "is_assigned")
+    private Boolean isAssigned;
 }
