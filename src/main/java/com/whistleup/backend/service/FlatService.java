@@ -9,6 +9,8 @@ public interface FlatService {
 
     List<FlatResponseResource> getAllFlats();
 
+    List<String> getAllFlatsByBuildingId(String buildingId);
+
     FlatResponseResource getFlatDetailsByFlatNumber(String flatNumber);
 
     FlatResponseResource getFlatDetailsById(Long flatId);

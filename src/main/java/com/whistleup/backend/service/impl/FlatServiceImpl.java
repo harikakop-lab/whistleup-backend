@@ -11,11 +11,13 @@ import com.whistleup.backend.resource.FlatRequestResource;
 import com.whistleup.backend.resource.FlatResponseResource;
 import com.whistleup.backend.service.FlatService;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -41,6 +43,12 @@ public class FlatServiceImpl implements FlatService {
             BeanUtils.copyProperties(flatDetails, flatResponseResource);
             return flatResponseResource;
         }).toList();
+    }
+
+    @Override
+    public List<String> getAllFlatsByBuildingId(String buildingId) {
+        val optionalFlatDetails = flatRepository.findFlatsByBuilding(Long.valueOf(buildingId));
+        return optionalFlatDetails.map(flatDetails -> flatDetails.stream().map(FlatDetails::getFlatNumber).collect(Collectors.toList())).orElse(Collections.emptyList());
     }
 
     @Override
