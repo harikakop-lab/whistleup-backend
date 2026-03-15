@@ -25,7 +25,7 @@ public class FlatController {
         return new ResponseEntity<>(flatResponseResourceList, HttpStatus.OK);
    }
 
-    @GetMapping("/{buildingId}")
+    @GetMapping("/building/{buildingId}")
     public ResponseEntity<List<String>> getFlatsByBuildingId(@PathVariable String buildingId) {
         List<String> flatResponseResourceList = flatService.getAllFlatsByBuildingId(buildingId);
         return new ResponseEntity<>(flatResponseResourceList, HttpStatus.OK);
