@@ -7,6 +7,7 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Map;
 
 @Getter
 @Setter
@@ -25,6 +26,7 @@ public class MaintenanceResponseResource {
     private BigDecimal electricityCommon;
     private BigDecimal motorPump;
     private BigDecimal miscellaneous;
+    private Map<String, BigDecimal> customExpenses;
     private BigDecimal waterAmount;
     private String waterMode;
     private LocalDate dueDate;

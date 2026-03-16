@@ -20,8 +20,10 @@ import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.format.TextStyle;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -258,6 +260,18 @@ public class LedgerServiceImpl implements LedgerService {
                 .filter(java.util.Objects::nonNull).mapToDouble(BigDecimal::doubleValue).sum();
         double water = rows.stream().map(Maintenance::getWaterAmount)
                 .filter(java.util.Objects::nonNull).mapToDouble(BigDecimal::doubleValue).sum();
+        Map<String, Double> customExpenses = new LinkedHashMap<>();
+        for (Maintenance row : rows) {
+            if (row.getCustomExpenses() == null || row.getCustomExpenses().isEmpty()) {
+                continue;
+            }
+            for (Map.Entry<String, BigDecimal> entry : row.getCustomExpenses().entrySet()) {
+                if (entry.getKey() == null || entry.getKey().trim().isEmpty() || entry.getValue() == null) {
+                    continue;
+                }
+                customExpenses.merge(entry.getKey().trim(), entry.getValue().doubleValue(), Double::sum);
+            }
+        }
 
         List<LedgerItemResponse> items = new ArrayList<>();
         if (watchman > 0) items.add(new LedgerItemResponse(null, "Watchman Salary", watchman));
@@ -266,6 +280,11 @@ public class LedgerServiceImpl implements LedgerService {
         if (electricity > 0) items.add(new LedgerItemResponse(null, "Common Area Electricity", electricity));
         if (motor > 0) items.add(new LedgerItemResponse(null, "Motor Maintenance", motor));
         if (misc > 0) items.add(new LedgerItemResponse(null, "Miscellaneous", misc));
+        customExpenses.forEach((name, amount) -> {
+            if (amount > 0) {
+                items.add(new LedgerItemResponse(null, name, amount));
+            }
+        });
         if (water > 0) items.add(new LedgerItemResponse(null, "Water Charges", water));
         return items;
     }

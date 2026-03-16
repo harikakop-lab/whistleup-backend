@@ -21,6 +21,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.Month;
 import java.time.YearMonth;
+import java.util.LinkedHashMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -64,6 +65,10 @@ public class MaintenanceService {
         BigDecimal electricityPerFlat = splitPerFlat(maintenanceCreateResource.getElectricityCommon(), residentsInTheBuilding.size());
         BigDecimal motorPerFlat = splitPerFlat(maintenanceCreateResource.getMotorPump(), residentsInTheBuilding.size());
         BigDecimal miscPerFlat = splitPerFlat(maintenanceCreateResource.getMiscellaneous(), residentsInTheBuilding.size());
+        Map<String, BigDecimal> customExpensesPerFlat = splitCustomExpensesPerFlat(
+                maintenanceCreateResource.getCustomExpenses(),
+                residentsInTheBuilding.size()
+        );
 
         List<Maintenance> savedRows = residentsInTheBuilding.stream()
                 .map(profile -> upsertMaintenanceRow(
@@ -78,7 +83,8 @@ public class MaintenanceService {
                         liftPerFlat,
                         electricityPerFlat,
                         motorPerFlat,
-                        miscPerFlat
+                        miscPerFlat,
+                        customExpensesPerFlat
                 ))
                 .toList();
 
@@ -98,7 +104,8 @@ public class MaintenanceService {
             BigDecimal liftPerFlat,
             BigDecimal electricityPerFlat,
             BigDecimal motorPerFlat,
-            BigDecimal miscPerFlat) {
+            BigDecimal miscPerFlat,
+            Map<String, BigDecimal> customExpensesPerFlat) {
         Maintenance maintenance;
         String phone = profile.getPhone();
         String flatNo = normalizeFlatNo(profile.getFlatNo());
@@ -148,6 +155,10 @@ public class MaintenanceService {
             maintenance.setElectricityCommon(addNullable(maintenance.getElectricityCommon(), electricityPerFlat));
             maintenance.setMotorPump(addNullable(maintenance.getMotorPump(), motorPerFlat));
             maintenance.setMiscellaneous(addNullable(maintenance.getMiscellaneous(), miscPerFlat));
+            maintenance.setCustomExpenses(mergeCustomExpenseMaps(
+                    maintenance.getCustomExpenses(),
+                    customExpensesPerFlat
+            ));
             maintenance.setWaterAmount(addNullable(
                     maintenance.getWaterAmount(),
                     waterByFlat.getOrDefault(flatNo, defaultWaterPerFlat)
@@ -159,6 +170,7 @@ public class MaintenanceService {
             maintenance.setElectricityCommon(electricityPerFlat);
             maintenance.setMotorPump(motorPerFlat);
             maintenance.setMiscellaneous(miscPerFlat);
+            maintenance.setCustomExpenses(new LinkedHashMap<>(customExpensesPerFlat));
             maintenance.setWaterAmount(waterByFlat.getOrDefault(flatNo, defaultWaterPerFlat));
         }
         return repository.save(maintenance);
@@ -217,10 +229,63 @@ public class MaintenanceService {
         total = total.add(Objects.requireNonNullElse(req.getElectricityCommon(), BigDecimal.ZERO));
         total = total.add(Objects.requireNonNullElse(req.getMotorPump(), BigDecimal.ZERO));
         total = total.add(Objects.requireNonNullElse(req.getMiscellaneous(), BigDecimal.ZERO));
+        total = total.add(normalizeCustomExpenses(req.getCustomExpenses()).values().stream()
+                .reduce(BigDecimal.ZERO, BigDecimal::add));
         if (total.compareTo(BigDecimal.ZERO) == 0 && req.getAmount() != null) {
             return req.getAmount().multiply(BigDecimal.valueOf(Objects.requireNonNullElse(req.getTotalFlats(), 1)));
         }
         return total;
+    }
+
+    private Map<String, BigDecimal> splitCustomExpensesPerFlat(
+            Map<String, BigDecimal> customExpenses,
+            int totalProfiles) {
+        Map<String, BigDecimal> normalized = normalizeCustomExpenses(customExpenses);
+        if (normalized.isEmpty() || totalProfiles <= 0) {
+            return new LinkedHashMap<>();
+        }
+        Map<String, BigDecimal> perFlat = new LinkedHashMap<>();
+        for (Map.Entry<String, BigDecimal> entry : normalized.entrySet()) {
+            perFlat.put(
+                    entry.getKey(),
+                    entry.getValue().divide(BigDecimal.valueOf(totalProfiles), 2, RoundingMode.HALF_UP)
+            );
+        }
+        return perFlat;
+    }
+
+    private Map<String, BigDecimal> normalizeCustomExpenses(Map<String, BigDecimal> customExpenses) {
+        Map<String, BigDecimal> normalized = new LinkedHashMap<>();
+        if (customExpenses == null || customExpenses.isEmpty()) {
+            return normalized;
+        }
+        for (Map.Entry<String, BigDecimal> entry : customExpenses.entrySet()) {
+            String rawKey = entry.getKey();
+            String key = rawKey == null ? "" : rawKey.trim();
+            if (key.isEmpty()) {
+                continue;
+            }
+            BigDecimal amount = Objects.requireNonNullElse(entry.getValue(), BigDecimal.ZERO);
+            if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+                continue;
+            }
+            normalized.merge(key, amount, BigDecimal::add);
+        }
+        return normalized;
+    }
+
+    private Map<String, BigDecimal> mergeCustomExpenseMaps(
+            Map<String, BigDecimal> existing,
+            Map<String, BigDecimal> incoming) {
+        Map<String, BigDecimal> merged = new LinkedHashMap<>();
+        if (existing != null) {
+            merged.putAll(normalizeCustomExpenses(existing));
+        }
+        Map<String, BigDecimal> normalizedIncoming = normalizeCustomExpenses(incoming);
+        for (Map.Entry<String, BigDecimal> entry : normalizedIncoming.entrySet()) {
+            merged.merge(entry.getKey(), entry.getValue(), BigDecimal::add);
+        }
+        return merged;
     }
 
     private BigDecimal resolveDefaultWaterPerFlat(MaintenanceCreateResource req, int profileCount) {
@@ -364,6 +429,7 @@ public class MaintenanceService {
                 .electricityCommon(m.getElectricityCommon())
                 .motorPump(m.getMotorPump())
                 .miscellaneous(m.getMiscellaneous())
+                .customExpenses(m.getCustomExpenses())
                 .waterAmount(m.getWaterAmount())
                 .waterMode(m.getWaterMode())
                 .dueDate(m.getDueDate())

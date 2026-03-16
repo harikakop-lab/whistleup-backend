@@ -8,6 +8,7 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @Getter
 @Setter
@@ -31,6 +32,7 @@ public class MaintenanceCreateResource {
     private BigDecimal electricityCommon;
     private BigDecimal motorPump;
     private BigDecimal miscellaneous;
+    private Map<String, BigDecimal> customExpenses;
 
     // Water setup from maintenance UI (step 3)
     private String waterMode; // FIXED | MASTER | INDIVIDUAL | MIXED

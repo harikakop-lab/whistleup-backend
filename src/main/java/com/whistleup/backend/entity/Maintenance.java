@@ -1,6 +1,7 @@
 package com.whistleup.backend.entity;
 
 import com.whistleup.backend.constants.MaintenanceStatus;
+import com.whistleup.backend.entity.converter.CustomExpensesConverter;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -9,6 +10,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @Entity
 @Table(
@@ -88,4 +91,9 @@ public class Maintenance {
 
     @Column(name = "water_mode", length = 20)
     private String waterMode;
+
+    @Convert(converter = CustomExpensesConverter.class)
+    @Column(name = "custom_expenses", columnDefinition = "TEXT")
+    @Builder.Default
+    private Map<String, BigDecimal> customExpenses = new LinkedHashMap<>();
 }
