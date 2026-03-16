@@ -37,16 +37,15 @@ public class MaintenanceService {
     private final NotificationSendService notificationSendService;
 
     public List<MaintenanceResponseResource> createOrUpdateMaintenance(MaintenanceCreateResource maintenanceCreateResource) {
-        return upsertMaintenanceRows(maintenanceCreateResource, false);
+        return upsertMaintenanceRows(maintenanceCreateResource);
     }
 
     public List<MaintenanceResponseResource> updateMaintenance(MaintenanceCreateResource maintenanceCreateResource) {
-        return upsertMaintenanceRows(maintenanceCreateResource, true);
+        return upsertMaintenanceRows(maintenanceCreateResource);
     }
 
     private List<MaintenanceResponseResource> upsertMaintenanceRows(
-            MaintenanceCreateResource maintenanceCreateResource,
-            boolean additiveUpdate) {
+            MaintenanceCreateResource maintenanceCreateResource) {
         List<Profile> residentsInTheBuilding = profileRepository.findByBuildingId(maintenanceCreateResource.getBuildingId());
         if (CollectionUtils.isEmpty(residentsInTheBuilding)) {
             return List.of();
@@ -74,7 +73,6 @@ public class MaintenanceService {
                         basePerFlat,
                         waterByFlat,
                         defaultWaterPerFlat,
-                        additiveUpdate,
                         watchmanPerFlat,
                         garbagePerFlat,
                         liftPerFlat,
@@ -95,7 +93,6 @@ public class MaintenanceService {
             BigDecimal basePerFlat,
             Map<String, BigDecimal> waterByFlat,
             BigDecimal defaultWaterPerFlat,
-            boolean additiveUpdate,
             BigDecimal watchmanPerFlat,
             BigDecimal garbagePerFlat,
             BigDecimal liftPerFlat,
@@ -117,12 +114,13 @@ public class MaintenanceService {
         }
 
         BigDecimal finalResolvedAmount = resolvedAmount;
-        maintenance = repository.findByProfileIdAndBuildingIdAndMaintenanceYearAndMaintenanceMonth(
-                        phone,
-                        req.getBuildingId(),
-                        req.getYear(),
-                        req.getMonth()
-                )
+        val maintenanceOptional = repository.findByProfileIdAndBuildingIdAndMaintenanceYearAndMaintenanceMonth(
+                phone,
+                req.getBuildingId(),
+                req.getYear(),
+                req.getMonth()
+        );
+        maintenance = maintenanceOptional
                 .orElseGet(() -> Maintenance.builder()
                         .profileId(phone)
                         .maintenanceYear(req.getYear())
@@ -132,7 +130,7 @@ public class MaintenanceService {
                         .status(MaintenanceStatus.PENDING)
                         .buildingId(req.getBuildingId())
                         .build());
-        if (additiveUpdate && maintenance.getId() != null) {
+        if (maintenanceOptional.isPresent() && maintenance.getId() != null) {
             maintenance.setAmount(addNullable(maintenance.getAmount(), resolvedAmount));
         } else {
             maintenance.setAmount(resolvedAmount);
@@ -143,7 +141,7 @@ public class MaintenanceService {
             maintenance.setDueDate(YearMonth.now().atEndOfMonth());
         }
         maintenance.setWaterMode(normalizeMode(req.getWaterMode()));
-        if (additiveUpdate && maintenance.getId() != null) {
+        if (maintenanceOptional.isPresent() && maintenance.getId() != null) {
             maintenance.setWatchmanSalary(addNullable(maintenance.getWatchmanSalary(), watchmanPerFlat));
             maintenance.setGarbageCollection(addNullable(maintenance.getGarbageCollection(), garbagePerFlat));
             maintenance.setLiftMaintenance(addNullable(maintenance.getLiftMaintenance(), liftPerFlat));
