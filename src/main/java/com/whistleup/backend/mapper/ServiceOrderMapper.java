@@ -19,6 +19,10 @@ public class ServiceOrderMapper {
                 .optionTitle(resource.getOptionTitle())
                 .notes(resource.getNotes())
                 .amount(resource.getAmount())
+                .vhsBookingId(resource.getVhsBookingId())
+                .vhsStatus(resource.getVhsStatus())
+                .vhsServicePersonName(resource.getVhsServicePersonName())
+                .vhsServicePersonPhone(resource.getVhsServicePersonPhone())
                 .orderStatus(OrderStatus.CREATED)  // service layer will override if assigned
                 .build();
     }
@@ -35,6 +39,10 @@ public class ServiceOrderMapper {
                 .optionTitle(entity.getOptionTitle())
                 .notes(entity.getNotes())
                 .amount(entity.getAmount())
+                .vhsBookingId(entity.getVhsBookingId())
+                .vhsStatus(entity.getVhsStatus())
+                .vhsServicePersonName(entity.getVhsServicePersonName())
+                .vhsServicePersonPhone(entity.getVhsServicePersonPhone())
                 .orderCreationDate(entity.getOrderCreationDate())
                 .servicePersonId(entity.getServicePerson() != null
                         ? entity.getServicePerson().getServicePersonId()

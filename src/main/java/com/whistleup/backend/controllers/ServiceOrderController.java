@@ -2,7 +2,9 @@ package com.whistleup.backend.controllers;
 
 import com.whistleup.backend.constants.OrderStatus;
 import com.whistleup.backend.constants.ServiceIssueStatus;
+import com.whistleup.backend.resource.ServiceOrderRescheduleRequest;
 import com.whistleup.backend.resource.ServiceOrderResource;
+import com.whistleup.backend.resource.VhsWebhookUpdateRequest;
 import com.whistleup.backend.service.ServiceOrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -45,8 +47,7 @@ public class ServiceOrderController {
     @PostMapping("/create")
     public ResponseEntity<ServiceOrderResource> createServiceOrder(
             @Valid @RequestBody ServiceOrderResource createResource) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(serviceOrderService.createServiceOrder(createResource));
+        return ResponseEntity.status(HttpStatus.CREATED).body(serviceOrderService.createServiceOrder(createResource));
     }
 
     @PatchMapping("/{orderId}/assign/{servicePersonId}")
@@ -91,5 +92,28 @@ public class ServiceOrderController {
     public ResponseEntity<Void> deleteServiceOrder(@PathVariable String orderId) {
         serviceOrderService.deleteServiceOrder(orderId);
         return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{profileId}/{orderId}/reschedule")
+    public ResponseEntity<ServiceOrderResource> rescheduleOrder(
+            @PathVariable String profileId,
+            @PathVariable String orderId,
+            @RequestBody ServiceOrderRescheduleRequest request) {
+        return ResponseEntity.ok(serviceOrderService.rescheduleOrder(profileId, orderId, request));
+    }
+
+    @PatchMapping("/{profileId}/{orderId}/cancel")
+    public ResponseEntity<ServiceOrderResource> cancelOrder(
+            @PathVariable String profileId,
+            @PathVariable String orderId,
+            @RequestBody(required = false) Map<String, String> payload) {
+        String reason = payload == null ? null : payload.get("cancelReason");
+        return ResponseEntity.ok(serviceOrderService.cancelOrder(profileId, orderId, reason));
+    }
+
+    @PostMapping("/webhook/vhs")
+    public ResponseEntity<ServiceOrderResource> updateFromVhsWebhook(
+            @RequestBody VhsWebhookUpdateRequest request) {
+        return ResponseEntity.ok(serviceOrderService.applyVhsWebhook(request));
     }
 }

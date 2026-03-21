@@ -7,10 +7,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.UUID;
+import java.util.Optional;
 
 @Repository
-public interface ServiceOrderRepository extends JpaRepository<ServiceOrder, UUID> {
+public interface ServiceOrderRepository extends JpaRepository<ServiceOrder, Long> {
 
     List<ServiceOrder> findAllByProfileId(String profileId);
 
@@ -19,4 +19,6 @@ public interface ServiceOrderRepository extends JpaRepository<ServiceOrder, UUID
     List<ServiceOrder> findAllByProfileIdAndIssueStatus(String profileId, ServiceIssueStatus issueStatus);
 
     List<ServiceOrder> findAllByBuildingId(String buildingId);
+
+    Optional<ServiceOrder> findByVhsBookingId(String vhsBookingId);
 }

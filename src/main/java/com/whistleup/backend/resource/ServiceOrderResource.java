@@ -24,20 +24,20 @@ import java.util.UUID;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ServiceOrderResource {
-    private UUID orderId;
-    @NotNull
+    private Long orderId;
     private ServiceOrderType orderType;
-    @NotEmpty
     private String profileId;
-    @NotEmpty
     private String buildingId;
-    @NotNull
     private LocalDate date;
     private String timeSlot;
     private String optionId;
     private String optionTitle;
     private String notes;
     private Integer amount;
+    private String vhsBookingId;
+    private String vhsStatus;
+    private String vhsServicePersonName;
+    private String vhsServicePersonPhone;
     private LocalDate orderCreationDate;
     private UUID servicePersonId;
     private String servicePersonName;

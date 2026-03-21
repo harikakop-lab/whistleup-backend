@@ -20,9 +20,9 @@ import java.util.UUID;
 public class ServiceOrder {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "order_id", updatable = false, nullable = false)
-    private UUID orderId;
+    private Long orderId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "order_type", nullable = false)
@@ -51,6 +51,18 @@ public class ServiceOrder {
 
     @Column(name = "amount")
     private Integer amount;
+
+    @Column(name = "vhs_booking_id", length = 100)
+    private String vhsBookingId;
+
+    @Column(name = "vhs_status", length = 80)
+    private String vhsStatus;
+
+    @Column(name = "vhs_service_person_name", length = 160)
+    private String vhsServicePersonName;
+
+    @Column(name = "vhs_service_person_phone", length = 50)
+    private String vhsServicePersonPhone;
 
     @Column(name = "order_creation_date", nullable = false, updatable = false)
     private LocalDate orderCreationDate;

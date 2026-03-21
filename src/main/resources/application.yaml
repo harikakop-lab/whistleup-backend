@@ -54,6 +54,10 @@ app:
     root: /opt/whistleup/uploads
   base-url: http://localhost:8080
 
+vhs:
+  url: https://api2.vijayhomeservice.in/api/external-bookings
+  auth: Basic bmVzdGl0aTpuZXN0aXRpMTIzNA==
+
 sms:
   provider: fast2sms
   fast2sms:
