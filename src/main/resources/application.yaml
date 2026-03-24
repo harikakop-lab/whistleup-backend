@@ -47,6 +47,10 @@ razorpay:
   currency: INR
   appName: whistleup
 
+firebase:
+  credentials:
+    path: ${FIREBASE_CREDENTIALS_PATH:}
+
 app:
   upload:
     dir: uploads/profile

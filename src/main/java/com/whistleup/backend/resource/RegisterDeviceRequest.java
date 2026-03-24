@@ -8,8 +8,11 @@ import lombok.Setter;
 @Setter
 public class RegisterDeviceRequest {
 
-    @NotBlank
+    /** Optional when {@code fcmToken} is set. */
     private String expoPushToken;
+
+    /** Optional when {@code expoPushToken} is set. Native FCM token from the device. */
+    private String fcmToken;
 
     @NotBlank
     private String platform; // ANDROID | IOS

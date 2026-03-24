@@ -14,54 +14,25 @@ import java.util.Optional;
 public interface DeviceTokenRepository
         extends JpaRepository<DeviceTokenEntity, Long> {
 
-    /* ---------------------------------
-       Core queries
-    ---------------------------------- */
-
     Optional<DeviceTokenEntity> findByExpoPushToken(String expoPushToken);
 
-    @Query("""
-        select d.expoPushToken
-        from DeviceTokenEntity d
-        where d.userId = :userId
-          and d.active = true
-    """)
-    List<String> findActiveTokensByUserId(@Param("userId") Long userId);
+    List<DeviceTokenEntity> findByUserIdAndActiveTrue(Long userId);
 
-    /* ---------------------------------
-       MySQL UPSERT (used on login)
-    ---------------------------------- */
-
-    @Modifying
-    @Query(
-        value = """
-        INSERT INTO device_tokens
-            (user_id, expo_push_token, platform, active, last_seen)
-        VALUES
-            (:userId, :token, :platform, true, CURRENT_TIMESTAMP)
-        ON DUPLICATE KEY UPDATE
-            user_id = VALUES(user_id),
-            platform = VALUES(platform),
-            active = true,
-            last_seen = CURRENT_TIMESTAMP
-        """,
-        nativeQuery = true
-    )
-    void saveOrUpdate(
-        @Param("userId") Long userId,
-        @Param("token") String token,
-        @Param("platform") String platform
-    );
-
-    /* ---------------------------------
-       Maintenance / cleanup
-    ---------------------------------- */
+    void deleteAllByUserId(Long userId);
 
     @Modifying
     @Query("""
         update DeviceTokenEntity d
         set d.active = false
         where d.expoPushToken = :token
-    """)
+        """)
     void deactivateByToken(@Param("token") String token);
+
+    @Modifying
+    @Query("""
+        update DeviceTokenEntity d
+        set d.active = false
+        where d.fcmToken = :token
+        """)
+    void deactivateByFcmToken(@Param("token") String token);
 }

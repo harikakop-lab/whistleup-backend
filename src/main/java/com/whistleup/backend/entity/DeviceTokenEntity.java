@@ -13,6 +13,10 @@ import java.time.LocalDateTime;
         @UniqueConstraint(
             name = "uk_expo_push_token",
             columnNames = "expo_push_token"
+        ),
+        @UniqueConstraint(
+            name = "uk_fcm_token",
+            columnNames = "fcm_token"
         )
     },
     indexes = {
@@ -34,12 +38,16 @@ public class DeviceTokenEntity {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Column(name = "expo_push_token", nullable = false, length = 255)
+    @Column(name = "expo_push_token", length = 512)
     private String expoPushToken;
+
+    @Column(name = "fcm_token", length = 512)
+    private String fcmToken;
 
     @Column(length = 20)
     private String platform; // ANDROID | IOS
 
+    @Builder.Default
     @Column(nullable = false)
     private Boolean active = true;
 
