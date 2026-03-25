@@ -25,7 +25,11 @@ public class FcmPushService {
     private final DeviceTokenRepository deviceTokenRepository;
 
     public boolean isAvailable() {
-        return firebaseMessaging.getIfAvailable() != null;
+        boolean ok = firebaseMessaging.getIfAvailable() != null;
+        if (!ok) {
+            log.debug("[push][fcm] isAvailable=false (FirebaseMessaging bean not registered)");
+        }
+        return ok;
     }
 
     public void send(String fcmToken, String title, String body) {
@@ -34,9 +38,16 @@ public class FcmPushService {
 
     public void send(String fcmToken, String title, String body, Map<String, String> data) {
         FirebaseMessaging fm = firebaseMessaging.getIfAvailable();
-        if (fm == null || fcmToken == null || fcmToken.isBlank()) {
+        if (fm == null) {
+            log.warn("[push][fcm] skip send: FirebaseMessaging not configured (set FIREBASE_CREDENTIALS_PATH)");
             return;
         }
+        if (fcmToken == null || fcmToken.isBlank()) {
+            log.warn("[push][fcm] skip send: empty FCM registration token");
+            return;
+        }
+        String tokenPreview = fcmToken.length() > 20 ? fcmToken.substring(0, 20) + "…" : fcmToken;
+        log.info("[push][fcm] sending title=\"{}\" to tokenPrefix={}", title, tokenPreview);
         try {
             Message message = Message.builder()
                     .setToken(fcmToken)
@@ -50,15 +61,20 @@ public class FcmPushService {
                             .setAps(Aps.builder().setSound("default").build())
                             .build())
                     .build();
-            fm.send(message);
+            String messageId = fm.send(message);
+            log.info("[push][fcm] success messageId={}", messageId);
         } catch (FirebaseMessagingException e) {
             MessagingErrorCode code = e.getMessagingErrorCode();
-            log.warn("FCM send failed code={} message={}", code, e.getMessage());
+            log.warn(
+                    "[push][fcm] FAILED messagingErrorCode={} message={}",
+                    code,
+                    e.getMessage());
             if (code == MessagingErrorCode.UNREGISTERED || code == MessagingErrorCode.INVALID_ARGUMENT) {
+                log.info("[push][fcm] deactivating stored token (invalid or unregistered)");
                 deviceTokenRepository.deactivateByFcmToken(fcmToken);
             }
         } catch (Exception e) {
-            log.error("FCM unexpected error", e);
+            log.error("[push][fcm] unexpected error", e);
         }
     }
 }

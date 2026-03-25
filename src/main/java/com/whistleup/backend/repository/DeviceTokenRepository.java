@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -16,11 +17,14 @@ public interface DeviceTokenRepository
 
     Optional<DeviceTokenEntity> findByExpoPushToken(String expoPushToken);
 
+    Optional<DeviceTokenEntity> findByExpoPushTokenAndUserId(String expoPushToken, Long userId);
+
+    Optional<DeviceTokenEntity> findByFcmTokenAndUserId(String fcmToken, Long userId);
+
     List<DeviceTokenEntity> findByUserIdAndActiveTrue(Long userId);
 
-    void deleteAllByUserId(Long userId);
-
     @Modifying
+    @Transactional
     @Query("""
         update DeviceTokenEntity d
         set d.active = false
@@ -29,6 +33,7 @@ public interface DeviceTokenRepository
     void deactivateByToken(@Param("token") String token);
 
     @Modifying
+    @Transactional
     @Query("""
         update DeviceTokenEntity d
         set d.active = false

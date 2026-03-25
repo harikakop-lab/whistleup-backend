@@ -9,16 +9,6 @@ import java.time.LocalDateTime;
 @Entity
 @Table(
     name = "device_tokens",
-    uniqueConstraints = {
-        @UniqueConstraint(
-            name = "uk_expo_push_token",
-            columnNames = "expo_push_token"
-        ),
-        @UniqueConstraint(
-            name = "uk_fcm_token",
-            columnNames = "fcm_token"
-        )
-    },
     indexes = {
         @Index(name = "idx_user_id", columnList = "user_id"),
         @Index(name = "idx_active", columnList = "active")

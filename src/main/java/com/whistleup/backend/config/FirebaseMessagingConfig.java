@@ -29,7 +29,9 @@ public class FirebaseMessagingConfig {
                         .setCredentials(GoogleCredentials.fromStream(in))
                         .build();
                 FirebaseApp.initializeApp(options);
-                log.info("FirebaseApp initialized for FCM");
+                log.info("[push] FirebaseApp initialized for FCM (FirebaseMessaging bean ready)");
+            } else {
+                log.info("[push] FirebaseApp already initialized; reusing existing app");
             }
             return FirebaseMessaging.getInstance();
         }
