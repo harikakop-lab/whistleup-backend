@@ -15,13 +15,10 @@ import java.util.List;
 @NoArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class HomeServiceOptionResource {
+public class HomeServiceCatalogLineResource {
     private String id;
-    private String title;
+    private String serviceName;
+    private String variantLabel;
     private String description;
-    private Integer price;
-    private String image;
-    private Boolean popular;
-    /** Service lines (Excel C/D) with priced SKUs (E/F). */
-    private List<HomeServiceCatalogLineResource> serviceLines;
+    private List<HomeServicePricedOptionResource> pricedOptions;
 }

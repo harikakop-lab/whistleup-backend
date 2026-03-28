@@ -5,6 +5,7 @@ import com.whistleup.backend.entity.NotificationEntity;
 import com.whistleup.backend.repository.DeviceTokenRepository;
 import com.whistleup.backend.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -12,6 +13,7 @@ import org.springframework.util.StringUtils;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class NotificationSendService {
@@ -48,6 +50,28 @@ public class NotificationSendService {
             } else if (StringUtils.hasText(d.getExpoPushToken())) {
                 expoPushService.send(d.getExpoPushToken(), title, body);
             }
+        }
+    }
+
+    /**
+     * Same as {@link #notifyUser(Long, String, String, String)} but resolves the app user id from a profile phone
+     * (digits only — must match how /devices/register stores {@code userId}).
+     */
+    @Transactional
+    public void notifyUserByProfilePhone(String profilePhone, String title, String body, String type) {
+        if (!StringUtils.hasText(profilePhone)) {
+            return;
+        }
+        String digits = profilePhone.replaceAll("\\D", "");
+        if (digits.isEmpty()) {
+            log.warn("[push] profile phone has no digits: {}", profilePhone);
+            return;
+        }
+        try {
+            long userId = Long.parseLong(digits);
+            notifyUser(userId, title, body, type);
+        } catch (NumberFormatException e) {
+            log.warn("[push] profile phone too large or invalid for Long userId: {}", profilePhone);
         }
     }
 }

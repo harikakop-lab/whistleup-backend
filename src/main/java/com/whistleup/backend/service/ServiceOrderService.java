@@ -41,6 +41,7 @@ public class ServiceOrderService {
     private final ProfileRepository profileRepository;
     private final BuildingDetailsRepository buildingDetailsRepository;
     private final VhsBookingClient vhsBookingClient;
+    private final NotificationSendService notificationSendService;
 
     public List<ServiceOrderResource> getAllOrdersForProfile(String profileId) {
         return getAllOrdersForProfile(profileId, null, null);
@@ -194,9 +195,14 @@ public class ServiceOrderService {
         if (request.getVhsBookingId() == null || request.getVhsBookingId().isBlank()) {
             throw new IllegalArgumentException("vhsBookingId is required");
         }
-        ServiceOrder order = serviceOrderRepository.findByVhsBookingId(request.getVhsBookingId())
+        ServiceOrder order = serviceOrderRepository.findByVhsBookingId(request.getVhsBookingId().trim())
                 .orElseThrow(() -> new ServiceOrderNotFoundException(
                         "Order not found for VHS booking id: " + request.getVhsBookingId()));
+
+        OrderStatus previousOrderStatus = order.getOrderStatus();
+        String previousVhs = order.getVhsStatus();
+        String previousName = order.getVhsServicePersonName();
+        String previousPhone = order.getVhsServicePersonPhone();
 
         String incomingStatus = request.getStatus() == null ? "" : request.getStatus().trim();
         if (!incomingStatus.isEmpty()) {
@@ -210,7 +216,56 @@ public class ServiceOrderService {
         if (request.getServicePersonPhone() != null && !request.getServicePersonPhone().isBlank()) {
             order.setVhsServicePersonPhone(request.getServicePersonPhone().trim());
         }
-        return serviceOrderMapper.toResource(serviceOrderRepository.save(order));
+
+        ServiceOrder saved = serviceOrderRepository.save(order);
+
+        boolean meaningfulChange =
+                !Objects.equals(previousOrderStatus, saved.getOrderStatus())
+                        || !Objects.equals(previousVhs, saved.getVhsStatus())
+                        || !Objects.equals(previousName, saved.getVhsServicePersonName())
+                        || !Objects.equals(previousPhone, saved.getVhsServicePersonPhone());
+        if (meaningfulChange) {
+            sendVhsStatusNotification(saved);
+        }
+
+        return serviceOrderMapper.toResource(saved);
+    }
+
+    private void sendVhsStatusNotification(ServiceOrder order) {
+        String serviceLabel =
+                order.getOptionTitle() != null && !order.getOptionTitle().isBlank()
+                        ? order.getOptionTitle()
+                        : "your home service";
+        String title = "Booking update";
+        String body = buildVhsNotificationBody(order, serviceLabel);
+        try {
+            notificationSendService.notifyUserByProfilePhone(
+                    order.getProfileId(), title, body, "SERVICE_ORDER_VHS");
+        } catch (Exception e) {
+            log.warn(
+                    "[vhs][webhook] push failed for orderId={} profileId={}: {}",
+                    order.getOrderId(),
+                    order.getProfileId(),
+                    e.getMessage());
+        }
+    }
+
+    private static String buildVhsNotificationBody(ServiceOrder order, String serviceLabel) {
+        OrderStatus st = order.getOrderStatus();
+        String vhs = order.getVhsStatus() != null ? order.getVhsStatus() : "";
+        String tech = order.getVhsServicePersonName();
+        return switch (st) {
+            case ASSIGNED -> tech != null && !tech.isBlank()
+                    ? String.format("%s — professional assigned: %s.", serviceLabel, tech)
+                    : String.format("%s — a professional has been assigned.", serviceLabel);
+            case IN_PROGRESS -> String.format("%s is in progress.", serviceLabel);
+            case COMPLETED -> String.format("%s is completed. Thank you for using Nestiti.", serviceLabel);
+            case CANCELLED -> String.format("%s was cancelled.", serviceLabel);
+            case CONFIRMED -> String.format("%s is confirmed.", serviceLabel);
+            case CREATED -> !vhs.isBlank()
+                    ? String.format("%s — status: %s.", serviceLabel, vhs)
+                    : String.format("%s booking was updated.", serviceLabel);
+        };
     }
 
     @Transactional

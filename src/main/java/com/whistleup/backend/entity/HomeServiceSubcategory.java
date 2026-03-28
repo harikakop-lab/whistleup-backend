@@ -2,28 +2,31 @@ package com.whistleup.backend.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
-@Table(name = "home_service_catalog")
+@Table(
+        name = "home_service_subcategory",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"category_id", "subcategory_key"})
+)
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class HomeServiceCatalogItem {
+public class HomeServiceSubcategory {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "category_key", nullable = false, length = 80)
-    private String categoryKey;
-
-    @Column(name = "category_label", nullable = false, length = 120)
-    private String categoryLabel;
-
-    @Column(name = "category_icon", length = 80)
-    private String categoryIcon;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id", nullable = false)
+    private HomeServiceCategory category;
 
     @Column(name = "subcategory_key", nullable = false, length = 120)
     private String subcategoryKey;
@@ -34,9 +37,6 @@ public class HomeServiceCatalogItem {
     @Column(name = "description", length = 500)
     private String description;
 
-    @Column(name = "price")
-    private Integer price;
-
     @Column(name = "image", length = 500)
     private String image;
 
@@ -44,10 +44,16 @@ public class HomeServiceCatalogItem {
     private Boolean popular;
 
     @Builder.Default
+    @Column(name = "sort_order", nullable = false)
+    private Integer sortOrder = 0;
+
+    @Builder.Default
     @Column(name = "active", nullable = false)
     private Boolean active = true;
 
     @Builder.Default
-    @Column(name = "sort_order", nullable = false)
-    private Integer sortOrder = 0;
+    @OneToMany(mappedBy = "subcategory", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("sortOrder ASC")
+    @Fetch(FetchMode.SUBSELECT)
+    private List<HomeServiceCatalogLine> catalogLines = new ArrayList<>();
 }

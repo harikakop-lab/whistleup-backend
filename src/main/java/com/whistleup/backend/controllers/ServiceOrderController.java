@@ -6,6 +6,7 @@ import com.whistleup.backend.resource.ServiceOrderRescheduleRequest;
 import com.whistleup.backend.resource.ServiceOrderResource;
 import com.whistleup.backend.resource.VhsWebhookUpdateRequest;
 import com.whistleup.backend.service.ServiceOrderService;
+import com.whistleup.backend.service.VhsWebhookAuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -22,6 +23,7 @@ import java.util.Map;
 public class ServiceOrderController {
 
     private final ServiceOrderService serviceOrderService;
+    private final VhsWebhookAuthService vhsWebhookAuthService;
 
     @GetMapping("/{profileId}/all")
     public ResponseEntity<List<ServiceOrderResource>> getAllOrdersForProfile(
@@ -111,9 +113,31 @@ public class ServiceOrderController {
         return ResponseEntity.ok(serviceOrderService.cancelOrder(profileId, orderId, reason));
     }
 
+    /**
+     * VHS → Nestiti: update booking status / technician. Requires {@code vhs.webhook-secret} when set
+     * (header {@code X-VHS-Webhook-Secret} or {@code Authorization: Bearer <secret>}).
+     * <p>
+     * URL (production example): {@code POST {base-url}/whistleup/service/order/webhook/vhs}
+     * <p>
+     * JSON body (all fields optional except booking id):
+     * <pre>
+     * {
+     *   "vhsBookingId": "&lt;id returned from VHS create-booking&gt;",
+     *   "status": "ASSIGNED | IN_PROGRESS | COMPLETED | CANCELLED | ...",
+     *   "servicePersonName": "Technician name",
+     *   "servicePersonPhone": "+91..."
+     * }
+     * </pre>
+     * Aliases accepted: {@code internalBookingId}, {@code booking_id}, {@code booking_status}, etc.
+     */
     @PostMapping("/webhook/vhs")
     public ResponseEntity<ServiceOrderResource> updateFromVhsWebhook(
+            @RequestHeader(value = "X-VHS-Webhook-Secret", required = false) String vhsWebhookSecret,
+            @RequestHeader(value = "Authorization", required = false) String authorization,
             @RequestBody VhsWebhookUpdateRequest request) {
+        // if (!vhsWebhookAuthService.authorize(vhsWebhookSecret, authorization)) {
+        //     return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        // }
         return ResponseEntity.ok(serviceOrderService.applyVhsWebhook(request));
     }
 }

@@ -7,21 +7,14 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class HomeServiceOptionResource {
+public class HomeServicePricedOptionResource {
     private String id;
-    private String title;
-    private String description;
+    private String label;
     private Integer price;
-    private String image;
-    private Boolean popular;
-    /** Service lines (Excel C/D) with priced SKUs (E/F). */
-    private List<HomeServiceCatalogLineResource> serviceLines;
 }
