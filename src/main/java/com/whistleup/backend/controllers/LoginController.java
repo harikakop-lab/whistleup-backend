@@ -9,12 +9,14 @@ import com.whistleup.backend.service.AuthenticationService;
 import com.whistleup.backend.service.ProfileService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Objects;
 
+@Slf4j
 @RestController
 @RequestMapping("/whistleup/users")
 @CrossOrigin(origins = "*")
@@ -29,8 +31,10 @@ public class LoginController {
         final String username = resolveUsername(loginRequest);
         final String secret = resolveSecret(loginRequest);
         final ProfileResponseResource profile = profileService.getProfileByUsername(username);
+        log.info("Profile: {} is_assigned: {}", profile.getPhone(), profile.getIsAssigned());
         if ((profile.getRole() == Roles.USER || profile.getRole() == Roles.OWNER)
                 && !Boolean.TRUE.equals(profile.getIsAssigned())) {
+            log.info("Throwing bad request exception: {}", !Boolean.TRUE.equals(profile.getIsAssigned()));
             throw new BadRequestException(
                     "Your profile is waiting for admin approval.",
                     "Please wait until your apartment admin assigns your flat."

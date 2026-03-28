@@ -56,7 +56,8 @@ app:
     dir: uploads/profile
   file-storage:
     root: /opt/whistleup/uploads
-  base-url: http://localhost:8080
+  base-url: http://13.63.188.62:8080
+#  base-url: http://localhost:8080
 
 vhs:
   url: https://api2.vijayhomeservice.in/api/external-bookings

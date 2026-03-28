@@ -73,8 +73,11 @@ public class ProfileServiceImpl implements ProfileService {
             // New user/owner self-signups wait for admin approval unless flat is already assigned.
             if (profile.getRole() == Roles.USER || profile.getRole() == Roles.OWNER) {
                 boolean hasFlat = profile.getFlatNo() != null && !profile.getFlatNo().isBlank();
+                log.info("Flat no: {}", profile.getFlatNo());
+                log.info("hasFlat: {}", hasFlat);
                 profile.setIsAssigned(hasFlat);
             } else {
+                log.info("Is Assigned it true");
                 profile.setIsAssigned(true);
             }
         }
