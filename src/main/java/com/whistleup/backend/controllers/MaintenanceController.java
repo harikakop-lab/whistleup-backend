@@ -26,14 +26,26 @@ public class MaintenanceController {
     private final MaintenanceService maintenanceService;
 
     @PostMapping("/create")
-    public ResponseEntity<Void> create(@RequestBody MaintenanceCreateResource req) {
-        maintenanceService.createOrUpdateMaintenance(req);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+    public ResponseEntity<List<MaintenanceResponseResource>> create(@RequestBody MaintenanceCreateResource req) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(maintenanceService.createOrUpdateMaintenance(req));
+    }
+
+    @PatchMapping("/update")
+    public ResponseEntity<List<MaintenanceResponseResource>> update(@RequestBody MaintenanceCreateResource req) {
+        return ResponseEntity.ok(maintenanceService.updateMaintenance(req));
     }
 
     @GetMapping("/building/{buildingId}")
     public ResponseEntity<List<MaintenanceResponseResource>> getAllMaintenanceByBuilding(@PathVariable String buildingId) {
         return ResponseEntity.ok(maintenanceService.getByBuilding(buildingId));
+    }
+
+    @GetMapping("/building/{buildingId}/period")
+    public ResponseEntity<List<MaintenanceResponseResource>> getMaintenanceByBuildingAndPeriod(
+            @PathVariable String buildingId,
+            @RequestParam Integer year,
+            @RequestParam Integer month) {
+        return ResponseEntity.ok(maintenanceService.getByBuildingAndPeriod(buildingId, year, month));
     }
 
 

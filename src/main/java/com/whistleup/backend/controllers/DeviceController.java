@@ -5,6 +5,7 @@ import com.whistleup.backend.service.DeviceTokenService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -16,8 +17,15 @@ public class DeviceController {
 
     @PostMapping("/register")
     public ResponseEntity<Void> registerDevice(@Valid @RequestBody RegisterDeviceRequest request) {
+        if (!StringUtils.hasText(request.getExpoPushToken()) && !StringUtils.hasText(request.getFcmToken())) {
+            return ResponseEntity.badRequest().build();
+        }
         Long userId = Long.valueOf(request.getPhone());
-        deviceTokenService.registerDevice(userId, request.getExpoPushToken(), request.getPlatform());
+        deviceTokenService.registerDevice(
+                userId,
+                request.getExpoPushToken(),
+                request.getFcmToken(),
+                request.getPlatform());
         return ResponseEntity.ok().build();
     }
 }

@@ -12,4 +12,6 @@ public interface EventService {
     EventResponseResource updateEvent(String eventId, EventCreateResource request);
 
     List<EventResponseResource> getEventsByProfileId(String profileId);
+
+    List<EventResponseResource> getEventsByBuildingId(String buildingId);
 }

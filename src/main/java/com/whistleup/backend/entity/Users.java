@@ -29,8 +29,8 @@ public class Users {
     @Column(name = "phoneNumber")
     private String phoneNumber;
 
-    @Column(name = "password", nullable = false)
-    @Size(min = 6, message = "password must be at least 6 characters ")
-    private String password;
+    @Column(name = "pin", nullable = false)
+    @Size(min = 4, max = 4, message = "PIN must be at least 4 digits ")
+    private String pin;
 
 }

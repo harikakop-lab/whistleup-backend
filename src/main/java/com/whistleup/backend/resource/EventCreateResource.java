@@ -13,4 +13,5 @@ public class EventCreateResource {
     private String title;
     private String description;
     private String profileId;
+    private String buildingId;
 }

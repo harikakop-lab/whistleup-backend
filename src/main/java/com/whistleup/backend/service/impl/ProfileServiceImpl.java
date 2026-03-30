@@ -63,8 +63,26 @@ public class ProfileServiceImpl implements ProfileService {
 
         Profile profile = Profile.builder().build();
         BeanUtils.copyProperties(profileCreateResource, profile);
+        if (profile.getRole() == null) {
+            profile.setRole(Roles.USER);
+        }
+        if (profile.getPin() == null || profile.getPin().isBlank()) {
+            throw new BadRequestException("PIN is required", "Please provide a valid 4-digit PIN.");
+        }
+        if (profile.getIsAssigned() == null) {
+            // New user/owner self-signups wait for admin approval unless flat is already assigned.
+            if (profile.getRole() == Roles.USER || profile.getRole() == Roles.OWNER) {
+                boolean hasFlat = profile.getFlatNo() != null && !profile.getFlatNo().isBlank();
+                log.info("Flat no: {}", profile.getFlatNo());
+                log.info("hasFlat: {}", hasFlat);
+                profile.setIsAssigned(hasFlat);
+            } else {
+                log.info("Is Assigned it true");
+                profile.setIsAssigned(true);
+            }
+        }
 
-        profile.setPassword(passwordEncoder.encode(profile.getPassword()));
+        profile.setPin(passwordEncoder.encode(profile.getPin()));
 
         if (profileCreateResource.getContacts() != null) {
             profile.setContacts(new ArrayList<>());
@@ -79,13 +97,7 @@ public class ProfileServiceImpl implements ProfileService {
         }
 
         Profile savedProfile = profileRepository.save(profile);
-        FlatDetails flatDetails = FlatDetails.builder().build();
-        flatDetails.setResident(savedProfile);
-        flatDetails.setFloor(Objects.isNull(savedProfile.getFloor()) ? null : Long.valueOf(savedProfile.getFloor()));
-        flatDetails.setFlatNumber(savedProfile.getFlatNo());
-        BuildingDetails buildingDetails = buildingRepository.findById(Long.valueOf(savedProfile.getBuildingId())).orElse(null);
-        flatDetails.setBuilding(buildingDetails);
-        flatRepository.save(flatDetails);
+        upsertFlatDetails(savedProfile);
         ProfileResponseResource profileResponseResource = new ProfileResponseResource();
         profileResponseResource.setUserId(savedProfile.getPhone());
         return profileResponseResource;
@@ -108,9 +120,9 @@ public class ProfileServiceImpl implements ProfileService {
         );
 
         // Password update (only if provided)
-        if (Objects.nonNull(profileUpdateResource.getPassword())) {
-            profileEntity.setPassword(
-                    passwordEncoder.encode(profileUpdateResource.getPassword())
+        if (Objects.nonNull(profileUpdateResource.getPin())) {
+            profileEntity.setPin(
+                    passwordEncoder.encode(profileUpdateResource.getPin())
             );
         }
 
@@ -141,6 +153,7 @@ public class ProfileServiceImpl implements ProfileService {
         }
 
         Profile updatedProfile = profileRepository.save(profileEntity);
+        upsertFlatDetails(updatedProfile);
         return updatedProfile.getPhone();
     }
 
@@ -191,8 +204,14 @@ public class ProfileServiceImpl implements ProfileService {
         Profile profile = profileOptional.get();
         ProfileResponseResource profileResponseResource = new ProfileResponseResource();
         BeanUtils.copyProperties(profile, profileResponseResource);
-        Optional<BuildingDetails> buildingDetailsOptional = buildingRepository.findById(Long.valueOf(profile.getBuildingId()));
-        buildingDetailsOptional.ifPresent(buildingDetails -> profileResponseResource.setBuildingName(buildingDetails.getBuildingName()));
+        if (profile.getBuildingId() != null && !profile.getBuildingId().isBlank()) {
+            try {
+                Optional<BuildingDetails> buildingDetailsOptional = buildingRepository.findById(Long.valueOf(profile.getBuildingId()));
+                buildingDetailsOptional.ifPresent(buildingDetails -> profileResponseResource.setBuildingName(buildingDetails.getBuildingName()));
+            } catch (Exception ignore) {
+                // Keep profile response even if building mapping is stale/invalid.
+            }
+        }
         return profileResponseResource;
     }
 
@@ -243,6 +262,34 @@ public class ProfileServiceImpl implements ProfileService {
             BeanUtils.copyProperties(contact, resource);
             return resource;
         }).toList();
+    }
+
+    private void upsertFlatDetails(Profile profile) {
+        if (profile.getBuildingId() == null || profile.getBuildingId().trim().isEmpty()) {
+            return;
+        }
+        Optional<BuildingDetails> buildingOptional;
+        try {
+            buildingOptional = buildingRepository.findById(Long.valueOf(profile.getBuildingId()));
+        } catch (Exception ex) {
+            return;
+        }
+        if (buildingOptional.isEmpty()) {
+            return;
+        }
+        FlatDetails flatDetails = flatRepository.findFlatByFlatNumber(profile.getFlatNo())
+                .orElseGet(() -> FlatDetails.builder().build());
+        flatDetails.setResident(profile);
+        try {
+            flatDetails.setFloor(profile.getFloor() == null || profile.getFloor().isBlank()
+                    ? null
+                    : Long.valueOf(profile.getFloor()));
+        } catch (Exception ex) {
+            flatDetails.setFloor(null);
+        }
+        flatDetails.setFlatNumber(profile.getFlatNo());
+        flatDetails.setBuilding(buildingOptional.get());
+        flatRepository.save(flatDetails);
     }
 
 }

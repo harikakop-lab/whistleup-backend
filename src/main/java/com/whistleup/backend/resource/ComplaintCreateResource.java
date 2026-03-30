@@ -1,6 +1,7 @@
 package com.whistleup.backend.resource;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.whistleup.backend.constants.ComplaintStatus;
 import lombok.*;
 
 @Getter
@@ -17,4 +18,6 @@ public class ComplaintCreateResource {
     private String type;
     private boolean isResolved;
     private String assigneeProfile;
+    private String buildingId;
+    private ComplaintStatus status;
 }

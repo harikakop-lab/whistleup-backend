@@ -1,6 +1,7 @@
 package com.whistleup.backend.repository;
 
 import com.whistleup.backend.controllers.ResidentsResponse;
+import com.whistleup.backend.constants.Roles;
 import com.whistleup.backend.entity.Profile;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -21,18 +22,33 @@ public interface ProfileRepository extends JpaRepository<Profile, String> {
 
     @Query("""
        select new com.whistleup.backend.controllers.ResidentsResponse(
-       f.resident.phone, f.resident.name, f.floor)
+       f.resident.phone, f.resident.name, f.resident.flatNo)
        from FlatDetails f
        where f.building.buildingId = :buildingId
-         and f.floor = :floorNo
+         and f.resident.flatNo = :flatNo
        """)
-    List<ResidentsResponse> getListOfResidents(Long buildingId, Long floorNo);
+    List<ResidentsResponse> getListOfResidents(Long buildingId, Long flatNo);
 
     @Query("""
        select new com.whistleup.backend.controllers.ResidentsResponse(
-       f.resident.phone, f.resident.name, f.floor)
+       f.resident.phone, f.resident.name, f.resident.flatNo)
        from FlatDetails f
        where f.building.buildingId = :buildingId
        """)
     List<ResidentsResponse> getListOfResidentsByBuilding(Long buildingId);
+
+    List<Profile> findByBuildingId(String buildingId);
+
+    List<Profile> findByBuildingIdAndRole(String buildingId, Roles role);
+
+    @Query("""
+       select new com.whistleup.backend.controllers.ResidentsResponse(
+       p.phone, p.name, p.flatNo)
+       from Profile p
+       where p.buildingId = :buildingId
+         and p.isAssigned = false
+         and p.role in :roles
+       """)
+    List<ResidentsResponse> getPendingResidentsByBuilding(@Param("buildingId") String buildingId,
+                                                          @Param("roles") List<Roles> roles);
 }

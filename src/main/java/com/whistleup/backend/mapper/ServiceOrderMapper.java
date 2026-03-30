@@ -2,20 +2,11 @@ package com.whistleup.backend.mapper;
 
 import com.whistleup.backend.constants.OrderStatus;
 import com.whistleup.backend.entity.ServiceOrder;
-import com.whistleup.backend.entity.ServicePerson;
-import com.whistleup.backend.exception.ServiceOrderNotFoundException;
-import com.whistleup.backend.repository.ServicePersonRepository;
 import com.whistleup.backend.resource.ServiceOrderResource;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.util.UUID;
-
 @Component
-@RequiredArgsConstructor
 public class ServiceOrderMapper {
-
-    private final ServicePersonRepository servicePersonRepository;
 
     public ServiceOrder toEntity(ServiceOrderResource resource) {
         return ServiceOrder.builder()
@@ -23,6 +14,15 @@ public class ServiceOrderMapper {
                 .profileId(resource.getProfileId())
                 .buildingId(resource.getBuildingId())
                 .date(resource.getDate())
+                .timeSlot(resource.getTimeSlot())
+                .optionId(resource.getOptionId())
+                .optionTitle(resource.getOptionTitle())
+                .notes(resource.getNotes())
+                .amount(resource.getAmount())
+                .vhsBookingId(resource.getVhsBookingId())
+                .vhsStatus(resource.getVhsStatus())
+                .vhsServicePersonName(resource.getVhsServicePersonName())
+                .vhsServicePersonPhone(resource.getVhsServicePersonPhone())
                 .orderStatus(OrderStatus.CREATED)  // service layer will override if assigned
                 .build();
     }
@@ -34,11 +34,32 @@ public class ServiceOrderMapper {
                 .profileId(entity.getProfileId())
                 .buildingId(entity.getBuildingId())
                 .date(entity.getDate())
+                .timeSlot(entity.getTimeSlot())
+                .optionId(entity.getOptionId())
+                .optionTitle(entity.getOptionTitle())
+                .notes(entity.getNotes())
+                .amount(entity.getAmount())
+                .vhsBookingId(entity.getVhsBookingId())
+                .vhsStatus(entity.getVhsStatus())
+                .vhsServicePersonName(entity.getVhsServicePersonName())
+                .vhsServicePersonPhone(entity.getVhsServicePersonPhone())
                 .orderCreationDate(entity.getOrderCreationDate())
                 .servicePersonId(entity.getServicePerson() != null
                         ? entity.getServicePerson().getServicePersonId()
                         : null)
+                .servicePersonName(entity.getServicePerson() != null
+                        ? entity.getServicePerson().getName()
+                        : null)
+                .servicePersonPhone(entity.getServicePerson() != null
+                        ? entity.getServicePerson().getPhoneNumber()
+                        : null)
+                .servicePersonRating(entity.getServicePerson() != null
+                        ? entity.getServicePerson().getRating()
+                        : null)
                 .orderStatus(entity.getOrderStatus())
+                .issueStatus(entity.getIssueStatus())
+                .issueText(entity.getIssueText())
+                .issueRaisedAt(entity.getIssueRaisedAt())
                 .build();
     }
 }

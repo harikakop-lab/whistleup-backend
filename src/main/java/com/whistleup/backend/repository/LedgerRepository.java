@@ -11,6 +11,9 @@ import java.util.Optional;
 public interface LedgerRepository extends JpaRepository<Ledger, Long> {
 
     Optional<Ledger> findByYearAndMonth(int year, String month);
+    Optional<Ledger> findTopByYearAndMonthOrderByIdDesc(int year, String month);
+
+    Optional<Ledger> findByYearAndMonthAndBuildingId(int year, String month, String buildingId);
 
     @Query("""
         select l from Ledger l
@@ -18,4 +21,11 @@ public interface LedgerRepository extends JpaRepository<Ledger, Long> {
         where l.id = :ledgerId
     """)
     Optional<Ledger> findByIdWithItems(Long ledgerId);
+
+    @Query("""
+        select l from Ledger l
+        left join fetch l.items
+        where l.year = :year and l.month = :month and l.buildingId = :buildingId
+    """)
+    Optional<Ledger> findByYearAndMonthAndBuildingIdWithItems(int year, String month, String buildingId);
 }

@@ -33,6 +33,8 @@ public class ServicePersonResource {
     @NotNull
     private Integer experienceYears;
 
+    private String rating;
+
     @NotNull
     private Set<ServiceOrderType> serviceTypes;
 

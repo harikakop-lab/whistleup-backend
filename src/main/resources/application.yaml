@@ -7,10 +7,13 @@ spring:
     allow-circular-references: true
 
   datasource:
-    url: jdbc:mysql://nestiti.cby40cccm2ac.eu-north-1.rds.amazonaws.com:3306/nestiti
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://nestiti-backend.cneeiqi622tt.ap-south-2.rds.amazonaws.com:3306/nestiti?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     username: admin
-    password: Nestiti123$
+    password: Nestiti123
+#    url: jdbc:mysql://localhost:3306/nestiti?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+#    username: root
+#    password:
+    driver-class-name: com.mysql.cj.jdbc.Driver
 
     hikari:
       maximum-pool-size: 10
@@ -22,7 +25,7 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.MySQL8Dialect
     hibernate:
-      ddl-auto: update   # change to validate in prod
+      ddl-auto: update # change to validate in prod
     show-sql: true
     properties:
       hibernate:
@@ -44,12 +47,21 @@ razorpay:
   currency: INR
   appName: whistleup
 
+firebase:
+  credentials:
+    path: ${FIREBASE_CREDENTIALS_PATH:}
+
 app:
   upload:
     dir: uploads/profile
   file-storage:
     root: /opt/whistleup/uploads
-  base-url: http://localhost:8080
+  base-url: http://13.63.188.62:8080
+#  base-url: http://localhost:8080
+
+vhs:
+  url: https://api2.vijayhomeservice.in/api/external-bookings
+  auth: Basic bmVzdGl0aTpuZXN0aXRpMTIzNA==
 
 sms:
   provider: fast2sms

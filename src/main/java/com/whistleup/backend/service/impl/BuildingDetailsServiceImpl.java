@@ -6,7 +6,6 @@ import com.whistleup.backend.repository.BuildingDetailsRepository;
 import com.whistleup.backend.resource.BuildingDetailsRequestResource;
 import com.whistleup.backend.resource.BuildingDetailsResponseResource;
 import com.whistleup.backend.resource.BuildingServices;
-import com.whistleup.backend.resource.ServiceResource;
 import com.whistleup.backend.service.BuildingDetailsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -14,7 +13,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 @Service
 @Slf4j
@@ -37,7 +35,7 @@ public class BuildingDetailsServiceImpl implements BuildingDetailsService {
     }
 
     @Override
-    public BuildingDetails saveBuildingDetails(BuildingDetailsRequestResource buildingDetailsRequestResource) {
+    public BuildingDetails createBuilding(BuildingDetailsRequestResource buildingDetailsRequestResource) {
         BuildingDetails buildingDetails = convertToBuildingDetails(buildingDetailsRequestResource);
         return buildingDetailsRepository.save(buildingDetails);
     }
@@ -46,6 +44,13 @@ public class BuildingDetailsServiceImpl implements BuildingDetailsService {
         BuildingDetails buildingDetails = new BuildingDetails();
         BeanUtils.copyProperties(buildingDetailsRequestResource, buildingDetails);
         buildingDetails.setProfileId(buildingDetailsRequestResource.getAdminPhone());
+        buildingDetails.setTotalFlats(Objects.requireNonNullElseGet(
+                buildingDetailsRequestResource.getTotalFlats(),
+                () -> resolveTotalFlats(
+                        buildingDetailsRequestResource.getFlatStartNumber(),
+                        buildingDetailsRequestResource.getFlatEndNumber()
+                )
+        ));
         return buildingDetails;
     }
 
@@ -61,6 +66,22 @@ public class BuildingDetailsServiceImpl implements BuildingDetailsService {
         existingBuildingDetails.setBuildingName(updateBuildingDetailsRequestResource.getBuildingName());
         existingBuildingDetails.setBuildingAddress(updateBuildingDetailsRequestResource.getBuildingAddress());
         existingBuildingDetails.setProfileId(updateBuildingDetailsRequestResource.getAdminPhone());
+        existingBuildingDetails.setFloors(updateBuildingDetailsRequestResource.getFloors());
+        existingBuildingDetails.setFlatStartNumber(updateBuildingDetailsRequestResource.getFlatStartNumber());
+        existingBuildingDetails.setFlatEndNumber(updateBuildingDetailsRequestResource.getFlatEndNumber());
+        existingBuildingDetails.setTotalFlats(Objects.requireNonNullElseGet(
+                updateBuildingDetailsRequestResource.getTotalFlats(),
+                () -> resolveTotalFlats(
+                        updateBuildingDetailsRequestResource.getFlatStartNumber(),
+                        updateBuildingDetailsRequestResource.getFlatEndNumber()
+                )
+        ));
+        existingBuildingDetails.setTotalResidents(updateBuildingDetailsRequestResource.getTotalResidents());
+        existingBuildingDetails.setAdminName(updateBuildingDetailsRequestResource.getAdminName());
+        existingBuildingDetails.setAdminPhone(updateBuildingDetailsRequestResource.getAdminPhone());
+        existingBuildingDetails.setAdminEmail(updateBuildingDetailsRequestResource.getAdminEmail());
+        existingBuildingDetails.setUpiId(updateBuildingDetailsRequestResource.getUpiId());
+        existingBuildingDetails.setWaterBillRequired(updateBuildingDetailsRequestResource.isWaterBillRequired());
         return buildingDetailsRepository.save(existingBuildingDetails);
     }
 
@@ -93,6 +114,10 @@ public class BuildingDetailsServiceImpl implements BuildingDetailsService {
             buildingDetailsResponseResource.setBuildingId(buildingDetails.getBuildingId());
             buildingDetailsResponseResource.setBuildingName(buildingDetails.getBuildingName());
             buildingDetailsResponseResource.setFloors(buildingDetails.getFloors());
+            buildingDetailsResponseResource.setFlatStartNumber(buildingDetails.getFlatStartNumber());
+            buildingDetailsResponseResource.setFlatEndNumber(buildingDetails.getFlatEndNumber());
+            buildingDetailsResponseResource.setTotalResidents(buildingDetails.getTotalResidents());
+            buildingDetailsResponseResource.setAdminPhone(buildingDetails.getAdminPhone());
             return buildingDetailsResponseResource;
         }).toList();
     }
@@ -107,7 +132,7 @@ public class BuildingDetailsServiceImpl implements BuildingDetailsService {
             buildingDetails.setCarpenterService(buildingServices.getCarpenterService());
         }
         if (Objects.nonNull(buildingServices.getCleaningService())) {
-            buildingDetails.setCleaningService(buildingServices.getCarpenterService());
+            buildingDetails.setCleaningService(buildingServices.getCleaningService());
         }
         if (Objects.nonNull(buildingServices.getElectricService())) {
             buildingDetails.setElectricService(buildingServices.getElectricService());
@@ -116,5 +141,12 @@ public class BuildingDetailsServiceImpl implements BuildingDetailsService {
             buildingDetails.setPlumbingService(buildingServices.getPlumbingService());
         }
         buildingDetailsRepository.save(buildingDetails);
+    }
+
+    private Long resolveTotalFlats(Long flatStartNumber, Long flatEndNumber) {
+        if (flatStartNumber == null || flatEndNumber == null || flatEndNumber < flatStartNumber) {
+            return null;
+        }
+        return flatEndNumber - flatStartNumber + 1;
     }
 }

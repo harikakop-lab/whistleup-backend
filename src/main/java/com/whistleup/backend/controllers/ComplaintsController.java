@@ -1,17 +1,14 @@
 package com.whistleup.backend.controllers;
 
-//import com.whistleup.backend.entity.ComplaintImage;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.whistleup.backend.constants.ComplaintStatus;
 import com.whistleup.backend.entity.ComplaintImage;
 import com.whistleup.backend.entity.Complaints;
 import com.whistleup.backend.repository.ComplaintImageRepository;
 import com.whistleup.backend.repository.ComplaintsRepository;
 import com.whistleup.backend.resource.ComplaintCreateResource;
-import com.whistleup.backend.resource.ComplaintImageResponse;
 import com.whistleup.backend.resource.ComplaintsResponseResource;
 import com.whistleup.backend.service.ComplaintsService;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/whistleup/issues")
@@ -55,6 +53,19 @@ public class ComplaintsController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    @PatchMapping("/{complaintId}/status")
+    public ResponseEntity<ComplaintsResponseResource> updateIssueStatus(
+            @PathVariable("complaintId") String complaintId,
+            @RequestBody Map<String, String> payload) {
+        String status = payload.get("status");
+        if (status == null) {
+            throw new IllegalArgumentException("status is required");
+        }
+        return ResponseEntity.ok(
+                complaintsService.updateStatus(complaintId, ComplaintStatus.valueOf(status.trim().toUpperCase()))
+        );
+    }
+
     @GetMapping("/profile/{profileId}")
     public ResponseEntity<List<ComplaintsResponseResource>> getAllComplaintsRaisedByProfileId(@PathVariable("profileId") String profileId) {
         List<ComplaintsResponseResource> complaints = complaintsService.getComplaintsByProfileId(profileId);
@@ -64,6 +75,12 @@ public class ComplaintsController {
     @GetMapping("/assignee/{profileId}")
     public ResponseEntity<List<ComplaintsResponseResource>> getAllComplaintsAssignedToProfileId(@PathVariable("profileId") String profileId) {
         List<ComplaintsResponseResource> complaints = complaintsService.getComplaintsByAssigneeProfileId(profileId);
+        return new ResponseEntity<>(complaints, HttpStatus.OK);
+    }
+
+    @GetMapping("/building/{buildingId}")
+    public ResponseEntity<List<ComplaintsResponseResource>> getAllComplaintsByBuildingId(@PathVariable("buildingId") String buildingId) {
+        List<ComplaintsResponseResource> complaints = complaintsService.getComplaintsByBuildingId(buildingId);
         return new ResponseEntity<>(complaints, HttpStatus.OK);
     }
 
@@ -84,7 +101,7 @@ public class ComplaintsController {
                 .orElseThrow(() -> new RuntimeException("Complaint not found"));
         List<String> urls = complaint.getImages()
                 .stream()
-                .map(img -> "/issues/images/" + img.getId())
+                .map(img -> "/whistleup/issues/images/" + img.getId())
                 .toList();
         return ResponseEntity.ok(urls);
     }
@@ -98,25 +115,6 @@ public class ComplaintsController {
                 .contentType(MediaType.parseMediaType(image.getContentType()))
                 .body(image.getImageData());
     }
-
-//    @GetMapping("/{complaintId}/images")
-//    public ResponseEntity<List<ComplaintImageResponse>> getImagesByComplaintId(
-//            @PathVariable String complaintId) {
-//        return ResponseEntity.ok(complaintsService.getImagesByComplaintId(complaintId));
-//    }
-//
-//    @GetMapping("/images/{imageId}")
-//    public ResponseEntity<byte[]> getImageById(@PathVariable Long imageId) {
-//
-//        ComplaintImage image = complaintsService.getImage(imageId);
-//
-//        return ResponseEntity.ok()
-//                .contentType(MediaType.parseMediaType(image.getContentType()))
-//                .header(HttpHeaders.CONTENT_DISPOSITION,
-//                        "inline; filename=\"" + image.getFileName() + "\"")
-//                .body(image.getImageData());
-//    }
-
 
     @DeleteMapping("/{complaintId}")
     public ResponseEntity<Void> deleteComplaint(@PathVariable String complaintId) {

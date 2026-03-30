@@ -1,5 +1,6 @@
 package com.whistleup.backend.resource;
 
+import java.time.LocalDate;
 import java.util.List;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -19,6 +20,8 @@ public class LedgerResponse {
     private double totalAmount;
     private int totalFlats;
     private double perFlatAmount;
+    private Long flatsPaid;
+    private LocalDate dueDate;
     private List<LedgerItemResponse> items;
 
     public LedgerResponse(Long id, int year, String month,

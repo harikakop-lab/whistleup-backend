@@ -11,7 +11,7 @@ public interface BuildingDetailsService {
 
     List<BuildingDetailsResponseResource> getExistingBuildingsInformation();
 
-    BuildingDetails saveBuildingDetails(BuildingDetailsRequestResource buildingDetailsRequestResource);
+    BuildingDetails createBuilding(BuildingDetailsRequestResource buildingDetailsRequestResource);
 
     BuildingDetails getBuildingDetails(Long buildingId);
 

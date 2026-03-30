@@ -22,15 +22,24 @@ public class NotificationController {
     public void registerToken(
             @RequestBody RegisterPushTokenRequest req
     ) {
-        tokenRepo.save(
-                        req.getPhone(),
-                        req.getPushToken(),
-                        req.getPlatform()
-                );
+        if (req.getPhone() == null || req.getPushToken() == null || req.getPlatform() == null) {
+            return;
+        }
+        UserPushTokenEntity tokenEntity = new UserPushTokenEntity(
+                req.getPhone().trim(),
+                req.getPushToken().trim(),
+                req.getPlatform().trim().toUpperCase()
+        );
+        tokenRepo.save(tokenEntity);
     }
 
     @GetMapping
     public List<NotificationResponse> getNotifications(@RequestParam String phone) {
+        return notificationService.getNotifications(phone);
+    }
+
+    @GetMapping("/{phone}")
+    public List<NotificationResponse> getNotificationsByPath(@PathVariable String phone) {
         return notificationService.getNotifications(phone);
     }
 

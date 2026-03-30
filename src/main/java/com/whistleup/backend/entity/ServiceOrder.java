@@ -1,11 +1,13 @@
 package com.whistleup.backend.entity;
 
 import com.whistleup.backend.constants.OrderStatus;
+import com.whistleup.backend.constants.ServiceIssueStatus;
 import com.whistleup.backend.constants.ServiceOrderType;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.UUID;
 
@@ -18,9 +20,9 @@ import java.util.UUID;
 public class ServiceOrder {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "order_id", updatable = false, nullable = false)
-    private UUID orderId;
+    private Long orderId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "order_type", nullable = false)
@@ -35,6 +37,33 @@ public class ServiceOrder {
     @Column(name = "service_date", nullable = false)
     private LocalDate date;
 
+    @Column(name = "service_time_slot")
+    private String timeSlot;
+
+    @Column(name = "option_id")
+    private String optionId;
+
+    @Column(name = "option_title")
+    private String optionTitle;
+
+    @Column(name = "notes")
+    private String notes;
+
+    @Column(name = "amount")
+    private Integer amount;
+
+    @Column(name = "vhs_booking_id", length = 100)
+    private String vhsBookingId;
+
+    @Column(name = "vhs_status", length = 80)
+    private String vhsStatus;
+
+    @Column(name = "vhs_service_person_name", length = 160)
+    private String vhsServicePersonName;
+
+    @Column(name = "vhs_service_person_phone", length = 50)
+    private String vhsServicePersonPhone;
+
     @Column(name = "order_creation_date", nullable = false, updatable = false)
     private LocalDate orderCreationDate;
 
@@ -43,9 +72,19 @@ public class ServiceOrder {
     @Builder.Default
     private OrderStatus orderStatus = OrderStatus.CREATED;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "service_person_id", referencedColumnName = "service_person_id")
     private ServicePerson servicePerson;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "issue_status")
+    private ServiceIssueStatus issueStatus;
+
+    @Column(name = "issue_text")
+    private String issueText;
+
+    @Column(name = "issue_raised_at")
+    private LocalDateTime issueRaisedAt;
 
     @PrePersist
     protected void onCreate() {

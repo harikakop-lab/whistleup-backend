@@ -10,6 +10,8 @@ public interface LedgerService {
 
     LedgerResponse getLedgerByYearAndMonth(int year, String month);
 
+    LedgerResponse getLedgerByYearAndMonthAndBuilding(int year, String month, String buildingId);
+
     LedgerResponse updateLedger(Long ledgerId, UpdateLedgerRequest request);
 
     byte[] generateLedgerPdf(Long ledgerId);

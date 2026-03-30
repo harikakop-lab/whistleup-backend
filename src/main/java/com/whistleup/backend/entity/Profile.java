@@ -34,8 +34,8 @@ public class Profile {
     @Column(name = "email")
     private String email;
 
-    @Column(name = "password")
-    private String password;
+    @Column(name = "pin")
+    private String pin;
 
     @Column(name = "role")
     @Enumerated(EnumType.STRING)
@@ -62,4 +62,7 @@ public class Profile {
 
     @Column(name = "flat_no")
     private String flatNo;
+
+    @Column(name = "is_assigned")
+    private Boolean isAssigned;
 }

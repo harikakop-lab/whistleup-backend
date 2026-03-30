@@ -19,4 +19,8 @@ public class LoginResponse {
 
     @Enumerated(EnumType.STRING)
     private Roles role;
+
+    private String username;
+
+    private String profileId;
 }

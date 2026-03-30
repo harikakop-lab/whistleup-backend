@@ -1,10 +1,12 @@
 package com.whistleup.backend.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.whistleup.backend.constants.ComplaintStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.ArrayList;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
@@ -42,10 +44,40 @@ public class Complaints {
     @Column(name = "is_resolved")
     private boolean isResolved;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private ComplaintStatus status;
+
     @Column(name = "assignee_profile")
     private String assigneeProfile;
+
+    @Column(name = "building_id")
+    private String buildingId;
+
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "complaint", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ComplaintImage> images = new ArrayList<>();
 
+    @PrePersist
+    private void onCreate() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+        if (this.status == null) {
+            this.status = ComplaintStatus.OPEN;
+        }
+        if (this.status == ComplaintStatus.RESOLVED) {
+            this.isResolved = true;
+        }
+    }
+
+    @PreUpdate
+    private void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+        this.isResolved = this.status == ComplaintStatus.RESOLVED;
+    }
 }

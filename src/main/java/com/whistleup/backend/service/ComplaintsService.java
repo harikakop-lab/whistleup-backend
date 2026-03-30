@@ -1,5 +1,6 @@
 package com.whistleup.backend.service;
 
+import com.whistleup.backend.constants.ComplaintStatus;
 import com.whistleup.backend.resource.ComplaintCreateResource;
 import com.whistleup.backend.resource.ComplaintImageResponse;
 import com.whistleup.backend.resource.ComplaintsResponseResource;
@@ -17,11 +18,15 @@ public interface ComplaintsService {
 
     List<ComplaintsResponseResource> getComplaintsByAssigneeProfileId(String profileId);
 
+    List<ComplaintsResponseResource> getComplaintsByBuildingId(String buildingId);
+
     ComplaintsResponseResource registerComplaint(ComplaintCreateResource complaintCreateResource, MultipartFile[] files) throws IOException;
 
     void deleteComplaint(String complaintId);
 
     void resolveTicket(String complaintId);
+
+    ComplaintsResponseResource updateStatus(String complaintId, ComplaintStatus status);
 
 //    List<ComplaintImageResponse> getImagesByComplaintId(String complaintId);
 //

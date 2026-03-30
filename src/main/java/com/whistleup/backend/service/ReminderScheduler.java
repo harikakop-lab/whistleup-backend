@@ -26,8 +26,7 @@ public class ReminderScheduler {
 
         LocalDateTime threshold = LocalDateTime.now().minusHours(12);
 
-        List<NotificationEntity> pending =
-                notificationRepo.findPendingMaintenance(threshold);
+        List<NotificationEntity> pending = notificationRepo.findPendingMaintenance(threshold);
 
         for (NotificationEntity n : pending) {
             tokenRepo.findById(n.getPhone()).ifPresent(token -> {
@@ -36,10 +35,8 @@ public class ReminderScheduler {
                         n.getTitle(),
                         n.getMessage(),
                         Map.of(
-                            "type", n.getType(),
-                            "referenceId", n.getReferenceId()
-                        )
-                );
+                                "type", n.getType(),
+                                "referenceId", n.getReferenceId()));
                 n.setLastRemindedAt(LocalDateTime.now());
                 notificationRepo.save(n);
             });

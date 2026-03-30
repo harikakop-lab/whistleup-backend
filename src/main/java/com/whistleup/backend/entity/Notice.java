@@ -1,5 +1,6 @@
 package com.whistleup.backend.entity;
 
+import com.whistleup.backend.constants.NoticeAudience;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -34,6 +35,10 @@ public class Notice {
 
     @Column(name = "building_id", nullable = false, length = 20)
     private String buildingId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "audience", nullable = false, length = 30)
+    private NoticeAudience audience;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;

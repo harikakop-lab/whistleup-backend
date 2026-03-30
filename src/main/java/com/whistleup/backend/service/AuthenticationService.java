@@ -1,7 +1,5 @@
 package com.whistleup.backend.service;
 
-import com.whistleup.backend.entity.Profile;
-import com.whistleup.backend.entity.Users;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -18,16 +16,14 @@ public class AuthenticationService {
         this.jwtService = jwtService;
     }
 
-    public String authenticate(Profile profile) {
-        String username = profile.getEmail() != null ? profile.getEmail() : profile.getPhone();
-        
+    public String authenticate(String username, String secret) {
         Authentication authentication = authenticationManager
-                .authenticate(new UsernamePasswordAuthenticationToken(username, profile.getPassword()));
-        
+                .authenticate(new UsernamePasswordAuthenticationToken(username, secret));
+
         if (authentication.isAuthenticated()) {
             return jwtService.generateToken(username);
         }
-        
-        return "login failed";
+
+        throw new IllegalStateException("Login failed");
     }
 }

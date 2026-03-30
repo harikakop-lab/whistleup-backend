@@ -27,15 +27,14 @@ public class ProfileCreateResource {
     private String name;
     private String email;
     private String phone;
-    private String password;
+    private String pin;
     @Enumerated(EnumType.STRING)
     @Builder.Default
-    private Roles role = Roles.ADMIN;
-
+    private Roles role = Roles.USER;
     private List<ContactResource> contacts;
-
     private String upiId;
     private String buildingId;
     private String floor;
     private String flatNo;
+    private Boolean isAssigned;
 }

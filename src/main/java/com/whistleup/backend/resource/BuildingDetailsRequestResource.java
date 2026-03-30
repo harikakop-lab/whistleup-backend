@@ -21,6 +21,7 @@ public class BuildingDetailsRequestResource {
     private Long floors;
     private Long flatStartNumber;
     private Long flatEndNumber;
+    private Long totalFlats;
     private ServiceResource plumbingService;
     private ServiceResource electricService;
     private ServiceResource carpenterService;

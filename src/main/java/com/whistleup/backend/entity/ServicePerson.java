@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.time.ZoneId;
 import java.util.Set;
 import java.util.UUID;
@@ -34,6 +35,10 @@ public class ServicePerson {
     @Column(name = "experience_years", nullable = false)
     private Integer experienceYears;
 
+    @Column(name = "rating")
+    @Builder.Default
+    private String rating = "4.8";
+
     @ElementCollection(targetClass = ServiceOrderType.class, fetch = FetchType.EAGER)
     @CollectionTable(name = "service_person_types", joinColumns = @JoinColumn(name = "service_person_id"))
     @Enumerated(EnumType.STRING)
@@ -47,8 +52,8 @@ public class ServicePerson {
     @Column(name = "registered_date", nullable = false, updatable = false)
     private LocalDate registeredDate;
 
-    @OneToOne(mappedBy = "servicePerson", fetch = FetchType.LAZY)
-    private ServiceOrder currentOrder;
+    @OneToMany(mappedBy = "servicePerson", fetch = FetchType.LAZY)
+    private List<ServiceOrder> orders;
 
     @PrePersist
     protected void onCreate() {
