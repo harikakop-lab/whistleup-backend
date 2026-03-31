@@ -28,6 +28,7 @@ public class ServiceOrderResource {
     private ServiceOrderType orderType;
     private String profileId;
     private String buildingId;
+    private String serviceCity;
     private LocalDate date;
     private String timeSlot;
     private String optionId;

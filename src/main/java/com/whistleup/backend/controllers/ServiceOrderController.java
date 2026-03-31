@@ -4,6 +4,7 @@ import com.whistleup.backend.constants.OrderStatus;
 import com.whistleup.backend.constants.ServiceIssueStatus;
 import com.whistleup.backend.resource.ServiceOrderRescheduleRequest;
 import com.whistleup.backend.resource.ServiceOrderResource;
+import com.whistleup.backend.resource.ServiceOrderPoolItemResource;
 import com.whistleup.backend.resource.VhsWebhookUpdateRequest;
 import com.whistleup.backend.service.ServiceOrderService;
 import com.whistleup.backend.service.VhsWebhookAuthService;
@@ -38,6 +39,30 @@ public class ServiceOrderController {
             @PathVariable String profileId,
             @PathVariable String orderId) {
         return ResponseEntity.ok(serviceOrderService.getOrderByProfileAndOrderId(profileId, orderId));
+    }
+
+    /**
+     * Service-person open pool (unassigned, same city, compatible order type).
+     */
+    @GetMapping("/pool/open")
+    public ResponseEntity<List<ServiceOrderPoolItemResource>> getOpenPoolOrders(
+            @RequestParam String phone) {
+        return ResponseEntity.ok(serviceOrderService.getOpenPoolOrders(phone));
+    }
+
+    @PostMapping("/pool/{orderId}/accept")
+    public ResponseEntity<ServiceOrderResource> acceptPoolOrder(
+            @PathVariable String orderId,
+            @RequestParam String phone) {
+        return ResponseEntity.ok(serviceOrderService.acceptOpenPoolOrder(orderId, phone));
+    }
+
+    @PostMapping("/pool/{orderId}/reject")
+    public ResponseEntity<Void> rejectPoolOrder(
+            @PathVariable String orderId,
+            @RequestParam String phone) {
+        serviceOrderService.rejectOpenPoolOrder(orderId, phone);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/building/{buildingId}")

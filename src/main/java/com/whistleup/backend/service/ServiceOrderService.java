@@ -2,23 +2,30 @@ package com.whistleup.backend.service;
 
 import com.whistleup.backend.constants.OrderStatus;
 import com.whistleup.backend.constants.ServiceIssueStatus;
+import com.whistleup.backend.constants.ServiceOrderType;
 import com.whistleup.backend.entity.ServiceOrder;
 import com.whistleup.backend.entity.ServicePerson;
+import com.whistleup.backend.entity.ServiceOrderProviderDecline;
 import com.whistleup.backend.entity.BuildingDetails;
 import com.whistleup.backend.entity.Profile;
 import com.whistleup.backend.exception.ServiceOrderNotFoundException;
 import com.whistleup.backend.mapper.ServiceOrderMapper;
 import com.whistleup.backend.repository.BuildingDetailsRepository;
 import com.whistleup.backend.repository.ProfileRepository;
+import com.whistleup.backend.repository.ServiceOrderProviderDeclineRepository;
 import com.whistleup.backend.repository.ServiceOrderRepository;
 import com.whistleup.backend.repository.ServicePersonRepository;
 import com.whistleup.backend.resource.ServiceOrderRescheduleRequest;
 import com.whistleup.backend.resource.ServiceOrderResource;
+import com.whistleup.backend.resource.ServiceOrderPoolItemResource;
 import com.whistleup.backend.resource.VhsWebhookUpdateRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -42,6 +49,8 @@ public class ServiceOrderService {
     private final BuildingDetailsRepository buildingDetailsRepository;
     private final VhsBookingClient vhsBookingClient;
     private final NotificationSendService notificationSendService;
+    private final ServiceOrderProviderDeclineRepository serviceOrderProviderDeclineRepository;
+    private final EntityManager entityManager;
 
     public List<ServiceOrderResource> getAllOrdersForProfile(String profileId) {
         return getAllOrdersForProfile(profileId, null, null);
@@ -78,6 +87,179 @@ public class ServiceOrderService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Returns the pool of open orders for a service person (filtered by city + order type).
+     * Orders are only visible when they are still unassigned and not previously rejected by that service person.
+     */
+    public List<ServiceOrderPoolItemResource> getOpenPoolOrders(String servicePersonPhone) {
+        String phone = servicePersonPhone == null ? "" : servicePersonPhone.trim();
+        ServicePerson servicePerson = servicePersonRepository.findByPhoneNumber(phone)
+                .orElseThrow(() -> new IllegalArgumentException("Service person not found for phone: " + phone));
+
+        if (!servicePerson.getIsActive()) {
+            return List.of();
+        }
+
+        String serviceCity = servicePerson.getServiceCity();
+        if (serviceCity == null || serviceCity.isBlank()) {
+            return List.of();
+        }
+
+        if (servicePerson.getServiceTypes() == null || servicePerson.getServiceTypes().isEmpty()) {
+            return List.of();
+        }
+
+        var candidateOrders = serviceOrderRepository
+                .findAllByOrderStatusAndServicePersonIsNullAndServiceCityIgnoreCaseAndOrderTypeIn(
+                        OrderStatus.CREATED,
+                        serviceCity,
+                        servicePerson.getServiceTypes()
+                );
+
+        var declinedOrderIds = new java.util.HashSet<>(
+                serviceOrderProviderDeclineRepository.findOrderIdsByServicePersonId(servicePerson.getServicePersonId())
+        );
+
+        return candidateOrders.stream()
+                .filter(o -> !declinedOrderIds.contains(o.getOrderId()))
+                .sorted(Comparator.comparing(ServiceOrder::getOrderCreationDate).reversed())
+                .map(order -> {
+                    String bookingName = null;
+                    String bookingPhone = null;
+                    Profile bookingProfile = profileRepository.findByPhone(order.getProfileId()).orElse(null);
+                    if (bookingProfile != null) {
+                        bookingName = bookingProfile.getName();
+                        bookingPhone = bookingProfile.getPhone();
+                    }
+
+                    String buildingName = null;
+                    try {
+                        buildingName = buildingDetailsRepository.findById(Long.valueOf(order.getBuildingId()))
+                                .map(BuildingDetails::getBuildingName)
+                                .orElse(null);
+                    } catch (Exception ignore) {
+                        buildingName = null;
+                    }
+
+                    return ServiceOrderPoolItemResource.builder()
+                            .orderId(order.getOrderId())
+                            .orderType(order.getOrderType())
+                            .category(orderTypeToCategory(order.getOrderType()))
+                            .subcategory(order.getOptionTitle() != null ? order.getOptionTitle() : "Service")
+                            .description(order.getNotes() != null ? order.getNotes() : "")
+                            .location(order.getServiceCity() != null ? order.getServiceCity() : "")
+                            .date(order.getDate())
+                            .timeSlot(order.getTimeSlot() != null ? order.getTimeSlot() : "")
+                            .buildingName(buildingName)
+                            .bookingPersonName(bookingName)
+                            .bookingPersonPhone(bookingPhone)
+                            .optionId(order.getOptionId())
+                            .amount(order.getAmount())
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Accepts an open pool order for a service person.
+     * This method is intentionally transactional and uses a pessimistic lock to prevent race conditions.
+     */
+    @Transactional
+    public ServiceOrderResource acceptOpenPoolOrder(String orderId, String servicePersonPhone) {
+        String phone = servicePersonPhone == null ? "" : servicePersonPhone.trim();
+        ServicePerson servicePerson = servicePersonRepository.findByPhoneNumber(phone)
+                .orElseThrow(() -> new IllegalArgumentException("Service person not found for phone: " + phone));
+
+        Long parsedOrderId = parseOrderId(orderId, "order");
+
+        ServiceOrder lockedOrder = entityManager.find(ServiceOrder.class, parsedOrderId, LockModeType.PESSIMISTIC_WRITE);
+        if (lockedOrder == null) {
+            throw new ServiceOrderNotFoundException("Order not found with id: " + orderId);
+        }
+
+        if (lockedOrder.getOrderStatus() != OrderStatus.CREATED) {
+            throw new IllegalStateException("Only CREATED orders can be accepted.");
+        }
+        if (lockedOrder.getServicePerson() != null) {
+            throw new IllegalStateException("Order has already been accepted by another service person.");
+        }
+
+        if (serviceOrderProviderDeclineRepository.existsByOrderIdAndServicePersonId(parsedOrderId, servicePerson.getServicePersonId())) {
+            throw new IllegalStateException("You have already rejected this order.");
+        }
+
+        // Type/city validation (same semantics as assignServicePerson)
+        if (!servicePerson.getServiceTypes().contains(lockedOrder.getOrderType())) {
+            throw new IllegalStateException("Service person does not handle order type: " + lockedOrder.getOrderType());
+        }
+
+        return assignServicePerson(String.valueOf(parsedOrderId), String.valueOf(servicePerson.getServicePersonId()));
+    }
+
+    /**
+     * Rejects an open pool order for a service person (so it won't show up again for them).
+     */
+    @Transactional
+    public void rejectOpenPoolOrder(String orderId, String servicePersonPhone) {
+        String phone = servicePersonPhone == null ? "" : servicePersonPhone.trim();
+        ServicePerson servicePerson = servicePersonRepository.findByPhoneNumber(phone)
+                .orElseThrow(() -> new IllegalArgumentException("Service person not found for phone: " + phone));
+
+        Long parsedOrderId = parseOrderId(orderId, "order");
+
+        ServiceOrder lockedOrder = entityManager.find(ServiceOrder.class, parsedOrderId, LockModeType.PESSIMISTIC_WRITE);
+        if (lockedOrder == null) {
+            throw new ServiceOrderNotFoundException("Order not found with id: " + orderId);
+        }
+
+        if (lockedOrder.getOrderStatus() != OrderStatus.CREATED) {
+            throw new IllegalStateException("Only CREATED orders can be rejected.");
+        }
+        if (lockedOrder.getServicePerson() != null) {
+            throw new IllegalStateException("Order has already been accepted.");
+        }
+
+        // Type/location validation to prevent hiding unrelated orders.
+        if (!servicePerson.getServiceTypes().contains(lockedOrder.getOrderType())) {
+            throw new IllegalStateException("Service person does not handle order type: " + lockedOrder.getOrderType());
+        }
+
+        String orderCity = lockedOrder.getServiceCity();
+        String serviceCity = servicePerson.getServiceCity();
+        if (orderCity != null && !orderCity.isBlank()
+                && serviceCity != null && !serviceCity.isBlank()
+                && !orderCity.trim().equalsIgnoreCase(serviceCity.trim())) {
+            throw new IllegalStateException("Service person does not handle orders for location: " + orderCity);
+        }
+
+        // If they reject it, it should not be visible to them again.
+        if (serviceOrderProviderDeclineRepository.existsByOrderIdAndServicePersonId(parsedOrderId, servicePerson.getServicePersonId())) {
+            return;
+        }
+
+        serviceOrderProviderDeclineRepository.save(
+                ServiceOrderProviderDecline.builder()
+                        .orderId(parsedOrderId)
+                        .servicePersonId(servicePerson.getServicePersonId())
+                        .build()
+        );
+    }
+
+    private static String orderTypeToCategory(ServiceOrderType orderType) {
+        if (orderType == null) return "Service";
+        return switch (orderType) {
+            case CLEANER -> "Cleaning";
+            case PLUMBER -> "Plumbing";
+            case ELECTRICIAN -> "Electrical";
+            case CARPENTER -> "Carpentry";
+            case PAINTER -> "Painting";
+            case BEAUTICIAN -> "Beauty";
+            case WATER_CAN -> "Water Tank";
+            case WATER_TANKER -> "Water Tanker";
+            default -> orderType.name();
+        };
+    }
+
     public ServiceOrderResource getOrderByProfileAndOrderId(String profileId, String orderId) {
         log.info("Fetching orderId: {} for profileId: {}", orderId, profileId);
         ServiceOrder order = serviceOrderRepository.findById(parseOrderId(orderId, "order"))
@@ -99,8 +281,11 @@ public class ServiceOrderService {
         BuildingDetails building = buildingDetailsRepository.findById(Long.valueOf(createResource.getBuildingId()))
                 .orElseThrow(() -> new IllegalArgumentException("Building not found for id: " + createResource.getBuildingId()));
 
-        String city = building.getBuildingAddress() != null && building.getBuildingAddress().getCity() != null
-                ? building.getBuildingAddress().getCity() : "Bengaluru";
+        String actualCity = building.getBuildingAddress() != null ? building.getBuildingAddress().getCity() : null;
+        String serviceCity = actualCity != null && !actualCity.isBlank() ? actualCity.trim() : null;
+
+        // VHS booking requires a city; for service-person pooling we snapshot serviceCity (can be null).
+        String vhsCity = serviceCity != null ? serviceCity : "Bengaluru";
         String address = building.getBuildingAddress() != null && building.getBuildingAddress().getStreetName() != null
                 ? building.getBuildingAddress().getStreetName()
                 : building.getBuildingName();
@@ -112,7 +297,7 @@ public class ServiceOrderService {
                 createResource.getTimeSlot(),
                 createResource.getAmount(),
                 profile.getName(),
-                city,
+                vhsCity,
                 address,
                 flatNo,
                 externalReference
@@ -122,6 +307,7 @@ public class ServiceOrderService {
         ServiceOrder entity = serviceOrderMapper.toEntity(createResource);
         entity.setServicePerson(null);
         entity.setOrderStatus(OrderStatus.CREATED);
+        entity.setServiceCity(serviceCity);
         entity.setVhsBookingId(vhsBookingId);
         entity.setVhsStatus(firstNonBlank(
                 jsonText(vhsBooking, "status"),
@@ -276,6 +462,11 @@ public class ServiceOrderService {
                 .orElseThrow(() -> new ServiceOrderNotFoundException(
                         "Order not found with id: " + orderId));
 
+        // Guard: assignment is a one-time action for pool orders.
+        if (order.getServicePerson() != null) {
+            throw new IllegalStateException("Order is already assigned to a service person.");
+        }
+
         // Guard: don't re-assign if already completed or cancelled
         switch (order.getOrderStatus()) {
             case COMPLETED -> throw new IllegalStateException(
@@ -299,6 +490,21 @@ public class ServiceOrderService {
         if (!servicePerson.getServiceTypes().contains(order.getOrderType())) {
             throw new IllegalStateException(
                     "Service person does not handle order type: " + order.getOrderType());
+        }
+
+        // Guard: location compatibility (pool key)
+        String orderCity = order.getServiceCity();
+        String serviceCity = servicePerson.getServiceCity();
+        if (orderCity != null && !orderCity.isBlank()
+                && serviceCity != null && !serviceCity.isBlank()) {
+            if (!orderCity.trim().equalsIgnoreCase(serviceCity.trim())) {
+                throw new IllegalStateException(
+                        "Service person does not handle orders for location: " + orderCity);
+            }
+        } else {
+            log.warn(
+                    "Location check skipped for orderId={} (serviceCity='{}') and servicePersonId={} (serviceCity='{}')",
+                    orderId, orderCity, servicePersonId, serviceCity);
         }
 
         order.setServicePerson(servicePerson);

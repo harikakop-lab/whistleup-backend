@@ -15,6 +15,7 @@ public class ServicePersonMapper {
                 .experienceYears(resource.getExperienceYears())
                 .rating(resource.getRating())
                 .serviceTypes(resource.getServiceTypes())
+                .serviceCity(resource.getServiceCity())
                 .build();
     }
 
@@ -27,6 +28,7 @@ public class ServicePersonMapper {
                 .experienceYears(entity.getExperienceYears())
                 .rating(entity.getRating())
                 .serviceTypes(entity.getServiceTypes())
+                .serviceCity(entity.getServiceCity())
                 .isActive(entity.getIsActive())
                 .registeredDate(entity.getRegisteredDate())
                 .build();

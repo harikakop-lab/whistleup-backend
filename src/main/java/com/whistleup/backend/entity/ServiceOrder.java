@@ -34,6 +34,9 @@ public class ServiceOrder {
     @Column(name = "building_id", nullable = false)
     private String buildingId;
 
+    @Column(name = "service_city", nullable = true)
+    private String serviceCity;
+
     @Column(name = "service_date", nullable = false)
     private LocalDate date;
 

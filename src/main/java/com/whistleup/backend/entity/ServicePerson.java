@@ -45,6 +45,13 @@ public class ServicePerson {
     @Column(name = "service_type")
     private Set<ServiceOrderType> serviceTypes;
 
+    /**
+     * City/location pool key for service-person orders.
+     * Used to show only compatible orders to the correct service persons.
+     */
+    @Column(name = "service_city", nullable = true)
+    private String serviceCity;
+
     @Column(name = "is_active", nullable = false)
     @Builder.Default
     private Boolean isActive = true;

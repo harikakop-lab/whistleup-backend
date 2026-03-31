@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -46,6 +47,12 @@ public class ServicePersonService {
                         "Service person not found with id: " + servicePersonId));
     }
 
+    public Optional<ServicePersonResource> findServicePersonByPhoneNumber(String phoneNumber) {
+        if (phoneNumber == null) return Optional.empty();
+        return servicePersonRepository.findByPhoneNumber(phoneNumber.trim())
+                .map(servicePersonMapper::toResource);
+    }
+
     @Transactional
     public ServicePersonResource createServicePerson(ServicePersonResource resource) {
         log.info("Creating service person: {}", resource.getName());
@@ -70,6 +77,7 @@ public class ServicePersonService {
         existing.setExperienceYears(resource.getExperienceYears());
         existing.setRating(resource.getRating());
         existing.setServiceTypes(resource.getServiceTypes());
+        existing.setServiceCity(resource.getServiceCity());
 
         return servicePersonMapper.toResource(servicePersonRepository.save(existing));
     }
