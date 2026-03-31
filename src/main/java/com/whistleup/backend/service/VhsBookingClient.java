@@ -38,7 +38,8 @@ public class VhsBookingClient {
             String city,
             String address,
             String flatNo,
-            String externalReference
+            String externalReference,
+            String phone
     ) {
         String url = vhsUrl + "/create-booking";
         Map<String, Object> payload = new HashMap<>();
@@ -54,6 +55,7 @@ public class VhsBookingClient {
         serviceAddress.put("address", address);
         serviceAddress.put("flatno", flatNo);
         payload.put("serviceAddress", serviceAddress);
+        payload.put("phone", phone);
         payload.put("externalReference", externalReference);
 
         JsonNode response = callVhs(url, HttpMethod.POST, payload);

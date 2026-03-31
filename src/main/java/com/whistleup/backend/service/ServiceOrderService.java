@@ -101,9 +101,7 @@ public class ServiceOrderService {
 
         String city = building.getBuildingAddress() != null && building.getBuildingAddress().getCity() != null
                 ? building.getBuildingAddress().getCity() : "Bengaluru";
-        String address = building.getBuildingAddress() != null && building.getBuildingAddress().getStreetName() != null
-                ? building.getBuildingAddress().getStreetName()
-                : building.getBuildingName();
+        String address = getAddress(building);
         String flatNo = profile.getFlatNo() == null ? "" : profile.getFlatNo();
         String externalReference = String.valueOf(ThreadLocalRandom.current().nextLong(1_000_000_000L, 9_999_999_999L));
         String vhsBookingId = vhsBookingClient.createBooking(
@@ -115,7 +113,8 @@ public class ServiceOrderService {
                 city,
                 address,
                 flatNo,
-                externalReference
+                externalReference,
+                profile.getPhone()
         );
         var vhsBooking = vhsBookingClient.getBooking(vhsBookingId);
 
@@ -142,6 +141,15 @@ public class ServiceOrderService {
             entity.setOrderStatus(OrderStatus.ASSIGNED);
         }
         return serviceOrderMapper.toResource(serviceOrderRepository.save(entity));
+    }
+
+    private static String getAddress(BuildingDetails building) {
+        if (building.getBuildingAddress().getFullAddress()!= null) {
+            return building.getBuildingAddress().getStreetName() + ", " + building.getBuildingAddress().getFullAddress();
+        } else {
+            return building.getBuildingName() + ", " + building.getBuildingAddress().getStreetName()
+                    + building.getBuildingAddress().getCity() + ", " + building.getBuildingAddress().getPincode();
+        }
     }
 
     @Transactional
