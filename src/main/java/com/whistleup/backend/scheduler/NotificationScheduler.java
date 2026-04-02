@@ -26,14 +26,32 @@ public class NotificationScheduler {
     @Scheduled(cron = "0 0 6,18 * * *", zone = "Asia/Kolkata")
     public void sendMinuteNotifications() {
         log.info("⏰ Notification scheduler triggered at {}", LocalDateTime.now());
-        val pendingMaintenances = maintenanceService.getListOfPendingMaintenanceForCurrentMonth();
+        val pendingMaintenances = maintenanceService.getListOfPendingMaintenance();
         pendingMaintenances.forEach(maintenance -> {
             notificationSendService.notifyUser(
                     Long.valueOf(maintenance.getProfileId()),
                     "💰Maintenance",
-                    "Please pay your maintenance of ₹" + maintenance.getAmount() + " for this current month.",
+                    "Please pay your maintenance of ₹" + maintenance.getAmount() + " for " + getMonth(maintenance.getMaintenanceMonth()) + "month.",
                     IssueType.ALERT.name()
             );
         });
+    }
+
+    private String getMonth(Integer maintenanceMonth) {
+        return switch (maintenanceMonth) {
+            case 1 -> "January";
+            case 2 -> "February";
+            case 3 -> "March";
+            case 4 -> "April";
+            case 5 -> "May";
+            case 6 -> "June";
+            case 7 -> "July";
+            case 8 -> "August";
+            case 9 -> "September";
+            case 10 -> "October";
+            case 11 -> "November";
+            case 12 -> "December";
+            default -> "current";
+        };
     }
 }

@@ -450,9 +450,8 @@ public class MaintenanceService {
                 .toList();
     }
 
-    public List<Maintenance> getListOfPendingMaintenanceForCurrentMonth() {
+    public List<Maintenance> getListOfPendingMaintenance() {
         val year = LocalDate.now().getYear();
-        val month = LocalDate.now().getMonthValue();
-        return repository.findPendingMaintenanceByCurrentMonthAndYear(month, year);
+        return repository.findPendingMaintenanceByPreviousMonthAndYear(year);
     }
 }
