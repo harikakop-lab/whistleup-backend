@@ -35,6 +35,6 @@ public interface MaintenanceRepository extends JpaRepository<Maintenance, Long> 
             Integer maintenanceMonth
     );
 
-    @Query(value = "select * from maintenance where status = 'PENDING' and maintenance_year = :year and maintenance_month = :month", nativeQuery = true)
-    List<Maintenance> findPendingMaintenanceByCurrentMonthAndYear(int month, int year);
+    @Query(value = "select * from maintenance where status = 'PENDING' and maintenance_year = :year", nativeQuery = true)
+    List<Maintenance> findPendingMaintenanceByPreviousMonthAndYear(int year);
 }
