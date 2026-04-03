@@ -109,7 +109,7 @@ public class HomeServiceCatalogSeeder {
                 .subcategoryKey(slugify(subLabel))
                 .subcategoryLabel(subLabel)
                 .description("Professional " + subLabel + " service")
-                .image(defaultImageForCategory(cat.getCategoryKey()))
+                .image(null)
                 .popular(popular)
                 .sortOrder(order)
                 .active(true)
@@ -144,7 +144,7 @@ public class HomeServiceCatalogSeeder {
                 .subcategoryKey(slugify(subLabel))
                 .subcategoryLabel(subLabel)
                 .description("Select service type and number of bathrooms. Sample prices aligned to VHS-style SKUs; replace via admin/import.")
-                .image(defaultImageForCategory("cleaning"))
+                .image(null)
                 .popular(true)
                 .sortOrder(order)
                 .active(true)
@@ -203,24 +203,4 @@ public class HomeServiceCatalogSeeder {
                 .replaceAll("(^-|-$)", "");
     }
 
-    private String defaultImageForCategory(String categoryKey) {
-        return switch (categoryKey) {
-            case "cleaning" ->
-                    "https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?auto=format&fit=crop&w=1200&q=80";
-            case "painting" ->
-                    "https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&w=1200&q=80";
-            case "pest-control" ->
-                    "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=1200&q=80";
-            case "floor-polishing" ->
-                    "https://images.unsplash.com/photo-1616486029423-aaa4789e8c9a?auto=format&fit=crop&w=1200&q=80";
-            case "appliance-service" ->
-                    "https://images.unsplash.com/photo-1581578731548-52f8d69d89f1?auto=format&fit=crop&w=1200&q=80";
-            case "home-repair-services" ->
-                    "https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=1200&q=80";
-            case "packers-movers" ->
-                    "https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?auto=format&fit=crop&w=1200&q=80";
-            default ->
-                    "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80";
-        };
-    }
 }

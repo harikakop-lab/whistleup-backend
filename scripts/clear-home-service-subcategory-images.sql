@@ -1,0 +1,2 @@
+-- Optional: uncomment and run against your DB if rows still have old image URLs and you want the app to use bundled images until you set new HTTPS URLs in `image`.
+-- UPDATE home_service_subcategory SET image = NULL WHERE image IS NOT NULL;

@@ -31,9 +31,9 @@ public class NotificationScheduler {
             notificationSendService.notifyUser(
                     Long.valueOf(maintenance.getProfileId()),
                     "💰Maintenance",
-                    "Please pay your maintenance of ₹" + maintenance.getAmount() + " for " + getMonth(maintenance.getMaintenanceMonth()) + "month.",
-                    IssueType.ALERT.name()
-            );
+                    "Please pay your maintenance of ₹" + maintenance.getAmount() + " for "
+                            + getMonth(maintenance.getMaintenanceMonth()) + " month.",
+                    IssueType.ALERT.name());
         });
     }
 
