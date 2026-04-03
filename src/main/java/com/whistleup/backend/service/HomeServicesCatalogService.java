@@ -66,12 +66,16 @@ public class HomeServicesCatalogService {
                 .filter(Objects::nonNull)
                 .min()
                 .orElse(0);
+        String imageUrl = s.getImage();
+        if (imageUrl != null && imageUrl.isBlank()) {
+            imageUrl = null;
+        }
         return HomeServiceOptionResource.builder()
                 .id(s.getSubcategoryKey())
                 .title(s.getSubcategoryLabel())
                 .description(s.getDescription())
                 .price(minPrice)
-                .image(null)
+                .image(imageUrl)
                 .popular(Boolean.TRUE.equals(s.getPopular()))
                 .serviceLines(lines)
                 .build();
