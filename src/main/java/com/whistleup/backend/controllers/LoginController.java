@@ -32,13 +32,18 @@ public class LoginController {
         final String secret = resolveSecret(loginRequest);
         final ProfileResponseResource profile = profileService.getProfileByUsername(username);
         log.info("Profile: {} is_assigned: {}", profile.getPhone(), profile.getIsAssigned());
+        if ((profile.getRole() == Roles.VISITOR)) {
+            log.info("Throwing bad request exception: {}", profile.getRole() == Roles.VISITOR);
+            throw new BadRequestException(
+                    "Visitors are not allowed to login.",
+                    "Please register your visit first.");
+        }
         if ((profile.getRole() == Roles.USER || profile.getRole() == Roles.OWNER)
                 && !Boolean.TRUE.equals(profile.getIsAssigned())) {
             log.info("Throwing bad request exception: {}", !Boolean.TRUE.equals(profile.getIsAssigned()));
             throw new BadRequestException(
                     "Your profile is waiting for admin approval.",
-                    "Please wait until your apartment admin assigns your flat."
-            );
+                    "Please wait until your apartment admin assigns your flat.");
         }
         final String token = authenticationService.authenticate(username, secret);
 
