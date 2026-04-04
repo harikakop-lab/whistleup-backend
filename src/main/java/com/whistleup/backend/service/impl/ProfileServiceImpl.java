@@ -13,6 +13,7 @@ import com.whistleup.backend.repository.ProfileRepository;
 import com.whistleup.backend.resource.ContactResource;
 import com.whistleup.backend.resource.ProfileCreateResource;
 import com.whistleup.backend.resource.ProfileResponseResource;
+import com.whistleup.backend.service.BuildingAdminService;
 import com.whistleup.backend.service.ProfileService;
 import com.whistleup.backend.util.CustomBeanUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -44,11 +45,19 @@ public class ProfileServiceImpl implements ProfileService {
 
     private final PasswordEncoder passwordEncoder;
 
-    public ProfileServiceImpl(ProfileRepository profileRepository, FlatRepository flatRepository, BuildingDetailsRepository buildingRepository, PasswordEncoder passwordEncoder) {
+    private final BuildingAdminService buildingAdminService;
+
+    public ProfileServiceImpl(
+            ProfileRepository profileRepository,
+            FlatRepository flatRepository,
+            BuildingDetailsRepository buildingRepository,
+            PasswordEncoder passwordEncoder,
+            BuildingAdminService buildingAdminService) {
         this.profileRepository = profileRepository;
         this.flatRepository = flatRepository;
         this.buildingRepository = buildingRepository;
         this.passwordEncoder = passwordEncoder;
+        this.buildingAdminService = buildingAdminService;
     }
 
     @Override
@@ -183,6 +192,7 @@ public class ProfileServiceImpl implements ProfileService {
         Profile profile = profileOptional.get();
         ProfileResponseResource profileResponseResource = new ProfileResponseResource();
         BeanUtils.copyProperties(profile, profileResponseResource);
+        enrichAdminBuildings(profile, profileResponseResource);
         return profileResponseResource;
     }
 
@@ -212,7 +222,20 @@ public class ProfileServiceImpl implements ProfileService {
                 // Keep profile response even if building mapping is stale/invalid.
             }
         }
+        enrichAdminBuildings(profile, profileResponseResource);
         return profileResponseResource;
+    }
+
+    private void enrichAdminBuildings(Profile profile, ProfileResponseResource resource) {
+        if (profile.getRole() != Roles.ADMIN && profile.getRole() != Roles.SYSTEM_ADMIN) {
+            return;
+        }
+        String phone = profile.getPhone();
+        if (phone == null || phone.isBlank()) {
+            return;
+        }
+        resource.setAdminBuildings(
+                buildingAdminService.resolveAdminBuildings(phone, profile.getBuildingId()));
     }
 
     @Override
