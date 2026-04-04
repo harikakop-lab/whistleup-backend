@@ -11,6 +11,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.List;
+
 @Getter
 @Setter
 @AllArgsConstructor
@@ -28,4 +30,7 @@ public class ProfileResponseResource extends ProfileCreateResource {
     private String avatarUri;
     private String buildingName;
     private Boolean isAssigned;
+
+    /** Buildings this user may administer (ADMIN / SYSTEM_ADMIN); null for other roles. */
+    private List<AdminBuildingSummaryResource> adminBuildings;
 }
