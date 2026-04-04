@@ -4,5 +4,6 @@ public enum Roles {
     SYSTEM_ADMIN,
     ADMIN,
     USER,
-    OWNER
+    OWNER,
+    VISITOR
 }
