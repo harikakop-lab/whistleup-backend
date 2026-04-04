@@ -25,9 +25,15 @@ public class HomeServicesCatalogService {
     public List<HomeServiceCategoryResource> getCatalog() {
         List<HomeServiceCategory> categories =
                 homeServiceCategoryRepository.findAllByActiveTrueOrderBySortOrderAsc();
-        return categories.stream().map(this::toCategoryResource).toList();
+        return categories.stream()
+                .map(this::toCategoryResource)
+                .filter(Objects::nonNull)
+                .toList();
     }
 
+    /**
+     * Omits subcategories with no positive price (pricing TBD) and drops categories that would be empty.
+     */
     private HomeServiceCategoryResource toCategoryResource(HomeServiceCategory c) {
         String subtitle = c.getSubtitle();
         if (subtitle == null || subtitle.isBlank()) {
@@ -41,7 +47,11 @@ public class HomeServicesCatalogService {
                 .filter(s -> Boolean.TRUE.equals(s.getActive()))
                 .sorted(Comparator.comparing(HomeServiceSubcategory::getSortOrder))
                 .map(s -> toOptionResource(c, s))
+                .filter(opt -> opt.getPrice() != null && opt.getPrice() > 0)
                 .toList();
+        if (options.isEmpty()) {
+            return null;
+        }
         return HomeServiceCategoryResource.builder()
                 .key(c.getCategoryKey())
                 .label(c.getCategoryLabel())
