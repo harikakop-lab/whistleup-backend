@@ -32,7 +32,7 @@ public class NotificationScheduler {
                     Long.valueOf(maintenance.getProfileId()),
                     "💰Maintenance",
                     "Please pay your maintenance of ₹" + maintenance.getAmount() + " for "
-                            + getMonth(maintenance.getMaintenanceMonth()) + " month.",
+                            + getMonth(maintenance.getMaintenanceMonth()) + " month by " + maintenance.getDueDate() + ".",
                     IssueType.ALERT.name());
         });
     }

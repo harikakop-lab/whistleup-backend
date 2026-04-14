@@ -38,14 +38,14 @@ public class NoticeServiceImpl implements NoticeService {
                 .audience(audience)
                 .createdAt(LocalDateTime.now())
                 .build();
-        Notice saved = noticeRepository.save(notice);
+        Notice noticeEntity = noticeRepository.save(notice);
         CompletableFuture.runAsync(() -> {
             List<Profile> recipients = resolveRecipients(resource.getBuildingId(), audience);
             for (Profile profile : recipients) {
                 try {
                     notificationSendService.notifyUser(
                             Long.valueOf(profile.getPhone()),
-                            "New Notice",
+                            noticeEntity.getTitle(),
                             "View the newly created notice in the notices section",
                             IssueType.INFO.name());
                 } catch (Exception ignore) {
@@ -53,7 +53,7 @@ public class NoticeServiceImpl implements NoticeService {
                 }
             }
         });
-        return map(saved);
+        return map(noticeEntity);
     }
 
     @Override

@@ -18,6 +18,8 @@ import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.Month;
 import java.time.YearMonth;
@@ -127,13 +129,15 @@ public class MaintenanceService {
                 req.getYear(),
                 req.getMonth()
         );
+        YearMonth billingPeriod = YearMonth.of(req.getYear(), req.getMonth());
+        
         maintenance = maintenanceOptional
                 .orElseGet(() -> Maintenance.builder()
                         .profileId(phone)
                         .maintenanceYear(req.getYear())
                         .maintenanceMonth(req.getMonth())
                         .amount(finalResolvedAmount)
-                        .dueDate(YearMonth.now().atEndOfMonth())
+                        .dueDate(billingPeriod.atEndOfMonth())
                         .status(MaintenanceStatus.PENDING)
                         .buildingId(req.getBuildingId())
                         .build());
@@ -145,7 +149,7 @@ public class MaintenanceService {
         if (Objects.nonNull(req.getDueDate())) {
             maintenance.setDueDate(req.getDueDate());
         } else if (maintenance.getDueDate() == null) {
-            maintenance.setDueDate(YearMonth.now().atEndOfMonth());
+            maintenance.setDueDate(billingPeriod.atEndOfMonth());
         }
         maintenance.setWaterMode(normalizeMode(req.getWaterMode()));
         if (maintenanceOptional.isPresent() && maintenance.getId() != null) {
@@ -441,6 +445,33 @@ public class MaintenanceService {
 
     public Maintenance getEntity(Long id) {
         return repository.findById(id).orElseThrow(() -> new NotFoundException("No Maintenance found"));
+    }
+
+    public Maintenance getInvoiceByProfileAndPeriod(String profileId, String buildingId, Integer year, Integer month) {
+        if (profileId == null || profileId.trim().isEmpty() || buildingId == null || buildingId.trim().isEmpty()
+                || year == null || month == null) {
+            throw new NotFoundException("No receipt available for the selected combination.");
+        }
+
+        Maintenance maintenance = repository.findByProfileIdAndBuildingIdAndMaintenanceYearAndMaintenanceMonth(
+                        profileId.trim(),
+                        buildingId.trim(),
+                        year,
+                        month
+                )
+                .orElseThrow(() -> new NotFoundException("No receipt available for the selected combination."));
+
+        if (maintenance.getStatus() != MaintenanceStatus.PAID) {
+            throw new NotFoundException("No receipt available for the selected combination.");
+        }
+
+        if (maintenance.getInvoicePath() == null || maintenance.getInvoicePath().isBlank()
+                || !Files.exists(Paths.get(maintenance.getInvoicePath()))) {
+            String regeneratedPath = invoiceService.generateInvoice(maintenance);
+            maintenance.setInvoicePath(regeneratedPath);
+            maintenance = repository.save(maintenance);
+        }
+        return maintenance;
     }
 
     public List<MaintenanceResponseResource> getMaintenanceByProfileId(String username) {
