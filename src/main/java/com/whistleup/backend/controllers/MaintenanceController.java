@@ -73,4 +73,20 @@ public class MaintenanceController {
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(resource);
     }
+
+    @GetMapping("/profile/{profileId}/invoice")
+    public ResponseEntity<Resource> downloadInvoiceByProfileAndPeriod(
+            @PathVariable String profileId,
+            @RequestParam String buildingId,
+            @RequestParam Integer year,
+            @RequestParam Integer month) {
+        Maintenance maintenance = maintenanceService.getInvoiceByProfileAndPeriod(profileId, buildingId, year, month);
+        Path path = Paths.get(maintenance.getInvoicePath());
+        Resource resource = new FileSystemResource(path);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + path.getFileName())
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(resource);
+    }
 }
