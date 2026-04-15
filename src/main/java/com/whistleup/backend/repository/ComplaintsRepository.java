@@ -8,9 +8,9 @@ import java.util.List;
 
 @Repository
 public interface ComplaintsRepository extends JpaRepository<Complaints, Long> {
-    List<Complaints> findByProfileIdOrderByComplaintIdDesc(String profileId);
+    List<Complaints> findByProfileIdAndBuildingIdOrderByComplaintIdDesc(String profileId, String buildingId);
 
-    List<Complaints> findByAssigneeProfileOrderByComplaintIdDesc(String profileId);
+    List<Complaints> findByAssigneeProfileAndBuildingIdOrderByComplaintIdDesc(String profileId, String buildingId);
 
     List<Complaints> findByBuildingIdOrderByComplaintIdDesc(String buildingId);
 }

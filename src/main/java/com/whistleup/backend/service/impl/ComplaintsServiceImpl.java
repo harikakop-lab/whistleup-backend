@@ -54,16 +54,16 @@ public class ComplaintsServiceImpl implements ComplaintsService {
     }
 
     @Override
-    public List<ComplaintsResponseResource> getComplaintsByProfileId(String profileId) {
-        return complaintsRepository.findByProfileIdOrderByComplaintIdDesc(profileId)
+    public List<ComplaintsResponseResource> getComplaintsByProfileId(String profileId, String buildingId) {
+        return complaintsRepository.findByProfileIdAndBuildingIdOrderByComplaintIdDesc(profileId, buildingId)
                 .stream()
                 .map(this::toResponse)
                 .toList();
     }
 
     @Override
-    public List<ComplaintsResponseResource> getComplaintsByAssigneeProfileId(String profileId) {
-        return complaintsRepository.findByAssigneeProfileOrderByComplaintIdDesc(profileId)
+    public List<ComplaintsResponseResource> getComplaintsByAssigneeProfileId(String profileId, String buildingId) {
+        return complaintsRepository.findByAssigneeProfileAndBuildingIdOrderByComplaintIdDesc(profileId, buildingId)
                 .stream()
                 .map(this::toResponse)
                 .toList();

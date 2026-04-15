@@ -66,15 +66,17 @@ public class ComplaintsController {
         );
     }
 
-    @GetMapping("/profile/{profileId}")
-    public ResponseEntity<List<ComplaintsResponseResource>> getAllComplaintsRaisedByProfileId(@PathVariable("profileId") String profileId) {
-        List<ComplaintsResponseResource> complaints = complaintsService.getComplaintsByProfileId(profileId);
+    @GetMapping("/profile/{profileId}/{buildingId}")
+    public ResponseEntity<List<ComplaintsResponseResource>> getAllComplaintsRaisedByProfileId(@PathVariable("profileId") String profileId,
+                                                                                              @PathVariable("buildingId") String buildingId) {
+        List<ComplaintsResponseResource> complaints = complaintsService.getComplaintsByProfileId(profileId, buildingId);
         return new ResponseEntity<>(complaints, HttpStatus.OK);
     }
 
-    @GetMapping("/assignee/{profileId}")
-    public ResponseEntity<List<ComplaintsResponseResource>> getAllComplaintsAssignedToProfileId(@PathVariable("profileId") String profileId) {
-        List<ComplaintsResponseResource> complaints = complaintsService.getComplaintsByAssigneeProfileId(profileId);
+    @GetMapping("/assignee/{profileId}/{buildingId}")
+    public ResponseEntity<List<ComplaintsResponseResource>> getAllComplaintsAssignedToProfileId(@PathVariable("profileId") String profileId,
+                                                                                                @PathVariable("buildingId") String buildingId) {
+        List<ComplaintsResponseResource> complaints = complaintsService.getComplaintsByAssigneeProfileId(profileId, buildingId);
         return new ResponseEntity<>(complaints, HttpStatus.OK);
     }
 

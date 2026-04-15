@@ -2,7 +2,6 @@ package com.whistleup.backend.service;
 
 import com.whistleup.backend.constants.ComplaintStatus;
 import com.whistleup.backend.resource.ComplaintCreateResource;
-import com.whistleup.backend.resource.ComplaintImageResponse;
 import com.whistleup.backend.resource.ComplaintsResponseResource;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -14,9 +13,9 @@ public interface ComplaintsService {
 
     ComplaintsResponseResource getAllComplaintsById(String complaintId);
 
-    List<ComplaintsResponseResource> getComplaintsByProfileId(String profileId);
+    List<ComplaintsResponseResource> getComplaintsByProfileId(String profileId, String buildingId);
 
-    List<ComplaintsResponseResource> getComplaintsByAssigneeProfileId(String profileId);
+    List<ComplaintsResponseResource> getComplaintsByAssigneeProfileId(String profileId, String buildingId);
 
     List<ComplaintsResponseResource> getComplaintsByBuildingId(String buildingId);
 
