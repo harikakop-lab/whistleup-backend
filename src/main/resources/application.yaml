@@ -59,8 +59,8 @@ app:
   base-url: http://13.63.188.62:8080
 #  base-url: http://localhost:8080
   support:
-    email: manoj@nestiti.com
-    phone: "9666499643"
+    email: contact@nestiti.com
+    phone: "9985373888"
 
 vhs:
   url: https://api2.vijayhomeservice.in/api/external-bookings
