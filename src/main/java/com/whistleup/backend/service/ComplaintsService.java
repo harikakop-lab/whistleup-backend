@@ -17,6 +17,11 @@ public interface ComplaintsService {
 
     List<ComplaintsResponseResource> getComplaintsByAssigneeProfileId(String profileId, String buildingId);
 
+    // old methods
+    List<ComplaintsResponseResource> getComplaintsByProfileId(String profileId);
+
+    List<ComplaintsResponseResource> getComplaintsByAssigneeProfileId(String profileId);
+
     List<ComplaintsResponseResource> getComplaintsByBuildingId(String buildingId);
 
     ComplaintsResponseResource registerComplaint(ComplaintCreateResource complaintCreateResource, MultipartFile[] files) throws IOException;

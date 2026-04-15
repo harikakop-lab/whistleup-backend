@@ -70,6 +70,22 @@ public class ComplaintsServiceImpl implements ComplaintsService {
     }
 
     @Override
+    public List<ComplaintsResponseResource> getComplaintsByProfileId(String profileId) {
+        return complaintsRepository.findByProfileIdOrderByComplaintIdDesc(profileId)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Override
+    public List<ComplaintsResponseResource> getComplaintsByAssigneeProfileId(String profileId) {
+        return complaintsRepository.findByAssigneeProfileOrderByComplaintIdDesc(profileId)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Override
     public List<ComplaintsResponseResource> getComplaintsByBuildingId(String buildingId) {
         return complaintsRepository.findByBuildingIdOrderByComplaintIdDesc(buildingId)
                 .stream()

@@ -12,5 +12,9 @@ public interface ComplaintsRepository extends JpaRepository<Complaints, Long> {
 
     List<Complaints> findByAssigneeProfileAndBuildingIdOrderByComplaintIdDesc(String profileId, String buildingId);
 
+    List<Complaints> findByProfileIdOrderByComplaintIdDesc(String profileId);
+
+    List<Complaints> findByAssigneeProfileOrderByComplaintIdDesc(String profileId);
+
     List<Complaints> findByBuildingIdOrderByComplaintIdDesc(String buildingId);
 }
