@@ -3,6 +3,7 @@ package com.whistleup.backend.controllers;
 import com.whistleup.backend.resource.ContactResource;
 import com.whistleup.backend.resource.ProfileCreateResource;
 import com.whistleup.backend.resource.ProfileResponseResource;
+import com.whistleup.backend.service.JwtService;
 import com.whistleup.backend.service.ProfileService;
 import jakarta.annotation.PostConstruct;
 import org.springframework.core.io.Resource;
@@ -30,6 +31,7 @@ import org.springframework.beans.factory.annotation.Value;
 public class ProfileController {
 
     private final ProfileService profileService;
+    private final JwtService jwtService;
 
     @Value("${app.upload.dir}")
     private String uploadDir;
@@ -39,8 +41,9 @@ public class ProfileController {
 
     private Path uploadPath;
 
-    public ProfileController(ProfileService profileService) {
+    public ProfileController(ProfileService profileService, JwtService jwtService) {
         this.profileService = profileService;
+        this.jwtService = jwtService;
     }
 
     @PostConstruct
@@ -89,8 +92,20 @@ public class ProfileController {
 
 
     @DeleteMapping("/delete/{userId}")
-    public ResponseEntity<String> deleteProfile(@PathVariable("userId") String userId) {
-        String response = profileService.deleteProfile(userId);
+    public ResponseEntity<String> deleteProfile(
+            @PathVariable("userId") String userId,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        String requester = extractRequester(authHeader);
+        String response = profileService.deleteProfileAsRequester(userId, requester);
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @DeleteMapping("/delete/me")
+    public ResponseEntity<String> deleteMyProfile(
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        String requester = extractRequester(authHeader);
+        ProfileResponseResource profile = profileService.getProfileByUsername(requester);
+        String response = profileService.deleteProfileAsRequester(profile.getPhone(), requester);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
@@ -137,5 +152,16 @@ public class ProfileController {
         } catch (Exception ex) {
             return ResponseEntity.internalServerError().build();
         }
+    }
+
+    private String extractRequester(String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new IllegalArgumentException("Missing Authorization bearer token");
+        }
+        String token = authHeader.substring(7).trim();
+        if (token.isEmpty()) {
+            throw new IllegalArgumentException("Authorization token is empty");
+        }
+        return jwtService.extractToken(token);
     }
 }

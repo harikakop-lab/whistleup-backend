@@ -169,18 +169,39 @@ public class ProfileServiceImpl implements ProfileService {
 
     @Override
     public String deleteProfile(String userId) {
-        try {
-            Optional<Profile> profileOptional = profileRepository.findByPhone(userId);
-            if (profileOptional.isEmpty()) {
-                log.error("Profile not found with id: {}", userId);
-                throw new NotFoundException("Profile not found");
-            }
-            profileRepository.deleteById(userId);
-            return "SUCCESS";
-        } catch (Exception e) {
-            log.error("Error occurred while deleting the profile with id: {}", userId, e);
+        Optional<Profile> profileOptional = profileRepository.findByPhone(userId);
+        if (profileOptional.isEmpty()) {
+            log.error("Profile not found with id: {}", userId);
+            throw new NotFoundException("Profile not found");
         }
-        return "FAILURE";
+        detachFlatMapping(userId);
+        profileRepository.deleteById(userId);
+        return "SUCCESS";
+    }
+
+    @Override
+    public String deleteProfileAsRequester(String targetUserId, String requesterUsername) {
+        Profile targetProfile = profileRepository.findByPhone(targetUserId)
+                .orElseThrow(() -> new NotFoundException("Profile not found"));
+
+        Profile requester = profileRepository.findByEmailOrPhone(requesterUsername)
+                .orElseThrow(() -> new NotFoundException("Requester profile not found"));
+
+        boolean isAdmin = requester.getRole() == Roles.ADMIN || requester.getRole() == Roles.SYSTEM_ADMIN;
+        boolean isSelfDelete = Objects.equals(requester.getPhone(), targetProfile.getPhone())
+                || (requester.getEmail() != null
+                && targetProfile.getEmail() != null
+                && requester.getEmail().equalsIgnoreCase(targetProfile.getEmail()));
+
+        if (!isAdmin && !isSelfDelete) {
+            throw new BadRequestException(
+                    "Unauthorized delete request",
+                    "Users may only delete their own account.");
+        }
+
+        detachFlatMapping(targetProfile.getPhone());
+        profileRepository.deleteById(targetProfile.getPhone());
+        return "SUCCESS";
     }
 
     @Override
@@ -291,6 +312,9 @@ public class ProfileServiceImpl implements ProfileService {
         if (profile.getBuildingId() == null || profile.getBuildingId().trim().isEmpty()) {
             return;
         }
+        if (profile.getFlatNo() == null || profile.getFlatNo().trim().isEmpty()) {
+            return;
+        }
         Optional<BuildingDetails> buildingOptional;
         try {
             buildingOptional = buildingRepository.findById(Long.valueOf(profile.getBuildingId()));
@@ -300,8 +324,34 @@ public class ProfileServiceImpl implements ProfileService {
         if (buildingOptional.isEmpty()) {
             return;
         }
-        FlatDetails flatDetails = flatRepository.findFlatByFlatNumber(profile.getFlatNo())
-                .orElseGet(() -> FlatDetails.builder().build());
+
+        Long buildingId = buildingOptional.get().getBuildingId();
+        String flatNo = profile.getFlatNo().trim();
+
+        Optional<FlatDetails> residentCurrentFlatOptional = flatRepository.findByResident_Phone(profile.getPhone());
+        Optional<FlatDetails> targetFlatOptional =
+                flatRepository.findByBuilding_BuildingIdAndFlatNumber(buildingId, flatNo);
+
+        if (residentCurrentFlatOptional.isPresent()) {
+            FlatDetails residentCurrentFlat = residentCurrentFlatOptional.get();
+            boolean movingToDifferentFlat = targetFlatOptional
+                    .map(targetFlat -> !Objects.equals(targetFlat.getFlatId(), residentCurrentFlat.getFlatId()))
+                    .orElse(true);
+            if (movingToDifferentFlat) {
+                residentCurrentFlat.setResident(null);
+                flatRepository.save(residentCurrentFlat);
+            }
+        }
+
+        FlatDetails flatDetails = targetFlatOptional.orElseGet(FlatDetails::new);
+        Profile existingResident = flatDetails.getResident();
+        if (existingResident != null && !Objects.equals(existingResident.getPhone(), profile.getPhone())) {
+            throw new BadRequestException(
+                    "Flat is already assigned",
+                    "Selected flat is assigned to another resident."
+            );
+        }
+
         flatDetails.setResident(profile);
         try {
             flatDetails.setFloor(profile.getFloor() == null || profile.getFloor().isBlank()
@@ -310,9 +360,20 @@ public class ProfileServiceImpl implements ProfileService {
         } catch (Exception ex) {
             flatDetails.setFloor(null);
         }
-        flatDetails.setFlatNumber(profile.getFlatNo());
+        flatDetails.setFlatNumber(flatNo);
         flatDetails.setBuilding(buildingOptional.get());
         flatRepository.save(flatDetails);
+    }
+
+    private void detachFlatMapping(String profilePhone) {
+        if (profilePhone == null || profilePhone.trim().isEmpty()) {
+            return;
+        }
+        flatRepository.findByResident_Phone(profilePhone.trim()).ifPresent(flatDetails -> {
+            flatDetails.setBuilding(null);
+            flatDetails.setResident(null);
+            flatRepository.save(flatDetails);
+        });
     }
 
 }

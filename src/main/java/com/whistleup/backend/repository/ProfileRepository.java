@@ -25,6 +25,7 @@ public interface ProfileRepository extends JpaRepository<Profile, String> {
        f.resident.phone, f.resident.name, f.resident.flatNo)
        from FlatDetails f
        where f.building.buildingId = :buildingId
+         and f.resident is not null
          and f.resident.flatNo = :flatNo
        """)
     List<ResidentsResponse> getListOfResidents(Long buildingId, Long flatNo);
@@ -34,6 +35,7 @@ public interface ProfileRepository extends JpaRepository<Profile, String> {
        f.resident.phone, f.resident.name, f.resident.flatNo)
        from FlatDetails f
        where f.building.buildingId = :buildingId
+         and f.resident is not null
        """)
     List<ResidentsResponse> getListOfResidentsByBuilding(Long buildingId);
 

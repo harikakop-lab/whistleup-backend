@@ -29,8 +29,7 @@ public class ProfileCreateResource {
     private String phone;
     private String pin;
     @Enumerated(EnumType.STRING)
-    @Builder.Default
-    private Roles role = Roles.USER;
+    private Roles role;
     private List<ContactResource> contacts;
     private String upiId;
     private String buildingId;

@@ -61,6 +61,13 @@ app:
   support:
     email: contact@nestiti.com
     phone: "9985373888"
+  review-demo:
+    enabled: ${APP_REVIEW_DEMO_ENABLED:false}
+    admin-phone: ${APP_REVIEW_ADMIN_PHONE:9666499643}
+    admin-pin: ${APP_REVIEW_ADMIN_PIN:1234}
+    tenant-phone: ${APP_REVIEW_TENANT_PHONE:7036797788}
+    tenant-pin: ${APP_REVIEW_TENANT_PIN:1234}
+    shared-upi-id: ${APP_REVIEW_UPI_ID:manojchow72@axl}
 
 vhs:
   url: https://api2.vijayhomeservice.in/api/external-bookings

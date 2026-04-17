@@ -28,7 +28,7 @@ public class FlatDetails {
 
     // Many flats belong to one building
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "building_id", nullable = false)
+    @JoinColumn(name = "building_id")
     private BuildingDetails building;
 
     // One flat mapped to one resident (Profile)

@@ -18,6 +18,8 @@ public interface ProfileService {
 
     String deleteProfile(String userId);
 
+    String deleteProfileAsRequester(String targetUserId, String requesterUsername);
+
     ProfileResponseResource getProfileById(String userId);
 
     Roles getRole(String userName);

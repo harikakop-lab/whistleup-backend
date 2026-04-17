@@ -41,7 +41,9 @@ public class OTPController {
             }
             
             OTPResponse response = new OTPResponse("OTP sent successfully", 5, "****1234", 1234);
-            // otpService.generateOTP(request.getPhoneNumber());
+            // OTPResponse otpResponse = otpService.generateOTP(request.getPhoneNumber());
+//            response.setOtp(1234);
+            // response.setMaskedPhoneNumber("****1234");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -61,7 +63,6 @@ public class OTPController {
                 return ResponseEntity.badRequest()
                     .body(new ErrorResponse("Phone number and OTP are required"));
             }
-            
             VerificationResponse response = otpService.verifyOTP(
                 request.getPhoneNumber(),
                 request.getOtp()

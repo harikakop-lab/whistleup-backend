@@ -13,6 +13,10 @@ import java.util.Optional;
 public interface FlatRepository extends JpaRepository<FlatDetails, Long> {
     Optional<FlatDetails> findFlatByFlatNumber(String flatNumber);
 
+    Optional<FlatDetails> findByResident_Phone(String phone);
+
+    Optional<FlatDetails> findByBuilding_BuildingIdAndFlatNumber(Long buildingId, String flatNumber);
+
     @Query(value = "SELECT * FROM flat_details WHERE BUILDING_ID = :buildingId", nativeQuery = true)
     Optional<List<FlatDetails>> findFlatsByBuilding(@Param("buildingId") Long buildingId);
 }

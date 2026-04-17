@@ -83,56 +83,56 @@ public class OTPService {
     }
 
     public VerificationResponse verifyOTP(String phoneNumber, String otp) throws Exception {
-        Optional<List<OTPEntity>> otpEntity = otpRepository.findByPhoneNumberOrderByLastResendTimeDesc(phoneNumber);
-
-        if (otpEntity.isEmpty() || otpEntity.get().isEmpty()) {
-            throw new OTPException(
-                    "OTP not generated",
-                    OTPException.ErrorCode.OTP_ALREADY_VERIFIED
-            );
-        }
-
-        // Check if already verified
-        OTPEntity latestOtpEntity = otpEntity.get().getFirst();
-        if (latestOtpEntity.getIsVerified()) {
-            throw new OTPException(
-                    "OTP already verified",
-                    OTPException.ErrorCode.OTP_ALREADY_VERIFIED
-            );
-        }
-
-        // Check if expired
-        if (LocalDateTime.now().isAfter(latestOtpEntity.getExpiresAt())) {
-            throw new OTPException(
-                    "OTP has expired",
-                    OTPException.ErrorCode.OTP_EXPIRED
-            );
-        }
-
-        // Check attempts
-        if (latestOtpEntity.getAttemptCount() >= maxAttempts) {
-            throw new OTPException(
-                    "Maximum attempts exceeded. Please request a new OTP",
-                    OTPException.ErrorCode.MAX_ATTEMPTS_EXCEEDED
-            );
-        }
-
-        // Verify OTP
-        if (!latestOtpEntity.getOtp().equals(otp)) {
-            latestOtpEntity.setAttemptCount(latestOtpEntity.getAttemptCount() + 1);
-            otpRepository.save(latestOtpEntity);
-
-            int remainingAttempts = maxAttempts - latestOtpEntity.getAttemptCount();
-            throw new OTPException(
-                    "Invalid OTP. Attempts remaining: " + remainingAttempts,
-                    OTPException.ErrorCode.INVALID_OTP
-            );
-        }
-
-        // OTP verified
-        latestOtpEntity.setIsVerified(true);
-        otpRepository.save(latestOtpEntity);
-        logger.info("OTP verified successfully for phone: " + maskPhoneNumber(phoneNumber));
+//        Optional<List<OTPEntity>> otpEntity = otpRepository.findByPhoneNumberOrderByLastResendTimeDesc(phoneNumber);
+//
+//        if (otpEntity.isEmpty() || otpEntity.get().isEmpty()) {
+//            throw new OTPException(
+//                    "OTP not generated",
+//                    OTPException.ErrorCode.OTP_ALREADY_VERIFIED
+//            );
+//        }
+//
+//        // Check if already verified
+//        OTPEntity latestOtpEntity = otpEntity.get().getFirst();
+//        if (latestOtpEntity.getIsVerified()) {
+//            throw new OTPException(
+//                    "OTP already verified",
+//                    OTPException.ErrorCode.OTP_ALREADY_VERIFIED
+//            );
+//        }
+//
+//        // Check if expired
+//        if (LocalDateTime.now().isAfter(latestOtpEntity.getExpiresAt())) {
+//            throw new OTPException(
+//                    "OTP has expired",
+//                    OTPException.ErrorCode.OTP_EXPIRED
+//            );
+//        }
+//
+//        // Check attempts
+//        if (latestOtpEntity.getAttemptCount() >= maxAttempts) {
+//            throw new OTPException(
+//                    "Maximum attempts exceeded. Please request a new OTP",
+//                    OTPException.ErrorCode.MAX_ATTEMPTS_EXCEEDED
+//            );
+//        }
+//
+//        // Verify OTP
+//        if (!latestOtpEntity.getOtp().equals(otp)) {
+//            latestOtpEntity.setAttemptCount(latestOtpEntity.getAttemptCount() + 1);
+//            otpRepository.save(latestOtpEntity);
+//
+//            int remainingAttempts = maxAttempts - latestOtpEntity.getAttemptCount();
+//            throw new OTPException(
+//                    "Invalid OTP. Attempts remaining: " + remainingAttempts,
+//                    OTPException.ErrorCode.INVALID_OTP
+//            );
+//        }
+//
+//        // OTP verified
+//        latestOtpEntity.setIsVerified(true);
+//        otpRepository.save(latestOtpEntity);
+//        logger.info("OTP verified successfully for phone: " + maskPhoneNumber(phoneNumber));
 
         return new VerificationResponse(
                 true,
