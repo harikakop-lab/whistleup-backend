@@ -5,5 +5,7 @@ public enum Roles {
     ADMIN,
     USER,
     OWNER,
-    VISITOR
+    VISITOR,
+    /** Home / on-site service staff profile (stored in `profile.role`). */
+    SERVICE_PERSON
 }
