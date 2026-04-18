@@ -56,6 +56,15 @@ public class Maintenance {
     @Column(name = "invoice_path")
     private String invoicePath;
 
+    @Column(name = "payment_method", length = 32)
+    private String paymentMethod;
+
+    @Column(name = "payment_reference", length = 128)
+    private String paymentReference;
+
+    @Column(name = "payment_proof_file_name", length = 255)
+    private String paymentProofFileName;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private Instant createdAt;

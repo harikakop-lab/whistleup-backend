@@ -32,5 +32,8 @@ public class MaintenanceResponseResource {
     private LocalDate dueDate;
     private MaintenanceStatus status;
     private LocalDate paidDate;
+    private String paymentMethod;
+    private String paymentReference;
+    private String paymentProofUrl;
     private boolean invoiceAvailable;
 }

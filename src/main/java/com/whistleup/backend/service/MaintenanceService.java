@@ -13,8 +13,10 @@ import com.whistleup.backend.resource.MaintenanceMeterRowResource;
 import com.whistleup.backend.resource.MaintenanceResponseResource;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -29,6 +31,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -38,6 +41,14 @@ public class MaintenanceService {
     private final InvoiceService invoiceService;
     private final ProfileRepository profileRepository;
     private final NotificationSendService notificationSendService;
+    private final FileStorageService fileStorageService;
+
+    @Value("${app.base-url}")
+    private String appBaseUrl;
+
+    private static final long MAX_PAYMENT_PROOF_BYTES = 5L * 1024 * 1024;
+    private static final Set<String> ALLOWED_PAYMENT_METHODS =
+            Set.of("UPI", "BANK_TRANSFER", "CASH", "CHEQUE");
 
     public List<MaintenanceResponseResource> createOrUpdateMaintenance(MaintenanceCreateResource maintenanceCreateResource) {
         return upsertMaintenanceRows(maintenanceCreateResource);
@@ -400,15 +411,38 @@ public class MaintenanceService {
                 .toList();
     }
 
-    public void markAsPaid(Long maintenanceId) {
+    public void markAsPaid(
+            Long maintenanceId,
+            String paymentMethod,
+            String transactionReference,
+            MultipartFile paymentProof) {
 
         Maintenance m = repository.findById(maintenanceId)
                 .orElseThrow(() -> new NotFoundException("Maintenance not found"));
 
-        if (m.getStatus() == MaintenanceStatus.PAID) return;
+        String normalizedPaymentMethod = normalizePaymentMethod(paymentMethod);
+        String normalizedReference = normalizeReference(transactionReference);
+        validatePaymentProof(paymentProof);
+
+        if (m.getStatus() == MaintenanceStatus.PAID) {
+            m.setPaymentMethod(normalizedPaymentMethod);
+            m.setPaymentReference(normalizedReference);
+            if (paymentProof != null && !paymentProof.isEmpty()) {
+                String proofFileName = fileStorageService.saveMaintenancePaymentProof(maintenanceId, paymentProof);
+                m.setPaymentProofFileName(proofFileName);
+            }
+            repository.save(m);
+            return;
+        }
 
         m.setStatus(MaintenanceStatus.PAID);
         m.setPaidDate(LocalDate.now());
+        m.setPaymentMethod(normalizedPaymentMethod);
+        m.setPaymentReference(normalizedReference);
+        if (paymentProof != null && !paymentProof.isEmpty()) {
+            String proofFileName = fileStorageService.saveMaintenancePaymentProof(maintenanceId, paymentProof);
+            m.setPaymentProofFileName(proofFileName);
+        }
 
         String invoicePath = invoiceService.generateInvoice(m);
         m.setInvoicePath(invoicePath);
@@ -439,8 +473,52 @@ public class MaintenanceService {
                 .dueDate(m.getDueDate())
                 .status(m.getStatus())
                 .paidDate(m.getPaidDate())
+                .paymentMethod(m.getPaymentMethod())
+                .paymentReference(m.getPaymentReference())
+                .paymentProofUrl(buildPaymentProofUrl(m))
                 .invoiceAvailable(m.getInvoicePath() != null)
                 .build();
+    }
+
+    private String buildPaymentProofUrl(Maintenance maintenance) {
+        if (maintenance.getPaymentProofFileName() == null || maintenance.getPaymentProofFileName().isBlank()) {
+            return null;
+        }
+        String baseUrl = appBaseUrl == null ? "" : appBaseUrl.trim();
+        if (baseUrl.endsWith("/")) {
+            baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
+        }
+        return baseUrl + "/whistleup/maintenance/payment-proof/" + maintenance.getId()
+                + "/" + maintenance.getPaymentProofFileName();
+    }
+
+    private String normalizePaymentMethod(String paymentMethod) {
+        String normalized = paymentMethod == null ? "" : paymentMethod.trim().toUpperCase(Locale.ENGLISH);
+        if (!ALLOWED_PAYMENT_METHODS.contains(normalized)) {
+            throw new IllegalArgumentException("Invalid payment method");
+        }
+        return normalized;
+    }
+
+    private String normalizeReference(String transactionReference) {
+        if (transactionReference == null) {
+            return null;
+        }
+        String trimmed = transactionReference.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private void validatePaymentProof(MultipartFile paymentProof) {
+        if (paymentProof == null || paymentProof.isEmpty()) {
+            return;
+        }
+        if (paymentProof.getSize() > MAX_PAYMENT_PROOF_BYTES) {
+            throw new IllegalArgumentException("Payment proof must be 5 MB or smaller");
+        }
+        String contentType = paymentProof.getContentType();
+        if (contentType == null || !contentType.toLowerCase(Locale.ENGLISH).startsWith("image/")) {
+            throw new IllegalArgumentException("Payment proof must be an image");
+        }
     }
 
     public Maintenance getEntity(Long id) {

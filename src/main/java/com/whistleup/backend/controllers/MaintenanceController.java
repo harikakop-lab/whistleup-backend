@@ -3,7 +3,9 @@ package com.whistleup.backend.controllers;
 import com.whistleup.backend.entity.Maintenance;
 import com.whistleup.backend.resource.MaintenanceCreateResource;
 import com.whistleup.backend.resource.MaintenanceResponseResource;
+import com.whistleup.backend.service.FileStorageService;
 import com.whistleup.backend.service.MaintenanceService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
@@ -11,6 +13,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.*;
 
 import java.nio.file.Path;
@@ -24,6 +27,7 @@ import java.util.List;
 public class MaintenanceController {
 
     private final MaintenanceService maintenanceService;
+    private final FileStorageService fileStorageService;
 
     @PostMapping("/create")
     public ResponseEntity<List<MaintenanceResponseResource>> create(@RequestBody MaintenanceCreateResource req) {
@@ -54,10 +58,33 @@ public class MaintenanceController {
         return ResponseEntity.ok(maintenanceService.getMaintenanceByProfileId(username));
     }
 
-    @PatchMapping("/{id}/pay")
-    public ResponseEntity<Void> markPaid(@PathVariable Long id) {
-        maintenanceService.markAsPaid(id);
+    @PatchMapping(value = "/{id}/pay", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Void> markPaid(
+            @PathVariable Long id,
+            @RequestParam("paymentMethod") String paymentMethod,
+            @RequestParam(value = "transactionReference", required = false) String transactionReference,
+            @RequestPart(value = "proof", required = false) MultipartFile proof) {
+        maintenanceService.markAsPaid(id, paymentMethod, transactionReference, proof);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/payment-proof/{maintenanceId}/{fileName}")
+    public ResponseEntity<Resource> getPaymentProof(
+            @PathVariable Long maintenanceId,
+            @PathVariable String fileName,
+            HttpServletRequest request) {
+        Resource resource = fileStorageService.loadMaintenancePaymentProof(maintenanceId, fileName);
+
+        String contentType;
+        try {
+            contentType = request.getServletContext().getMimeType(resource.getFile().getAbsolutePath());
+        } catch (Exception ex) {
+            contentType = "application/octet-stream";
+        }
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(contentType))
+                .body(resource);
     }
 
     @GetMapping("/{id}/invoice")

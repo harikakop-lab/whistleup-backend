@@ -31,6 +31,11 @@ spring:
       hibernate:
         format_sql: true
 
+  servlet:
+    multipart:
+      max-file-size: 6MB
+      max-request-size: 6MB
+
   # ❌ H2 disabled (no longer needed)
   h2:
     console:
@@ -55,7 +60,7 @@ app:
   upload:
     dir: uploads/profile
   file-storage:
-    root: /opt/whistleup/uploads
+    root: ${APP_FILE_STORAGE_ROOT:uploads}
   base-url: http://13.63.188.62:8080
 #  base-url: http://localhost:8080
   support:
