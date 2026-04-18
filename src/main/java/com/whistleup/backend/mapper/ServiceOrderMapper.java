@@ -28,6 +28,12 @@ public class ServiceOrderMapper {
     }
 
     public ServiceOrderResource toResource(ServiceOrder entity) {
+        String mappedServicePersonName = entity.getServicePerson() != null
+                ? entity.getServicePerson().getName()
+                : entity.getVhsServicePersonName();
+        String mappedServicePersonPhone = entity.getServicePerson() != null
+                ? entity.getServicePerson().getPhoneNumber()
+                : entity.getVhsServicePersonPhone();
         return ServiceOrderResource.builder()
                 .orderId(entity.getOrderId())
                 .orderType(entity.getOrderType())
@@ -47,12 +53,8 @@ public class ServiceOrderMapper {
                 .servicePersonId(entity.getServicePerson() != null
                         ? entity.getServicePerson().getServicePersonId()
                         : null)
-                .servicePersonName(entity.getServicePerson() != null
-                        ? entity.getServicePerson().getName()
-                        : null)
-                .servicePersonPhone(entity.getServicePerson() != null
-                        ? entity.getServicePerson().getPhoneNumber()
-                        : null)
+                .servicePersonName(mappedServicePersonName)
+                .servicePersonPhone(mappedServicePersonPhone)
                 .servicePersonRating(entity.getServicePerson() != null
                         ? entity.getServicePerson().getRating()
                         : null)

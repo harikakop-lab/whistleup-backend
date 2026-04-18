@@ -79,12 +79,31 @@ public class ServiceOrderService {
     }
 
     public ServiceOrderResource getOrderByProfileAndOrderId(String profileId, String orderId) {
-        log.info("Fetching orderId: {} for profileId: {}", orderId, profileId);
-        ServiceOrder order = serviceOrderRepository.findById(parseOrderId(orderId, "order"))
-                .filter(o -> o.getProfileId().equals(profileId))
+        log.info("Fetching order reference: {} for profileId: {}", orderId, profileId);
+        String normalizedOrderRef = orderId == null ? "" : orderId.trim();
+        if (normalizedOrderRef.isEmpty()) {
+            throw new IllegalArgumentException("orderId is required");
+        }
+
+        ServiceOrder order = tryFindOrderByOrderId(profileId, normalizedOrderRef)
+                .or(() -> tryFindOrderByVhsBookingId(profileId, normalizedOrderRef))
                 .orElseThrow(() -> new ServiceOrderNotFoundException(
                         "Order not found with id: " + orderId + " for profileId: " + profileId));
         return serviceOrderMapper.toResource(order);
+    }
+
+    private java.util.Optional<ServiceOrder> tryFindOrderByOrderId(String profileId, String orderRef) {
+        Long parsedId = tryParseOrderId(orderRef);
+        if (parsedId == null) {
+            return java.util.Optional.empty();
+        }
+        return serviceOrderRepository.findById(parsedId)
+                .filter(o -> o.getProfileId().equals(profileId));
+    }
+
+    private java.util.Optional<ServiceOrder> tryFindOrderByVhsBookingId(String profileId, String orderRef) {
+        return serviceOrderRepository.findByVhsBookingId(orderRef)
+                .filter(o -> o.getProfileId().equals(profileId));
     }
 
     @Transactional
@@ -363,6 +382,14 @@ public class ServiceOrderService {
             return Long.valueOf(value);
         } catch (Exception e) {
             throw new IllegalArgumentException("Invalid " + fieldName + " id: " + value);
+        }
+    }
+
+    private Long tryParseOrderId(String value) {
+        try {
+            return Long.valueOf(value);
+        } catch (Exception e) {
+            return null;
         }
     }
 
