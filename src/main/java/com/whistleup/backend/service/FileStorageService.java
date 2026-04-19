@@ -69,6 +69,10 @@ public class FileStorageService {
         return getResolvedRootDir().resolve("maintenance-payments").resolve(maintenanceId.toString());
     }
 
+    private Path getPackersMoversDir(Long inquiryId) {
+        return getResolvedRootDir().resolve("packers-movers").resolve(inquiryId.toString());
+    }
+
     public String saveComplaintFile(Long complaintId, MultipartFile file) {
         try {
             String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
@@ -114,6 +118,21 @@ public class FileStorageService {
                     "Failed to store maintenance payment proof in " + getMaintenancePaymentDir(maintenanceId),
                     e
             );
+        }
+    }
+
+    public String savePackersMoversWalkthrough(Long inquiryId, MultipartFile file) {
+        try {
+            String originalName = Objects.requireNonNullElse(file.getOriginalFilename(), "walkthrough.mp4")
+                    .replaceAll("[^a-zA-Z0-9._-]", "_");
+            String fileName = System.currentTimeMillis() + "_" + originalName;
+            Path dir = getPackersMoversDir(inquiryId);
+            Files.createDirectories(dir);
+            Path target = dir.resolve(fileName);
+            Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+            return fileName;
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to store walkthrough video", e);
         }
     }
 
