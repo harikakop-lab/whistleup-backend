@@ -27,6 +27,7 @@ public class HomeServiceCatalogSeeder {
     public CommandLineRunner seedHomeServiceCatalog() {
         return args -> {
             if (homeServiceCategoryRepository.count() > 0) {
+                ensurePackersMoversCategoryExists();
                 return;
             }
             List<HomeServiceCategory> categories = new ArrayList<>();
@@ -83,6 +84,20 @@ public class HomeServiceCatalogSeeder {
 
             homeServiceCategoryRepository.saveAll(categories);
         };
+    }
+
+    private void ensurePackersMoversCategoryExists() {
+        if (homeServiceCategoryRepository.findByCategoryKey("packers-movers").isPresent()) {
+            return;
+        }
+        HomeServiceCategory packersMovers = buildCategoryWithSimpleSubs(
+                "packers-movers",
+                "Packers & Movers",
+                "truck-fast-outline",
+                7,
+                List.of("Within City", "Between City", "Within Society")
+        );
+        homeServiceCategoryRepository.save(packersMovers);
     }
 
     private HomeServiceCategory buildCategoryWithSimpleSubs(

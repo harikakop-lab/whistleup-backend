@@ -3150,5 +3150,29 @@
     "Sub-Subcategory": "",
     "Option Name": "Bed maintenance works",
     "Offer Price": "199"
+  },
+  {
+    "Category": "Packers & Movers",
+    "Subcategory": "Within City",
+    "Service Name": "Home shifting within city",
+    "Sub-Subcategory": "",
+    "Option Name": "Standard",
+    "Offer Price": "3999"
+  },
+  {
+    "Category": "Packers & Movers",
+    "Subcategory": "Between City",
+    "Service Name": "Home shifting outside city",
+    "Sub-Subcategory": "",
+    "Option Name": "Standard",
+    "Offer Price": "8999"
+  },
+  {
+    "Category": "Packers & Movers",
+    "Subcategory": "Within Society",
+    "Service Name": "Mini truck with 2 labours",
+    "Sub-Subcategory": "",
+    "Option Name": "Standard",
+    "Offer Price": "1499"
   }
 ]
