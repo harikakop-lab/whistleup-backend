@@ -3157,7 +3157,7 @@
     "Service Name": "Home shifting within city",
     "Sub-Subcategory": "",
     "Option Name": "Standard",
-    "Offer Price": "3999"
+    "Offer Price": "0"
   },
   {
     "Category": "Packers & Movers",
@@ -3165,7 +3165,7 @@
     "Service Name": "Home shifting outside city",
     "Sub-Subcategory": "",
     "Option Name": "Standard",
-    "Offer Price": "8999"
+    "Offer Price": "0"
   },
   {
     "Category": "Packers & Movers",
@@ -3173,6 +3173,6 @@
     "Service Name": "Mini truck with 2 labours",
     "Sub-Subcategory": "",
     "Option Name": "Standard",
-    "Offer Price": "1499"
+    "Offer Price": "0"
   }
 ]
