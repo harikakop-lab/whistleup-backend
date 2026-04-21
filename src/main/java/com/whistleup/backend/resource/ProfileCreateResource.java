@@ -36,4 +36,10 @@ public class ProfileCreateResource {
     private String floor;
     private String flatNo;
     private Boolean isAssigned;
+
+    /** JSON array of appliance rows: `[{"type":"Refrigerator"},{"type":"OTHER","customLabel":"..."}]` */
+    private String appliancesJson;
+
+    /** When true, resident is included in appliance maintenance split for the building. */
+    private Boolean appliancesMaintenanceOptIn;
 }

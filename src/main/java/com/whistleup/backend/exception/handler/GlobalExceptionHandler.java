@@ -2,6 +2,8 @@ package com.whistleup.backend.exception.handler;
 
 import com.whistleup.backend.exception.ApiException;
 import com.whistleup.backend.exception.ServiceOrderNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -15,8 +17,17 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<Map<String, Object>> handleApiExceptions(ApiException ex) {
+        log.warn(
+                "Resolved ApiException status={} errorCode={} message={} details={}",
+                ex.getStatus().value(),
+                ex.getErrorCode(),
+                ex.getMessage(),
+                ex.getDetails(),
+                ex);
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("timestamp", LocalDateTime.now());
         body.put("status", ex.getStatus().value());
@@ -30,6 +41,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGenericExceptions(Exception ex) {
+        log.error("Unhandled exception in request handling", ex);
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("timestamp", LocalDateTime.now());
         body.put("status", 500);

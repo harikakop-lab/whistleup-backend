@@ -103,4 +103,7 @@ public class BuildingDetails {
 
     @Column(name = "water_bill_required")
     private boolean isWaterBillRequired;
+
+    @Column(name = "is_appliances_needed")
+    private boolean isAppliancesNeeded;
 }

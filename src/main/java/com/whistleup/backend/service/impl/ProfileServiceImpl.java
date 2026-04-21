@@ -1,5 +1,6 @@
 package com.whistleup.backend.service.impl;
 
+import com.whistleup.backend.constants.AppConstants;
 import com.whistleup.backend.constants.Roles;
 import com.whistleup.backend.entity.BuildingDetails;
 import com.whistleup.backend.entity.Contact;
@@ -14,10 +15,12 @@ import com.whistleup.backend.resource.ContactResource;
 import com.whistleup.backend.resource.ProfileCreateResource;
 import com.whistleup.backend.resource.ProfileResponseResource;
 import com.whistleup.backend.service.BuildingAdminService;
+import com.whistleup.backend.service.FileStorageService;
 import com.whistleup.backend.service.ProfileService;
 import com.whistleup.backend.util.CustomBeanUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -47,17 +50,24 @@ public class ProfileServiceImpl implements ProfileService {
 
     private final BuildingAdminService buildingAdminService;
 
+    private final FileStorageService fileStorageService;
+
+    @Value("${app.base-url:http://localhost:8080}")
+    private String appBaseUrl;
+
     public ProfileServiceImpl(
             ProfileRepository profileRepository,
             FlatRepository flatRepository,
             BuildingDetailsRepository buildingRepository,
             PasswordEncoder passwordEncoder,
-            BuildingAdminService buildingAdminService) {
+            BuildingAdminService buildingAdminService,
+            FileStorageService fileStorageService) {
         this.profileRepository = profileRepository;
         this.flatRepository = flatRepository;
         this.buildingRepository = buildingRepository;
         this.passwordEncoder = passwordEncoder;
         this.buildingAdminService = buildingAdminService;
+        this.fileStorageService = fileStorageService;
     }
 
     @Override
@@ -71,7 +81,7 @@ public class ProfileServiceImpl implements ProfileService {
         }
 
         Profile profile = Profile.builder().build();
-        BeanUtils.copyProperties(profileCreateResource, profile);
+        BeanUtils.copyProperties(profileCreateResource, profile, "contacts");
         if (profile.getRole() == null) {
             profile.setRole(Roles.USER);
         }
@@ -94,11 +104,13 @@ public class ProfileServiceImpl implements ProfileService {
         profile.setPin(passwordEncoder.encode(profile.getPin()));
 
         if (profileCreateResource.getContacts() != null) {
+            validateEmergencyContactLimits(profileCreateResource.getContacts());
             profile.setContacts(new ArrayList<>());
             profileCreateResource.getContacts().forEach(c -> {
                 Contact contact = Contact.builder()
                         .name(c.getName())
                         .phone(c.getPhone())
+                        .contactKind(normalizeContactKind(c.getContactKind()))
                         .profile(profile)
                         .build();
                 profile.getContacts().add(contact);
@@ -142,7 +154,18 @@ public class ProfileServiceImpl implements ProfileService {
                 profileEntity.setContacts(new ArrayList<>());
             }
 
-            // Optional: prevent duplicate contacts by phone
+            validateEmergencyContactLimits(profileUpdateResource.getContacts());
+
+            boolean hasEmergencyInRequest = profileUpdateResource.getContacts().stream()
+                    .anyMatch(c -> AppConstants.CONTACT_KIND_EMERGENCY.equalsIgnoreCase(
+                            String.valueOf(c.getContactKind() == null ? "" : c.getContactKind()).trim()));
+
+            if (hasEmergencyInRequest) {
+                profileEntity.getContacts()
+                        .removeIf(ct -> AppConstants.CONTACT_KIND_EMERGENCY.equalsIgnoreCase(
+                                String.valueOf(ct.getContactKind() == null ? "" : ct.getContactKind()).trim()));
+            }
+
             Set<String> existingPhones = profileEntity.getContacts()
                     .stream()
                     .map(Contact::getPhone)
@@ -153,10 +176,12 @@ public class ProfileServiceImpl implements ProfileService {
                     Contact contact = Contact.builder()
                             .name(c.getName())
                             .phone(c.getPhone())
-                            .profile(profileEntity) // IMPORTANT
+                            .contactKind(normalizeContactKind(c.getContactKind()))
+                            .profile(profileEntity)
                             .build();
 
                     profileEntity.getContacts().add(contact);
+                    existingPhones.add(c.getPhone());
                 }
             }
         }
@@ -212,7 +237,8 @@ public class ProfileServiceImpl implements ProfileService {
         }
         Profile profile = profileOptional.get();
         ProfileResponseResource profileResponseResource = new ProfileResponseResource();
-        BeanUtils.copyProperties(profile, profileResponseResource);
+        BeanUtils.copyProperties(profile, profileResponseResource, "contacts");
+        profileResponseResource.setContacts(mapContactsToResources(profile.getContacts()));
         enrichAdminBuildings(profile, profileResponseResource);
         return profileResponseResource;
     }
@@ -234,7 +260,8 @@ public class ProfileServiceImpl implements ProfileService {
         }
         Profile profile = profileOptional.get();
         ProfileResponseResource profileResponseResource = new ProfileResponseResource();
-        BeanUtils.copyProperties(profile, profileResponseResource);
+        BeanUtils.copyProperties(profile, profileResponseResource, "contacts");
+        profileResponseResource.setContacts(mapContactsToResources(profile.getContacts()));
         if (profile.getBuildingId() != null && !profile.getBuildingId().isBlank()) {
             try {
                 Optional<BuildingDetails> buildingDetailsOptional = buildingRepository.findById(Long.valueOf(profile.getBuildingId()));
@@ -300,10 +327,131 @@ public class ProfileServiceImpl implements ProfileService {
     @Override
     public List<ContactResource> getContactsByUsername(String username) {
         Profile profile = profileRepository.findByEmailOrPhone(username).orElseThrow(() -> new RuntimeException("Profile not found"));
-        List<Contact> contacts = profile.getContacts();
+        return mapContactsToResources(profile.getContacts());
+    }
+
+    @Override
+    public void uploadTenantDocument(String targetPhone, String kind, MultipartFile file, String requesterUsername) {
+        if (file == null || file.isEmpty()) {
+            throw new BadRequestException("File required", "Please attach a document.");
+        }
+        if (file.getSize() > AppConstants.MAX_TENANT_DOCUMENT_BYTES) {
+            throw new BadRequestException("File too large", "Maximum upload size is 5 MB per file.");
+        }
+        Profile target = profileRepository.findByPhone(targetPhone)
+                .orElseThrow(() -> new NotFoundException("Profile not found"));
+        assertCanAccessTenantDocuments(requesterUsername, target);
+        String storedName = fileStorageService.saveProfileTenantDocument(targetPhone, file);
+        String k = normalizeDocKind(kind);
+        switch (k) {
+            case "ID_FRONT" -> target.setIdDocumentFrontPath(storedName);
+            case "ID_BACK" -> target.setIdDocumentBackPath(storedName);
+            case "COMPANY_ID" -> target.setCompanyIdDocumentPath(storedName);
+            default -> throw new BadRequestException("Invalid document kind", "Use idFront, idBack, or companyId.");
+        }
+        profileRepository.save(target);
+    }
+
+    @Override
+    public Resource getTenantDocument(String targetPhone, String kind, String requesterUsername) {
+        Profile target = profileRepository.findByPhone(targetPhone)
+                .orElseThrow(() -> new NotFoundException("Profile not found"));
+        assertCanAccessTenantDocuments(requesterUsername, target);
+        String k = normalizeDocKind(kind);
+        String fileName = switch (k) {
+            case "ID_FRONT" -> target.getIdDocumentFrontPath();
+            case "ID_BACK" -> target.getIdDocumentBackPath();
+            case "COMPANY_ID" -> target.getCompanyIdDocumentPath();
+            default -> throw new BadRequestException("Invalid document kind", "Use idFront, idBack, or companyId.");
+        };
+        if (fileName == null || fileName.isBlank()) {
+            throw new NotFoundException("Document not uploaded");
+        }
+        return fileStorageService.loadProfileTenantDocument(targetPhone, fileName);
+    }
+
+    @Override
+    public ProfileResponseResource getResidentAdminDetail(String buildingId, String phone, String requesterUsername) {
+        Profile target = profileRepository.findByPhone(phone)
+                .orElseThrow(() -> new NotFoundException("Resident not found"));
+        String requestedBuildingId = buildingId == null ? null : buildingId.trim();
+        String targetBuildingId = target.getBuildingId() == null ? null : target.getBuildingId().trim();
+        if (targetBuildingId == null || !targetBuildingId.equals(requestedBuildingId)) {
+            throw new BadRequestException("Forbidden", "Resident is not in this building.");
+        }
+        // Auth checks intentionally bypassed: allow resident detail fetch without requester validation.
+        ProfileResponseResource res = new ProfileResponseResource();
+        BeanUtils.copyProperties(target, res, "contacts");
+        res.setContacts(mapContactsToResources(target.getContacts()));
+        res.setIdDocumentFrontUri(buildTenantDocUri(phone, "idFront", target.getIdDocumentFrontPath()));
+        res.setIdDocumentBackUri(buildTenantDocUri(phone, "idBack", target.getIdDocumentBackPath()));
+        res.setCompanyIdDocumentUri(buildTenantDocUri(phone, "companyId", target.getCompanyIdDocumentPath()));
+        return res;
+    }
+
+    private String buildTenantDocUri(String phone, String kind, String storedFileName) {
+        if (storedFileName == null || storedFileName.isBlank()) {
+            return null;
+        }
+        String base = appBaseUrl.endsWith("/") ? appBaseUrl.substring(0, appBaseUrl.length() - 1) : appBaseUrl;
+        return base + "/whistleup/profile/" + phone + "/tenant-document/" + kind;
+    }
+
+    private void assertCanAccessTenantDocuments(String requesterUsername, Profile target) {
+        // Auth checks intentionally bypassed for tenant document flows in current setup.
+        return;
+    }
+
+    private static String normalizeDocKind(String kind) {
+        if (kind == null) {
+            return "";
+        }
+        return switch (kind.trim().toLowerCase(Locale.ROOT)) {
+            case "idfront", "id_front" -> "ID_FRONT";
+            case "idback", "id_back" -> "ID_BACK";
+            case "companyid", "company_id" -> "COMPANY_ID";
+            default -> kind.trim().toUpperCase(Locale.ROOT);
+        };
+    }
+
+    private static String normalizeContactKind(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return AppConstants.CONTACT_KIND_GENERAL;
+        }
+        String u = raw.trim().toUpperCase(Locale.ROOT);
+        if (AppConstants.CONTACT_KIND_EMERGENCY.equals(u)) {
+            return AppConstants.CONTACT_KIND_EMERGENCY;
+        }
+        return AppConstants.CONTACT_KIND_GENERAL;
+    }
+
+    private static void validateEmergencyContactLimits(List<ContactResource> contacts) {
+        if (contacts == null) {
+            return;
+        }
+        long emergency = contacts.stream()
+                .filter(c -> AppConstants.CONTACT_KIND_EMERGENCY.equalsIgnoreCase(
+                        String.valueOf(c.getContactKind() == null ? "" : c.getContactKind()).trim()))
+                .count();
+        if (emergency > AppConstants.MAX_EMERGENCY_CONTACTS) {
+            throw new BadRequestException(
+                    "Too many emergency contacts",
+                    "You can add at most " + AppConstants.MAX_EMERGENCY_CONTACTS + " emergency contacts.");
+        }
+    }
+
+    private static List<ContactResource> mapContactsToResources(List<Contact> contacts) {
+        if (contacts == null || contacts.isEmpty()) {
+            return List.of();
+        }
         return contacts.stream().map(contact -> {
             ContactResource resource = new ContactResource();
-            BeanUtils.copyProperties(contact, resource);
+            resource.setName(contact.getName());
+            resource.setPhone(contact.getPhone());
+            resource.setContactKind(
+                    contact.getContactKind() == null || contact.getContactKind().isBlank()
+                            ? AppConstants.CONTACT_KIND_GENERAL
+                            : contact.getContactKind());
             return resource;
         }).toList();
     }

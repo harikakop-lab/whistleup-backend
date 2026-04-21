@@ -22,4 +22,6 @@ import lombok.Setter;
 public class ContactResource {
     private String name;
     private String phone;
+    /** GENERAL or EMERGENCY (defaults to GENERAL when omitted). */
+    private String contactKind;
 }

@@ -105,4 +105,7 @@ public class Maintenance {
     @Column(name = "custom_expenses", columnDefinition = "TEXT")
     @Builder.Default
     private Map<String, BigDecimal> customExpenses = new LinkedHashMap<>();
+
+    @Column(name = "appliances_amount", precision = 38, scale = 2)
+    private BigDecimal appliancesAmount;
 }

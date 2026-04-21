@@ -1,6 +1,7 @@
 package com.whistleup.backend.controllers;
 
 import com.whistleup.backend.entity.Maintenance;
+import com.whistleup.backend.resource.MaintenanceAppliancesOptInResource;
 import com.whistleup.backend.resource.MaintenanceCreateResource;
 import com.whistleup.backend.resource.MaintenanceResponseResource;
 import com.whistleup.backend.service.FileStorageService;
@@ -28,6 +29,12 @@ public class MaintenanceController {
 
     private final MaintenanceService maintenanceService;
     private final FileStorageService fileStorageService;
+
+    @GetMapping("/appliances-opted-in")
+    public ResponseEntity<List<MaintenanceAppliancesOptInResource>> listAppliancesOptIn(
+            @RequestParam("buildingId") String buildingId) {
+        return ResponseEntity.ok(maintenanceService.listAppliancesOptInFlats(buildingId));
+    }
 
     @PostMapping("/create")
     public ResponseEntity<List<MaintenanceResponseResource>> create(@RequestBody MaintenanceCreateResource req) {

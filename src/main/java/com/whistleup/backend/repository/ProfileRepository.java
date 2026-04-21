@@ -37,6 +37,7 @@ public interface ProfileRepository extends JpaRepository<Profile, String>, JpaSp
        from FlatDetails f
        where f.building.buildingId = :buildingId
          and f.resident is not null
+       order by f.resident.flatNo asc
        """)
     List<ResidentsResponse> getListOfResidentsByBuilding(Long buildingId);
 
@@ -60,6 +61,7 @@ public interface ProfileRepository extends JpaRepository<Profile, String>, JpaSp
        where p.buildingId = :buildingId
          and p.isAssigned = false
          and p.role in :roles
+       order by p.flatNo asc
        """)
     List<ResidentsResponse> getPendingResidentsByBuilding(@Param("buildingId") String buildingId,
                                                           @Param("roles") List<Roles> roles);

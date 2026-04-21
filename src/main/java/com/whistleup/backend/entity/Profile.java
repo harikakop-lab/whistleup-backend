@@ -65,4 +65,19 @@ public class Profile {
 
     @Column(name = "is_assigned")
     private Boolean isAssigned;
+
+    @Column(name = "id_document_front_path", length = 512)
+    private String idDocumentFrontPath;
+
+    @Column(name = "id_document_back_path", length = 512)
+    private String idDocumentBackPath;
+
+    @Column(name = "company_id_document_path", length = 512)
+    private String companyIdDocumentPath;
+
+    @Column(name = "appliances_json", columnDefinition = "TEXT")
+    private String appliancesJson;
+
+    @Column(name = "appliances_maintenance_opt_in")
+    private Boolean appliancesMaintenanceOptIn;
 }

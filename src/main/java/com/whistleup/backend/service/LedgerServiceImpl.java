@@ -6,8 +6,10 @@ import com.lowagie.text.pdf.PdfWriter;
 import com.whistleup.backend.entity.Ledger;
 import com.whistleup.backend.entity.LedgerItem;
 import com.whistleup.backend.entity.Maintenance;
+import com.whistleup.backend.entity.Profile;
 import com.whistleup.backend.repository.LedgerRepository;
 import com.whistleup.backend.repository.MaintenanceRepository;
+import com.whistleup.backend.repository.ProfileRepository;
 import com.whistleup.backend.resource.*;
 import jakarta.transaction.Transactional;
 import jakarta.validation.constraints.NotBlank;
@@ -36,13 +38,17 @@ public class LedgerServiceImpl implements LedgerService {
 
     private final MaintenanceRepository maintenanceRepository;
 
+    private final ProfileRepository profileRepository;
+
     public LedgerServiceImpl(
             LedgerRepository ledgerRepository,
             MaintenanceService maintenanceService,
-            MaintenanceRepository maintenanceRepository) {
+            MaintenanceRepository maintenanceRepository,
+            ProfileRepository profileRepository) {
         this.ledgerRepository = ledgerRepository;
         this.maintenanceService = maintenanceService;
         this.maintenanceRepository = maintenanceRepository;
+        this.profileRepository = profileRepository;
     }
 
     @Override
@@ -286,6 +292,27 @@ public class LedgerServiceImpl implements LedgerService {
             }
         });
         if (water > 0) items.add(new LedgerItemResponse(null, "Water Charges", water));
+
+        double appliancesTotal = rows.stream()
+                .map(Maintenance::getAppliancesAmount)
+                .filter(java.util.Objects::nonNull)
+                .mapToDouble(BigDecimal::doubleValue)
+                .sum();
+        if (appliancesTotal > 0) {
+            List<String> flats = new ArrayList<>();
+            for (Maintenance row : rows) {
+                if (row.getAppliancesAmount() == null || row.getAppliancesAmount().compareTo(BigDecimal.ZERO) <= 0) {
+                    continue;
+                }
+                String flatLabel = profileRepository.findByPhone(row.getProfileId())
+                        .map(Profile::getFlatNo)
+                        .filter(f -> f != null && !f.isBlank())
+                        .orElse(row.getProfileId());
+                flats.add(flatLabel);
+            }
+            String label = "Appliances - " + String.join(", ", flats);
+            items.add(new LedgerItemResponse(null, label, appliancesTotal));
+        }
         return items;
     }
 

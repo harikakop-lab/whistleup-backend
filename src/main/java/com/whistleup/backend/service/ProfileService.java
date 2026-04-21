@@ -33,4 +33,10 @@ public interface ProfileService {
     boolean doesProfileExists(String username);
 
     List<ContactResource> getContactsByUsername(String username);
+
+    void uploadTenantDocument(String targetPhone, String kind, MultipartFile file, String requesterUsername);
+
+    Resource getTenantDocument(String targetPhone, String kind, String requesterUsername);
+
+    ProfileResponseResource getResidentAdminDetail(String buildingId, String phone, String requesterUsername);
 }

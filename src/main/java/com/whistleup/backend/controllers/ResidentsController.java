@@ -1,6 +1,9 @@
 package com.whistleup.backend.controllers;
 
+import com.whistleup.backend.resource.ProfileResponseResource;
 import com.whistleup.backend.resource.ResidentApprovalRequest;
+import com.whistleup.backend.service.JwtService;
+import com.whistleup.backend.service.ProfileService;
 import com.whistleup.backend.service.ResidentsService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,8 +18,17 @@ public class ResidentsController {
 
     private final ResidentsService residentsService;
 
-    public ResidentsController(ResidentsService residentsService) {
+    private final ProfileService profileService;
+
+    private final JwtService jwtService;
+
+    public ResidentsController(
+            ResidentsService residentsService,
+            ProfileService profileService,
+            JwtService jwtService) {
         this.residentsService = residentsService;
+        this.profileService = profileService;
+        this.jwtService = jwtService;
     }
 
     @GetMapping("/building/{buildingId}/floor/{floorNo}")
@@ -37,6 +49,16 @@ public class ResidentsController {
         return new ResponseEntity<>(pendingResidents, HttpStatus.OK);
     }
 
+    @GetMapping("/building/{buildingId}/profile/{phone}")
+    public ResponseEntity<ProfileResponseResource> getResidentAdminDetail(
+            @PathVariable("buildingId") String buildingId,
+            @PathVariable("phone") String phone,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        String requester = extractRequester(authHeader);
+        ProfileResponseResource body = profileService.getResidentAdminDetail(buildingId, phone, requester);
+        return new ResponseEntity<>(body, HttpStatus.OK);
+    }
+
     @PatchMapping("/{phone}/approve")
     public ResponseEntity<Void> approveResident(@PathVariable("phone") String phone,
                                                 @RequestBody ResidentApprovalRequest request) {
@@ -48,5 +70,20 @@ public class ResidentsController {
     public ResponseEntity<Void> rejectResident(@PathVariable("phone") String phone) {
         residentsService.rejectResident(phone);
         return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    private String extractRequester(String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return null;
+        }
+        String token = authHeader.substring(7).trim();
+        if (token.isEmpty()) {
+            return null;
+        }
+        try {
+            return jwtService.extractToken(token);
+        } catch (RuntimeException ex) {
+            return null;
+        }
     }
 }
