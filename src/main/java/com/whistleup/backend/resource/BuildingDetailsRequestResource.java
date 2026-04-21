@@ -34,4 +34,6 @@ public class BuildingDetailsRequestResource {
     private Long totalResidents;
     private String upiId;
     private boolean isWaterBillRequired;
+    /** When true, tenants capture ID/appliances and maintenance can include appliance charges. */
+    private boolean isAppliancesNeeded;
 }

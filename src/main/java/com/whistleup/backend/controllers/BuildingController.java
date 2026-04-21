@@ -56,6 +56,7 @@ public class BuildingController {
         buildingDetailsResponseResource.setAdminPhone(buildingDetails.getAdminPhone());
         buildingDetailsResponseResource.setAdminEmail(buildingDetails.getAdminEmail());
         buildingDetailsResponseResource.setWaterBillRequired(buildingDetails.isWaterBillRequired());
+        buildingDetailsResponseResource.setAppliancesNeeded(buildingDetails.isAppliancesNeeded());
         buildingDetailsResponseResource.setUpiId(buildingDetails.getUpiId());
         return buildingDetailsResponseResource;
     }

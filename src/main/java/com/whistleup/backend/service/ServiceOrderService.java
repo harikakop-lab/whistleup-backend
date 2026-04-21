@@ -20,7 +20,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
@@ -63,8 +65,9 @@ public class ServiceOrderService {
             orders = serviceOrderRepository.findAllByProfileId(profileId);
         }
 
+        LocalDate todayIst = LocalDate.now(ZoneId.of("Asia/Kolkata"));
         return orders.stream()
-                .sorted(Comparator.comparing(ServiceOrder::getOrderCreationDate).reversed())
+                .sorted(buildBookingSortComparator(todayIst))
                 .map(serviceOrderMapper::toResource)
                 .collect(Collectors.toList());
     }
@@ -430,5 +433,77 @@ public class ServiceOrderService {
             }
         }
         return null;
+    }
+
+    private Comparator<ServiceOrder> buildBookingSortComparator(LocalDate todayIst) {
+        return (a, b) -> {
+            BookingBucket bucketA = classifyBookingBucket(a, todayIst);
+            BookingBucket bucketB = classifyBookingBucket(b, todayIst);
+            if (bucketA != bucketB) {
+                return Integer.compare(bucketA.rank, bucketB.rank);
+            }
+
+            LocalDate dateA = a.getDate();
+            LocalDate dateB = b.getDate();
+            int dateCompare;
+            if (bucketA == BookingBucket.PAST) {
+                dateCompare = dateB.compareTo(dateA);
+            } else {
+                dateCompare = dateA.compareTo(dateB);
+            }
+            if (dateCompare != 0) return dateCompare;
+
+            Integer slotA = parseSlotStartMinute(a.getTimeSlot());
+            Integer slotB = parseSlotStartMinute(b.getTimeSlot());
+            int slotCompare = Integer.compare(slotA, slotB);
+            if (slotCompare != 0) return slotCompare;
+
+            return Long.compare(
+                    b.getOrderId() == null ? 0L : b.getOrderId(),
+                    a.getOrderId() == null ? 0L : a.getOrderId()
+            );
+        };
+    }
+
+    private BookingBucket classifyBookingBucket(ServiceOrder order, LocalDate todayIst) {
+        if (order.getDate() == null) return BookingBucket.UPCOMING;
+        if (order.getDate().isEqual(todayIst)) return BookingBucket.TODAY;
+        if (order.getDate().isAfter(todayIst)) return BookingBucket.UPCOMING;
+        return BookingBucket.PAST;
+    }
+
+    private int parseSlotStartMinute(String slot) {
+        if (slot == null || slot.isBlank()) return 12 * 60;
+        String normalized = slot.trim().toLowerCase(Locale.ENGLISH);
+        String firstPart = normalized.split("-")[0].trim();
+        firstPart = firstPart.replace('.', ':');
+
+        java.util.regex.Matcher matcher = java.util.regex.Pattern
+                .compile("^(\\d{1,2})(?::(\\d{2}))?\\s*([ap]m)?$")
+                .matcher(firstPart);
+        if (!matcher.find()) return 12 * 60;
+
+        int hour = Integer.parseInt(matcher.group(1));
+        int minute = matcher.group(2) != null ? Integer.parseInt(matcher.group(2)) : 0;
+        String meridiem = matcher.group(3);
+        if (meridiem != null) {
+            if ("pm".equals(meridiem) && hour < 12) hour += 12;
+            if ("am".equals(meridiem) && hour == 12) hour = 0;
+        }
+        hour = Math.max(0, Math.min(23, hour));
+        minute = Math.max(0, Math.min(59, minute));
+        return hour * 60 + minute;
+    }
+
+    private enum BookingBucket {
+        TODAY(0),
+        UPCOMING(1),
+        PAST(2);
+
+        private final int rank;
+
+        BookingBucket(int rank) {
+            this.rank = rank;
+        }
     }
 }

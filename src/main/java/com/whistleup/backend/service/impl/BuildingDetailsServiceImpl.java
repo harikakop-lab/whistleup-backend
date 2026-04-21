@@ -82,6 +82,7 @@ public class BuildingDetailsServiceImpl implements BuildingDetailsService {
         existingBuildingDetails.setAdminEmail(updateBuildingDetailsRequestResource.getAdminEmail());
         existingBuildingDetails.setUpiId(updateBuildingDetailsRequestResource.getUpiId());
         existingBuildingDetails.setWaterBillRequired(updateBuildingDetailsRequestResource.isWaterBillRequired());
+        existingBuildingDetails.setAppliancesNeeded(updateBuildingDetailsRequestResource.isAppliancesNeeded());
         return buildingDetailsRepository.save(existingBuildingDetails);
     }
 

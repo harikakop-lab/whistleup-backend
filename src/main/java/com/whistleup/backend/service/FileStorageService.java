@@ -73,6 +73,51 @@ public class FileStorageService {
         return getResolvedRootDir().resolve("packers-movers").resolve(inquiryId.toString());
     }
 
+    private String sanitizeProfilePhoneSegment(String phone) {
+        if (phone == null || phone.isBlank()) {
+            return "unknown";
+        }
+        return phone.replaceAll("[^0-9A-Za-z+._-]", "_");
+    }
+
+    private Path getProfileTenantDocDir(String phone) {
+        return getResolvedRootDir().resolve("profile-tenant-docs").resolve(sanitizeProfilePhoneSegment(phone));
+    }
+
+    public String saveProfileTenantDocument(String phone, MultipartFile file) {
+        if (file.getSize() > 5L * 1024 * 1024) {
+            throw new RuntimeException("File exceeds maximum size of 5 MB");
+        }
+        try {
+            String originalName = Objects.requireNonNullElse(file.getOriginalFilename(), "document.bin")
+                    .replaceAll("[^a-zA-Z0-9._-]", "_");
+            String fileName = System.currentTimeMillis() + "_" + originalName;
+            Path dir = getProfileTenantDocDir(phone);
+            Files.createDirectories(dir);
+            Path target = dir.resolve(fileName);
+            Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+            return fileName;
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to store tenant document for " + phone, e);
+        }
+    }
+
+    public Resource loadProfileTenantDocument(String phone, String fileName) {
+        try {
+            if (fileName == null || fileName.isBlank() || fileName.contains("..")) {
+                throw new RuntimeException("Invalid file name");
+            }
+            Path filePath = getProfileTenantDocDir(phone).resolve(fileName);
+            Resource resource = new UrlResource(filePath.toUri());
+            if (!resource.exists()) {
+                throw new RuntimeException("File not found");
+            }
+            return resource;
+        } catch (MalformedURLException e) {
+            throw new RuntimeException("Invalid file path", e);
+        }
+    }
+
     public String saveComplaintFile(Long complaintId, MultipartFile file) {
         try {
             String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();

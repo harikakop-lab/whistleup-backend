@@ -2,14 +2,17 @@ package com.whistleup.backend.service;
 
 import com.whistleup.backend.constants.IssueType;
 import com.whistleup.backend.constants.MaintenanceStatus;
+import com.whistleup.backend.entity.BuildingDetails;
 import com.whistleup.backend.entity.Maintenance;
 import com.whistleup.backend.entity.Profile;
 import com.whistleup.backend.exception.NotFoundException;
+import com.whistleup.backend.repository.BuildingDetailsRepository;
 import com.whistleup.backend.repository.MaintenanceRepository;
 import com.whistleup.backend.repository.ProfileRepository;
 import com.whistleup.backend.resource.MaintenanceFlatChargeResource;
 import com.whistleup.backend.resource.MaintenanceCreateResource;
 import com.whistleup.backend.resource.MaintenanceMeterRowResource;
+import com.whistleup.backend.resource.MaintenanceAppliancesOptInResource;
 import com.whistleup.backend.resource.MaintenanceResponseResource;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
@@ -27,11 +30,13 @@ import java.time.Month;
 import java.time.YearMonth;
 import java.util.LinkedHashMap;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -40,6 +45,7 @@ public class MaintenanceService {
     private final MaintenanceRepository repository;
     private final InvoiceService invoiceService;
     private final ProfileRepository profileRepository;
+    private final BuildingDetailsRepository buildingDetailsRepository;
     private final NotificationSendService notificationSendService;
     private final FileStorageService fileStorageService;
 
@@ -66,6 +72,9 @@ public class MaintenanceService {
         }
 
         Map<String, BigDecimal> explicitAmountByFlat = toExplicitAmountByFlat(maintenanceCreateResource.getFlatCharges());
+        Map<String, BigDecimal> explicitAppliancesByFlat = toExplicitAppliancesByFlat(maintenanceCreateResource.getFlatCharges());
+        Map<String, BigDecimal> explicitAppliancesByPhone = toExplicitAppliancesByPhone(
+                maintenanceCreateResource.getApplianceFeesByPhone());
         BigDecimal sharedExpenseTotal = resolveSharedExpenseTotal(maintenanceCreateResource);
         BigDecimal defaultWaterPerFlat = resolveDefaultWaterPerFlat(maintenanceCreateResource, residentsInTheBuilding.size());
         Map<String, BigDecimal> waterByFlat = resolveWaterByFlat(maintenanceCreateResource, residentsInTheBuilding, defaultWaterPerFlat);
@@ -83,11 +92,31 @@ public class MaintenanceService {
                 residentsInTheBuilding.size()
         );
 
+        BuildingDetails buildingDetails = resolveBuilding(maintenanceCreateResource.getBuildingId());
+        boolean applianceAware = buildingDetails != null && buildingDetails.isAppliancesNeeded();
+        BigDecimal appliancePool = Objects.requireNonNullElse(maintenanceCreateResource.getAppliancesTotalAmount(), BigDecimal.ZERO);
+        List<Profile> optedEligible = residentsInTheBuilding.stream()
+                .filter(p -> Boolean.TRUE.equals(p.getAppliancesMaintenanceOptIn()))
+                .filter(p -> p.getAppliancesJson() != null && !p.getAppliancesJson().isBlank())
+                .toList();
+        int optCount = optedEligible.size();
+        BigDecimal perApplianceShare = (applianceAware && optCount > 0 && appliancePool.compareTo(BigDecimal.ZERO) > 0)
+                ? appliancePool.divide(BigDecimal.valueOf(optCount), 2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+        Set<String> optedPhones = new HashSet<>(optedEligible.stream().map(Profile::getPhone).toList());
+        Map<String, Long> optedCountByFlat = optedEligible.stream()
+                .map(p -> normalizeFlatNo(p.getFlatNo()))
+                .filter(Objects::nonNull)
+                .collect(Collectors.groupingBy(f -> f, Collectors.counting()));
+
         List<Maintenance> savedRows = residentsInTheBuilding.stream()
                 .map(profile -> upsertMaintenanceRow(
                         maintenanceCreateResource,
                         profile,
                         explicitAmountByFlat,
+                        explicitAppliancesByFlat,
+                        explicitAppliancesByPhone,
+                        optedCountByFlat,
                         basePerFlat,
                         waterByFlat,
                         defaultWaterPerFlat,
@@ -97,7 +126,9 @@ public class MaintenanceService {
                         electricityPerFlat,
                         motorPerFlat,
                         miscPerFlat,
-                        customExpensesPerFlat
+                        customExpensesPerFlat,
+                        optedPhones,
+                        perApplianceShare
                 ))
                 .toList();
 
@@ -105,10 +136,41 @@ public class MaintenanceService {
         return savedRows.stream().map(this::toResponse).toList();
     }
 
+    private BuildingDetails resolveBuilding(String buildingId) {
+        if (buildingId == null || buildingId.isBlank()) {
+            return null;
+        }
+        try {
+            return buildingDetailsRepository.findById(Long.valueOf(buildingId.trim())).orElse(null);
+        } catch (Exception ex) {
+            return null;
+        }
+    }
+
+    public List<MaintenanceAppliancesOptInResource> listAppliancesOptInFlats(String buildingId) {
+        List<Profile> residents = profileRepository.findByBuildingId(buildingId);
+        if (CollectionUtils.isEmpty(residents)) {
+            return List.of();
+        }
+        return residents.stream()
+                .filter(p -> Boolean.TRUE.equals(p.getAppliancesMaintenanceOptIn()))
+                .filter(p -> p.getAppliancesJson() != null && !p.getAppliancesJson().isBlank())
+                .map(p -> MaintenanceAppliancesOptInResource.builder()
+                        .phone(p.getPhone())
+                        .name(p.getName())
+                        .flatNo(p.getFlatNo())
+                        .appliancesJson(p.getAppliancesJson())
+                        .build())
+                .toList();
+    }
+
     private Maintenance upsertMaintenanceRow(
             MaintenanceCreateResource req,
             Profile profile,
             Map<String, BigDecimal> explicitAmountByFlat,
+            Map<String, BigDecimal> explicitAppliancesByFlat,
+            Map<String, BigDecimal> explicitAppliancesByPhone,
+            Map<String, Long> optedCountByFlat,
             BigDecimal basePerFlat,
             Map<String, BigDecimal> waterByFlat,
             BigDecimal defaultWaterPerFlat,
@@ -118,12 +180,15 @@ public class MaintenanceService {
             BigDecimal electricityPerFlat,
             BigDecimal motorPerFlat,
             BigDecimal miscPerFlat,
-            Map<String, BigDecimal> customExpensesPerFlat) {
+            Map<String, BigDecimal> customExpensesPerFlat,
+            Set<String> optedAppliancePhones,
+            BigDecimal perApplianceShare) {
         Maintenance maintenance;
         String phone = profile.getPhone();
         String flatNo = normalizeFlatNo(profile.getFlatNo());
 
         BigDecimal resolvedAmount = explicitAmountByFlat.getOrDefault(flatNo, null);
+        boolean hasExplicitFlatTotal = resolvedAmount != null;
         if (resolvedAmount == null) {
             BigDecimal water = waterByFlat.getOrDefault(flatNo, defaultWaterPerFlat);
             resolvedAmount = basePerFlat.add(Objects.requireNonNullElse(water, BigDecimal.ZERO));
@@ -131,6 +196,18 @@ public class MaintenanceService {
 
         if (resolvedAmount.compareTo(BigDecimal.ZERO) <= 0 && req.getAmount() != null) {
             resolvedAmount = req.getAmount();
+        }
+
+        BigDecimal applianceShare = resolveApplianceShare(
+                phone,
+                flatNo,
+                explicitAppliancesByPhone,
+                explicitAppliancesByFlat,
+                optedAppliancePhones,
+                optedCountByFlat,
+                perApplianceShare);
+        if (!hasExplicitFlatTotal) {
+            resolvedAmount = resolvedAmount.add(applianceShare);
         }
 
         BigDecimal finalResolvedAmount = resolvedAmount;
@@ -178,6 +255,7 @@ public class MaintenanceService {
                     maintenance.getWaterAmount(),
                     waterByFlat.getOrDefault(flatNo, defaultWaterPerFlat)
             ));
+            maintenance.setAppliancesAmount(addNullable(maintenance.getAppliancesAmount(), applianceShare));
         } else {
             maintenance.setWatchmanSalary(watchmanPerFlat);
             maintenance.setGarbageCollection(garbagePerFlat);
@@ -187,6 +265,7 @@ public class MaintenanceService {
             maintenance.setMiscellaneous(miscPerFlat);
             maintenance.setCustomExpenses(new LinkedHashMap<>(customExpensesPerFlat));
             maintenance.setWaterAmount(waterByFlat.getOrDefault(flatNo, defaultWaterPerFlat));
+            maintenance.setAppliancesAmount(applianceShare);
         }
         return repository.save(maintenance);
     }
@@ -234,6 +313,72 @@ public class MaintenanceService {
             }
         }
         return amountByFlat;
+    }
+
+    /**
+     * Per-flat appliance amounts from the client. Only flats with a non-null {@code appliancesAmount} on a charge row
+     * participate; duplicate flat keys are merged by sum. When the map is empty for all rows, callers fall back to
+     * equal split ({@code perApplianceShare}) in {@link #upsertMaintenanceRow}.
+     */
+    private Map<String, BigDecimal> toExplicitAppliancesByFlat(List<MaintenanceFlatChargeResource> flatCharges) {
+        Map<String, BigDecimal> byFlat = new HashMap<>();
+        if (CollectionUtils.isEmpty(flatCharges)) {
+            return byFlat;
+        }
+        for (MaintenanceFlatChargeResource item : flatCharges) {
+            if (item.getAppliancesAmount() == null) {
+                continue;
+            }
+            String flat = normalizeFlatNo(item.getFlatNumber());
+            if (flat == null) {
+                continue;
+            }
+            byFlat.merge(flat, item.getAppliancesAmount(), BigDecimal::add);
+        }
+        return byFlat;
+    }
+
+    private Map<String, BigDecimal> toExplicitAppliancesByPhone(Map<String, BigDecimal> raw) {
+        if (raw == null || raw.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, BigDecimal> byPhone = new HashMap<>();
+        for (Map.Entry<String, BigDecimal> e : raw.entrySet()) {
+            if (e.getKey() == null) {
+                continue;
+            }
+            String ph = e.getKey().trim();
+            if (ph.isEmpty()) {
+                continue;
+            }
+            byPhone.put(ph, Objects.requireNonNullElse(e.getValue(), BigDecimal.ZERO));
+        }
+        return byPhone;
+    }
+
+    private BigDecimal resolveApplianceShare(
+            String phone,
+            String flatNo,
+            Map<String, BigDecimal> explicitAppliancesByPhone,
+            Map<String, BigDecimal> explicitAppliancesByFlat,
+            Set<String> optedAppliancePhones,
+            Map<String, Long> optedCountByFlat,
+            BigDecimal perApplianceShare) {
+        if (!explicitAppliancesByPhone.isEmpty()) {
+            return explicitAppliancesByPhone.getOrDefault(phone, BigDecimal.ZERO);
+        }
+        if (explicitAppliancesByFlat.containsKey(flatNo)) {
+            if (!optedAppliancePhones.contains(phone)) {
+                return BigDecimal.ZERO;
+            }
+            BigDecimal pool = Objects.requireNonNullElse(explicitAppliancesByFlat.get(flatNo), BigDecimal.ZERO);
+            long n = optedCountByFlat.getOrDefault(flatNo, 1L);
+            return pool.divide(BigDecimal.valueOf(Math.max(1L, n)), 2, RoundingMode.HALF_UP);
+        }
+        if (optedAppliancePhones.contains(phone)) {
+            return Objects.requireNonNullElse(perApplianceShare, BigDecimal.ZERO);
+        }
+        return BigDecimal.ZERO;
     }
 
     private BigDecimal resolveSharedExpenseTotal(MaintenanceCreateResource req) {
@@ -469,6 +614,7 @@ public class MaintenanceService {
                 .miscellaneous(m.getMiscellaneous())
                 .customExpenses(m.getCustomExpenses())
                 .waterAmount(m.getWaterAmount())
+                .appliancesAmount(m.getAppliancesAmount())
                 .waterMode(m.getWaterMode())
                 .dueDate(m.getDueDate())
                 .status(m.getStatus())

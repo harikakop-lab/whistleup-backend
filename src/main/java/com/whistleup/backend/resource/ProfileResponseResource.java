@@ -33,4 +33,9 @@ public class ProfileResponseResource extends ProfileCreateResource {
 
     /** Buildings this user may administer (ADMIN / SYSTEM_ADMIN); null for other roles. */
     private List<AdminBuildingSummaryResource> adminBuildings;
+
+    /** Signed-style download URLs; populated for admin resident detail only. */
+    private String idDocumentFrontUri;
+    private String idDocumentBackUri;
+    private String companyIdDocumentUri;
 }

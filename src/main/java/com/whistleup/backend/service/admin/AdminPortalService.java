@@ -310,7 +310,13 @@ public class AdminPortalService {
         List<ContactResource> contacts = profile.getContacts() == null
                 ? List.of()
                 : profile.getContacts().stream()
-                .map(contact -> new ContactResource(contact.getName(), contact.getPhone()))
+                .map(contact -> ContactResource.builder()
+                        .name(contact.getName())
+                        .phone(contact.getPhone())
+                        .contactKind(contact.getContactKind() == null || contact.getContactKind().isBlank()
+                                ? "GENERAL"
+                                : contact.getContactKind())
+                        .build())
                 .toList();
 
         return AdminProfileResponse.builder()

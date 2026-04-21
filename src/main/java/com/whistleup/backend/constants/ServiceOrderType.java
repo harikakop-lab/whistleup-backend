@@ -9,5 +9,6 @@ public enum ServiceOrderType {
     PAINTER,
     WATER_CAN,
     NEWSPAPER,
-    WATER_TANKER
+    WATER_TANKER,
+    PACKERS_MOVERS
 }

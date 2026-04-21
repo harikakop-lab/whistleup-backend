@@ -98,3 +98,7 @@ otp:
   resend:
     cooldown:
       seconds: 60
+
+jwt:
+  secret: ${JWT_SECRET:whistleup-local-dev-jwt-secret-key-32-bytes-minimum}
+  expiration-ms: ${JWT_EXPIRATION_MS:86400000}

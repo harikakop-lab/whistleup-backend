@@ -22,4 +22,6 @@ public class MaintenanceFlatChargeResource {
     private BigDecimal amount;
     private BigDecimal baseAmount;
     private BigDecimal waterAmount;
+    /** Optional per-flat appliance fee when UI sends variable amounts; summed by flat if duplicated. */
+    private BigDecimal appliancesAmount;
 }

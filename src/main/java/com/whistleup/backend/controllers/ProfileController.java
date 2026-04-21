@@ -21,6 +21,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -90,6 +91,34 @@ public class ProfileController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
+    @PostMapping(value = "/{phone}/tenant-documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<String> uploadTenantDocument(
+            @PathVariable String phone,
+            @RequestParam("kind") String kind,
+            @RequestParam("file") MultipartFile file,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        String requester = extractRequester(authHeader);
+        profileService.uploadTenantDocument(phone, kind, file, requester);
+        return new ResponseEntity<>("Uploaded", HttpStatus.OK);
+    }
+
+    @GetMapping("/{phone}/tenant-document/{kind}")
+    public ResponseEntity<Resource> downloadTenantDocument(
+            @PathVariable String phone,
+            @PathVariable String kind,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        String requester = extractRequester(authHeader);
+        Resource resource = profileService.getTenantDocument(phone, kind, requester);
+        String filename = resource.getFilename() == null || resource.getFilename().isBlank()
+                ? (kind + ".bin")
+                : resource.getFilename();
+        MediaType mediaType = resolveMediaType(filename);
+        return ResponseEntity.ok()
+                .contentType(mediaType)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .body(resource);
+    }
+
 
     @DeleteMapping("/delete/{userId}")
     public ResponseEntity<String> deleteProfile(
@@ -156,12 +185,24 @@ public class ProfileController {
 
     private String extractRequester(String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new IllegalArgumentException("Missing Authorization bearer token");
+            return null;
         }
         String token = authHeader.substring(7).trim();
         if (token.isEmpty()) {
-            throw new IllegalArgumentException("Authorization token is empty");
+            return null;
         }
-        return jwtService.extractToken(token);
+        try {
+            return jwtService.extractToken(token);
+        } catch (RuntimeException ex) {
+            return null;
+        }
+    }
+
+    private MediaType resolveMediaType(String filename) {
+        String name = filename.toLowerCase(Locale.ROOT);
+        if (name.endsWith(".jpg") || name.endsWith(".jpeg")) return MediaType.IMAGE_JPEG;
+        if (name.endsWith(".png")) return MediaType.IMAGE_PNG;
+        if (name.endsWith(".pdf")) return MediaType.APPLICATION_PDF;
+        return MediaType.APPLICATION_OCTET_STREAM;
     }
 }

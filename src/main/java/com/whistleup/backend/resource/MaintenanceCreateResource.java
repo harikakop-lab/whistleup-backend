@@ -52,4 +52,14 @@ public class MaintenanceCreateResource {
 
     @NotNull
     private String buildingId;
+
+    /** Total appliance maintenance for the month; split equally across opted-in residents when building flag is on. */
+    private BigDecimal appliancesTotalAmount;
+
+    /**
+     * Optional per-resident appliance fee (when UI collects Fee/Month per opted-in phone). Keys are tenant phone
+     * numbers. When non-empty, takes precedence over {@link MaintenanceFlatChargeResource#getAppliancesAmount()} for
+     * those profiles.
+     */
+    private Map<String, BigDecimal> applianceFeesByPhone;
 }

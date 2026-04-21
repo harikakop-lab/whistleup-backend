@@ -23,6 +23,9 @@ public class Contact {
     @Column(name = "contact_phone", nullable = false)
     private String phone;
 
+    @Column(name = "contact_kind", length = 32)
+    private String contactKind;
+
     /**
      * Many contacts belong to one profile
      */
