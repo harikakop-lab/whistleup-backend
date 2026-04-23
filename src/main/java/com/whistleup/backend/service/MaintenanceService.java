@@ -75,24 +75,25 @@ public class MaintenanceService {
         Map<String, BigDecimal> explicitAppliancesByFlat = toExplicitAppliancesByFlat(maintenanceCreateResource.getFlatCharges());
         Map<String, BigDecimal> explicitAppliancesByPhone = toExplicitAppliancesByPhone(
                 maintenanceCreateResource.getApplianceFeesByPhone());
+        BuildingDetails buildingDetails = resolveBuilding(maintenanceCreateResource.getBuildingId());
+        int residentCountForSplit = resolveResidentCountForSplit(buildingDetails, residentsInTheBuilding.size());
         BigDecimal sharedExpenseTotal = resolveSharedExpenseTotal(maintenanceCreateResource);
-        BigDecimal defaultWaterPerFlat = resolveDefaultWaterPerFlat(maintenanceCreateResource, residentsInTheBuilding.size());
+        BigDecimal defaultWaterPerFlat = resolveDefaultWaterPerFlat(maintenanceCreateResource, residentCountForSplit);
         Map<String, BigDecimal> waterByFlat = resolveWaterByFlat(maintenanceCreateResource, residentsInTheBuilding, defaultWaterPerFlat);
         BigDecimal basePerFlat = residentsInTheBuilding.isEmpty()
                 ? BigDecimal.ZERO
-                : sharedExpenseTotal.divide(BigDecimal.valueOf(residentsInTheBuilding.size()), 2, RoundingMode.HALF_UP);
-        BigDecimal watchmanPerFlat = splitPerFlat(maintenanceCreateResource.getWatchmanSalary(), residentsInTheBuilding.size());
-        BigDecimal garbagePerFlat = splitPerFlat(maintenanceCreateResource.getGarbageCollection(), residentsInTheBuilding.size());
-        BigDecimal liftPerFlat = splitPerFlat(maintenanceCreateResource.getLiftMaintenance(), residentsInTheBuilding.size());
-        BigDecimal electricityPerFlat = splitPerFlat(maintenanceCreateResource.getElectricityCommon(), residentsInTheBuilding.size());
-        BigDecimal motorPerFlat = splitPerFlat(maintenanceCreateResource.getMotorPump(), residentsInTheBuilding.size());
-        BigDecimal miscPerFlat = splitPerFlat(maintenanceCreateResource.getMiscellaneous(), residentsInTheBuilding.size());
+                : sharedExpenseTotal.divide(BigDecimal.valueOf(residentCountForSplit), 2, RoundingMode.HALF_UP);
+        BigDecimal watchmanPerFlat = splitPerFlat(maintenanceCreateResource.getWatchmanSalary(), residentCountForSplit);
+        BigDecimal garbagePerFlat = splitPerFlat(maintenanceCreateResource.getGarbageCollection(), residentCountForSplit);
+        BigDecimal liftPerFlat = splitPerFlat(maintenanceCreateResource.getLiftMaintenance(), residentCountForSplit);
+        BigDecimal electricityPerFlat = splitPerFlat(maintenanceCreateResource.getElectricityCommon(), residentCountForSplit);
+        BigDecimal motorPerFlat = splitPerFlat(maintenanceCreateResource.getMotorPump(), residentCountForSplit);
+        BigDecimal miscPerFlat = splitPerFlat(maintenanceCreateResource.getMiscellaneous(), residentCountForSplit);
         Map<String, BigDecimal> customExpensesPerFlat = splitCustomExpensesPerFlat(
                 maintenanceCreateResource.getCustomExpenses(),
-                residentsInTheBuilding.size()
+                residentCountForSplit
         );
 
-        BuildingDetails buildingDetails = resolveBuilding(maintenanceCreateResource.getBuildingId());
         boolean applianceAware = buildingDetails != null && buildingDetails.isAppliancesNeeded();
         BigDecimal appliancePool = Objects.requireNonNullElse(maintenanceCreateResource.getAppliancesTotalAmount(), BigDecimal.ZERO);
         List<Profile> optedEligible = residentsInTheBuilding.stream()
@@ -145,6 +146,13 @@ public class MaintenanceService {
         } catch (Exception ex) {
             return null;
         }
+    }
+
+    private int resolveResidentCountForSplit(BuildingDetails buildingDetails, int fallbackResidentCount) {
+        if (buildingDetails != null && buildingDetails.getTotalResidents() != null && buildingDetails.getTotalResidents() > 0) {
+            return Math.toIntExact(buildingDetails.getTotalResidents());
+        }
+        return Math.max(fallbackResidentCount, 1);
     }
 
     public List<MaintenanceAppliancesOptInResource> listAppliancesOptInFlats(String buildingId) {

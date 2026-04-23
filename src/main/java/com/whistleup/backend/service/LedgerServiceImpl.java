@@ -3,10 +3,12 @@ package com.whistleup.backend.service;
 import com.lowagie.text.Document;
 import com.lowagie.text.Paragraph;
 import com.lowagie.text.pdf.PdfWriter;
+import com.whistleup.backend.entity.BuildingDetails;
 import com.whistleup.backend.entity.Ledger;
 import com.whistleup.backend.entity.LedgerItem;
 import com.whistleup.backend.entity.Maintenance;
 import com.whistleup.backend.entity.Profile;
+import com.whistleup.backend.repository.BuildingDetailsRepository;
 import com.whistleup.backend.repository.LedgerRepository;
 import com.whistleup.backend.repository.MaintenanceRepository;
 import com.whistleup.backend.repository.ProfileRepository;
@@ -40,15 +42,19 @@ public class LedgerServiceImpl implements LedgerService {
 
     private final ProfileRepository profileRepository;
 
+    private final BuildingDetailsRepository buildingDetailsRepository;
+
     public LedgerServiceImpl(
             LedgerRepository ledgerRepository,
             MaintenanceService maintenanceService,
             MaintenanceRepository maintenanceRepository,
-            ProfileRepository profileRepository) {
+            ProfileRepository profileRepository,
+            BuildingDetailsRepository buildingDetailsRepository) {
         this.ledgerRepository = ledgerRepository;
         this.maintenanceService = maintenanceService;
         this.maintenanceRepository = maintenanceRepository;
         this.profileRepository = profileRepository;
+        this.buildingDetailsRepository = buildingDetailsRepository;
     }
 
     @Override
@@ -60,7 +66,8 @@ public class LedgerServiceImpl implements LedgerService {
         ).orElseGet(Ledger::new);
         ledger.setYear(request.getYear());
         ledger.setMonth(normalizeMonth(request.getMonth()));
-        ledger.setTotalFlats(request.getTotalFlats());
+        int residentCount = resolveTotalResidentsForBuilding(request.getBuildingId(), request.getTotalFlats());
+        ledger.setTotalFlats(residentCount);
         ledger.setCreatedAt(ledger.getCreatedAt() == null ? LocalDateTime.now() : ledger.getCreatedAt());
         ledger.setBuildingId(request.getBuildingId());
         ledger.getItems().clear();
@@ -73,7 +80,7 @@ public class LedgerServiceImpl implements LedgerService {
         BigDecimal maintenanceAmount = new BigDecimal(0);
         if (!CollectionUtils.isEmpty(request.getItems())) {
             Double totalMaintenanceAmount = request.getItems().stream().mapToDouble(LedgerItemRequest::getAmount).sum();
-            maintenanceAmount = BigDecimal.valueOf(totalMaintenanceAmount / request.getTotalFlats());
+            maintenanceAmount = BigDecimal.valueOf(totalMaintenanceAmount / residentCount);
         }
         maintenanceCreateResource.setAmount(maintenanceAmount);
         maintenanceCreateResource.setDueDate(YearMonth.now().atEndOfMonth());
@@ -236,7 +243,7 @@ public class LedgerServiceImpl implements LedgerService {
 
     private void enrichFromMaintenanceRows(LedgerResponse response, List<Maintenance> rows) {
         double totalAmount = rows.stream().mapToDouble(m -> m.getAmount().doubleValue()).sum();
-        int totalFlats = rows.size();
+        int totalFlats = resolveTotalResidentsForBuilding(response.getBuildingId(), rows.size());
         response.setTotalAmount(totalAmount);
         response.setTotalFlats(totalFlats);
         response.setPerFlatAmount(totalFlats == 0 ? 0 : totalAmount / totalFlats);
@@ -246,6 +253,21 @@ public class LedgerServiceImpl implements LedgerService {
                 .filter(java.util.Objects::nonNull)
                 .findFirst()
                 .orElse(null));
+    }
+
+    private int resolveTotalResidentsForBuilding(String buildingId, int fallbackCount) {
+        if (buildingId == null || buildingId.isBlank()) {
+            return Math.max(fallbackCount, 1);
+        }
+        try {
+            BuildingDetails buildingDetails = buildingDetailsRepository.findById(Long.valueOf(buildingId.trim())).orElse(null);
+            if (buildingDetails != null && buildingDetails.getTotalResidents() != null && buildingDetails.getTotalResidents() > 0) {
+                return Math.toIntExact(buildingDetails.getTotalResidents());
+            }
+        } catch (Exception ignored) {
+            // fall back to existing behavior when building metadata is unavailable
+        }
+        return Math.max(fallbackCount, 1);
     }
 
     private List<LedgerItemResponse> buildItemsFromMaintenanceRows(List<Maintenance> rows) {
