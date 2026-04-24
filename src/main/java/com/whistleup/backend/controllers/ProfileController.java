@@ -6,6 +6,7 @@ import com.whistleup.backend.resource.ProfileResponseResource;
 import com.whistleup.backend.service.JwtService;
 import com.whistleup.backend.service.ProfileService;
 import jakarta.annotation.PostConstruct;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;

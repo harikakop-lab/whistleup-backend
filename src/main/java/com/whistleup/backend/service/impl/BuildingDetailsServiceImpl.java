@@ -9,6 +9,8 @@ import com.whistleup.backend.resource.BuildingServices;
 import com.whistleup.backend.service.BuildingDetailsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -25,6 +27,7 @@ public class BuildingDetailsServiceImpl implements BuildingDetailsService {
     }
 
     @Override
+    @Cacheable(value = "buildingsList", key = "'all'", unless = "#result == null || #result.isEmpty()")
     public List<BuildingDetailsResponseResource> getExistingBuildingsInformation() {
         List<BuildingDetails> buildingDetailsList = buildingDetailsRepository.findAll();
         return buildingDetailsList.stream().map(buildingDetails -> {
@@ -55,11 +58,13 @@ public class BuildingDetailsServiceImpl implements BuildingDetailsService {
     }
 
     @Override
+    @Cacheable(value = "buildings", key = "#buildingId", unless = "#result == null")
     public BuildingDetails getBuildingDetails(Long buildingId) {
         return buildingDetailsRepository.findById(buildingId).orElseThrow(() -> new NotFoundException("No Buildings found with this id"));
     }
 
     @Override
+    @CacheEvict(value = "buildings", key = "#buildingId")
     public BuildingDetails updateBuildingDetails(Long buildingId, BuildingDetailsRequestResource updateBuildingDetailsRequestResource) {
         BuildingDetails existingBuildingDetails = buildingDetailsRepository.findById(buildingId)
                 .orElseThrow(() -> new NotFoundException("No Buildings found with this id"));
@@ -123,6 +128,7 @@ public class BuildingDetailsServiceImpl implements BuildingDetailsService {
     }
 
     @Override
+    @CacheEvict(value = {"buildings", "buildingsList", "profiles"}, allEntries = true)
     public void updateBuildingServices(Long buildingId, BuildingServices buildingServices) {
         BuildingDetails buildingDetails = buildingDetailsRepository.findById(buildingId).orElseThrow(() -> new NotFoundException("No Buildings found with this id"));
         if (Objects.nonNull(buildingServices.getWatchmen())) {

@@ -18,6 +18,8 @@ import com.whistleup.backend.service.ProfileService;
 import com.whistleup.backend.util.CustomBeanUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -113,6 +115,7 @@ public class ProfileServiceImpl implements ProfileService {
     }
 
     @Override
+    @CacheEvict(value = "profiles", key = "#username")
     public String updateProfile(ProfileCreateResource profileUpdateResource) {
         Optional<Profile> profileOptional =
                 profileRepository.findByPhone(profileUpdateResource.getPhone());
@@ -227,6 +230,7 @@ public class ProfileServiceImpl implements ProfileService {
     }
 
     @Override
+    @Cacheable(value = "profiles", key = "#username", unless = "#result == null")
     public ProfileResponseResource getProfileByUsername(String username) {
         Optional<Profile> profileOptional = profileRepository.findByEmailOrPhone(username);
         if (profileOptional.isEmpty()) {
