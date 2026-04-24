@@ -11,6 +11,10 @@ import java.util.Objects;
 /**
  * Merge rules when re-saving maintenance for the same profile/month so partial payloads
  * (e.g. water-only) do not wipe an existing base charge.
+ *
+ * <p>Clients often send {@code BigDecimal.ZERO} for every empty expense field (not JSON omission).
+ * Those zeros must <strong>not</strong> be treated as a "full shared expense resubmission", or the
+ * preserved-base path is skipped incorrectly.
  */
 public final class MaintenanceUpsertMerge {
 
@@ -19,30 +23,53 @@ public final class MaintenanceUpsertMerge {
     private MaintenanceUpsertMerge() {
     }
 
-    public static boolean hasSharedExpensePayload(MaintenanceCreateResource req) {
+    /**
+     * True when the request carries a <em>positive</em> shared-expense total (standard lines + custom map),
+     * mirroring the additive part of {@code MaintenanceService.resolveSharedExpenseTotal} without the
+     * legacy {@code amount * totalFlats} fallback.
+     */
+    public static boolean hasPositiveSharedExpenseSum(MaintenanceCreateResource req) {
         if (req == null) {
             return false;
         }
-        if (req.getWatchmanSalary() != null) {
-            return true;
-        }
-        if (req.getGarbageCollection() != null) {
-            return true;
-        }
-        if (req.getLiftMaintenance() != null) {
-            return true;
-        }
-        if (req.getElectricityCommon() != null) {
-            return true;
-        }
-        if (req.getMotorPump() != null) {
-            return true;
-        }
-        if (req.getMiscellaneous() != null) {
-            return true;
-        }
+        BigDecimal total = ZERO;
+        total = total.add(nz(req.getWatchmanSalary()));
+        total = total.add(nz(req.getGarbageCollection()));
+        total = total.add(nz(req.getLiftMaintenance()));
+        total = total.add(nz(req.getElectricityCommon()));
+        total = total.add(nz(req.getMotorPump()));
+        total = total.add(nz(req.getMiscellaneous()));
         Map<String, BigDecimal> custom = req.getCustomExpenses();
-        return custom != null && !custom.isEmpty();
+        if (custom != null && !custom.isEmpty()) {
+            for (BigDecimal v : custom.values()) {
+                BigDecimal a = nz(v);
+                if (a.compareTo(ZERO) > 0) {
+                    total = total.add(a);
+                }
+            }
+        }
+        return total.compareTo(ZERO) > 0;
+    }
+
+    /**
+     * When true, {@link #resolveEffectiveBase} must not reuse the prior row's base (admin is explicitly
+     * re-specifying shared expenses or resetting them).
+     */
+    public static boolean blocksPreservedSharedBaseMerge(MaintenanceCreateResource req) {
+        if (req == null) {
+            return false;
+        }
+        if (Boolean.TRUE.equals(req.getResetSharedExpenses())) {
+            return true;
+        }
+        if (hasPositiveSharedExpenseSum(req)) {
+            return true;
+        }
+        // Legacy path: total shared derived from per-flat amount * flats when line items are all zero
+        if (req.getAmount() != null && req.getAmount().compareTo(ZERO) > 0) {
+            return true;
+        }
+        return false;
     }
 
     public static boolean hasWaterPayload(MaintenanceCreateResource req) {
@@ -66,8 +93,9 @@ public final class MaintenanceUpsertMerge {
     }
 
     /**
-     * When updating an existing row, if the request did not supply shared expenses (all absent) and the
-     * computed per-flat base is zero, reuse the non-water, non-appliances portion of the stored amount.
+     * When updating an existing row, if the request did not supply positive shared expenses (and did not
+     * block merge) and the computed per-flat base is zero, reuse the non-water, non-appliances portion of
+     * the stored amount.
      */
     public static BigDecimal resolveEffectiveBase(
             BigDecimal incomingBasePerFlat,
@@ -75,9 +103,9 @@ public final class MaintenanceUpsertMerge {
             BigDecimal oldAmount,
             BigDecimal oldWater,
             BigDecimal oldAppliances,
-            boolean sharedExpensePayloadPresent) {
+            boolean blocksPreservedBaseMerge) {
         BigDecimal base = Objects.requireNonNullElse(incomingBasePerFlat, ZERO);
-        if (!existingRow || base.compareTo(ZERO) > 0 || sharedExpensePayloadPresent) {
+        if (!existingRow || base.compareTo(ZERO) > 0 || blocksPreservedBaseMerge) {
             return base;
         }
         BigDecimal preserved = nz(oldAmount).subtract(nz(oldWater)).subtract(nz(oldAppliances));

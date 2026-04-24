@@ -290,7 +290,7 @@ public class LedgerServiceImpl implements LedgerService {
     }
 
     private void enrichFromMaintenanceRows(LedgerResponse response, List<Maintenance> rows) {
-        double totalAmount = rows.stream().mapToDouble(m -> m.getAmount().doubleValue()).sum();
+        double totalAmount = MaintenanceLedgerAggregation.canonicalTotalCollected(rows).doubleValue();
         int totalFlats = Math.max(rows.size(), 1);
         response.setTotalAmount(totalAmount);
         if (response.getTotalExpenses() == 0) {

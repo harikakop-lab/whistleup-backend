@@ -282,7 +282,7 @@ public class MaintenanceService {
                     existingOpt.map(Maintenance::getAmount).orElse(null),
                     existingOpt.map(Maintenance::getWaterAmount).orElse(null),
                     existingOpt.map(Maintenance::getAppliancesAmount).orElse(null),
-                    MaintenanceUpsertMerge.hasSharedExpensePayload(req));
+                    MaintenanceUpsertMerge.blocksPreservedSharedBaseMerge(req));
             resolvedAmount = effectiveBase.add(waterForFlat);
         }
 
@@ -291,7 +291,7 @@ public class MaintenanceService {
         }
 
         BigDecimal fixedMaintenance;
-        if (req.getFixedMaintenance() != null) {
+        if (req.getFixedMaintenance() != null && req.getFixedMaintenance().compareTo(BigDecimal.ZERO) > 0) {
             fixedMaintenance = req.getFixedMaintenance();
         } else if (existingOpt.isPresent()) {
             Maintenance ex = existingOpt.get();

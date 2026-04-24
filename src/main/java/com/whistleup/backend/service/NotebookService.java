@@ -171,7 +171,7 @@ public class NotebookService {
         ledger.getItems().clear();
         if (!maintRows.isEmpty()) {
             ledger.setTotalFlats(Math.max(1, maintRows.size()));
-            ledger.setTotalAmount(scale(MaintenanceLedgerAggregation.sumAmounts(maintRows)).doubleValue());
+            ledger.setTotalAmount(scale(MaintenanceLedgerAggregation.canonicalTotalCollected(maintRows)).doubleValue());
             double perFlat = maintRows.isEmpty() ? 0 : ledger.getTotalAmount() / maintRows.size();
             ledger.setPerFlatAmount(perFlat);
 
@@ -286,7 +286,7 @@ public class NotebookService {
     private void recomputeDerivedTotals(NotebookMonthly notebook, List<Maintenance> rows) {
         BigDecimal collectionAmount;
         if (rows != null && !rows.isEmpty()) {
-            collectionAmount = scale(MaintenanceLedgerAggregation.sumAmounts(rows));
+            collectionAmount = scale(MaintenanceLedgerAggregation.canonicalTotalCollected(rows));
         } else {
             collectionAmount = scale(notebook.getFixedMaintenance()
                     .multiply(BigDecimal.valueOf(Math.max(0, notebook.getResidentCount()))));

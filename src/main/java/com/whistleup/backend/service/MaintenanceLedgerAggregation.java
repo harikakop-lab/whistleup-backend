@@ -48,48 +48,55 @@ public final class MaintenanceLedgerAggregation {
     }
 
     /**
-     * Per-flat fixed component for notebook display: prefers persisted {@code fixedMaintenance};
-     * otherwise average of max(0, amount - water - appliances) per row.
+     * Per-row fixed (non-water, non-appliances) charge: prefers persisted {@code fixedMaintenance} when set;
+     * otherwise max(0, amount - water - appliances). This stays correct when {@code amount} was under-written
+     * on a partial update but {@code fixedMaintenance} was preserved.
+     */
+    public static BigDecimal rowFixedPortion(Maintenance m) {
+        if (m == null) {
+            return BigDecimal.ZERO;
+        }
+        if (m.getFixedMaintenance() != null && m.getFixedMaintenance().compareTo(BigDecimal.ZERO) > 0) {
+            return m.getFixedMaintenance();
+        }
+        BigDecimal implied = safe(m.getAmount()).subtract(safe(m.getWaterAmount())).subtract(safe(m.getAppliancesAmount()));
+        return implied.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : implied;
+    }
+
+    public static BigDecimal sumFixedPortions(List<Maintenance> rows) {
+        if (CollectionUtils.isEmpty(rows)) {
+            return BigDecimal.ZERO;
+        }
+        return rows.stream().map(MaintenanceLedgerAggregation::rowFixedPortion).reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    /**
+     * Total expected collected from maintenance rows for ledger/notebook headers: sum of fixed portions + water + appliances.
+     * Prefer this over {@link #sumAmounts} when persisted {@code amount} may not match the sum of components.
+     */
+    public static BigDecimal canonicalTotalCollected(List<Maintenance> rows) {
+        if (CollectionUtils.isEmpty(rows)) {
+            return BigDecimal.ZERO;
+        }
+        return sumFixedPortions(rows).add(sumWater(rows)).add(sumAppliances(rows));
+    }
+
+    /**
+     * Per-flat average fixed charge for notebook display (same numerator as total fixed portions).
      */
     public static BigDecimal resolveFixedPerFlat(List<Maintenance> rows, int scale, RoundingMode mode) {
         if (CollectionUtils.isEmpty(rows)) {
             return BigDecimal.ZERO;
         }
-        BigDecimal fixedSum = BigDecimal.ZERO;
-        int fixedCount = 0;
-        for (Maintenance m : rows) {
-            if (m.getFixedMaintenance() != null && m.getFixedMaintenance().compareTo(BigDecimal.ZERO) > 0) {
-                fixedSum = fixedSum.add(m.getFixedMaintenance());
-                fixedCount++;
-            }
-        }
-        if (fixedCount > 0) {
-            return fixedSum.divide(BigDecimal.valueOf(fixedCount), scale, mode);
-        }
-        BigDecimal baseTotal = BigDecimal.ZERO;
-        for (Maintenance m : rows) {
-            BigDecimal a = safe(m.getAmount());
-            BigDecimal w = safe(m.getWaterAmount());
-            BigDecimal app = safe(m.getAppliancesAmount());
-            BigDecimal base = a.subtract(w).subtract(app);
-            if (base.compareTo(BigDecimal.ZERO) < 0) {
-                base = BigDecimal.ZERO;
-            }
-            baseTotal = baseTotal.add(base);
-        }
-        int n = rows.size();
-        return n <= 0 ? BigDecimal.ZERO : baseTotal.divide(BigDecimal.valueOf(n), scale, mode);
+        BigDecimal sum = sumFixedPortions(rows);
+        return sum.divide(BigDecimal.valueOf(rows.size()), scale, mode);
     }
 
     /**
-     * Non-water, non-appliances portion of total billed (matches collection line "Fixed Maintenance").
+     * Aggregate fixed line for collection breakdown (ledger "Fixed Maintenance" row).
      */
     public static double fixedMaintenanceCollectionTotal(List<Maintenance> rows) {
-        double total = sumAmounts(rows).doubleValue();
-        double water = sumWater(rows).doubleValue();
-        double appliances = sumAppliances(rows).doubleValue();
-        double remainder = total - water - appliances;
-        return Math.max(0, remainder);
+        return sumFixedPortions(rows).doubleValue();
     }
 
     private static BigDecimal safe(BigDecimal v) {

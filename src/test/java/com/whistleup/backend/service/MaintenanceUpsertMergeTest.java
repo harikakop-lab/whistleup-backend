@@ -4,6 +4,7 @@ import com.whistleup.backend.resource.MaintenanceCreateResource;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -16,7 +17,7 @@ class MaintenanceUpsertMergeTest {
         BigDecimal oldAmount = new BigDecimal("1000.00");
         BigDecimal oldWater = BigDecimal.ZERO;
         BigDecimal oldAppliances = BigDecimal.ZERO;
-        boolean sharedPayload = MaintenanceUpsertMerge.hasSharedExpensePayload(emptyExpenseRequest());
+        boolean blocks = MaintenanceUpsertMerge.blocksPreservedSharedBaseMerge(emptyExpenseRequest());
 
         BigDecimal effective = MaintenanceUpsertMerge.resolveEffectiveBase(
                 basePerFlat,
@@ -24,9 +25,36 @@ class MaintenanceUpsertMergeTest {
                 oldAmount,
                 oldWater,
                 oldAppliances,
-                sharedPayload);
+                blocks);
 
         assertThat(effective).isEqualByComparingTo(new BigDecimal("1000.00"));
+    }
+
+    @Test
+    void blocksPreservedSharedBaseMerge_falseWhenAllExpenseFieldsAreZero() {
+        MaintenanceCreateResource req = new MaintenanceCreateResource();
+        req.setWatchmanSalary(BigDecimal.ZERO);
+        req.setGarbageCollection(BigDecimal.ZERO);
+        req.setLiftMaintenance(BigDecimal.ZERO);
+        req.setElectricityCommon(BigDecimal.ZERO);
+        req.setMotorPump(BigDecimal.ZERO);
+        req.setMiscellaneous(BigDecimal.ZERO);
+        assertThat(MaintenanceUpsertMerge.hasPositiveSharedExpenseSum(req)).isFalse();
+        assertThat(MaintenanceUpsertMerge.blocksPreservedSharedBaseMerge(req)).isFalse();
+    }
+
+    @Test
+    void blocksPreservedSharedBaseMerge_trueWhenResetFlag() {
+        MaintenanceCreateResource req = emptyExpenseRequest();
+        req.setResetSharedExpenses(true);
+        assertThat(MaintenanceUpsertMerge.blocksPreservedSharedBaseMerge(req)).isTrue();
+    }
+
+    @Test
+    void blocksPreservedSharedBaseMerge_trueWhenLegacyAmountPositive() {
+        MaintenanceCreateResource req = emptyExpenseRequest();
+        req.setAmount(new BigDecimal("1000"));
+        assertThat(MaintenanceUpsertMerge.blocksPreservedSharedBaseMerge(req)).isTrue();
     }
 
     @Test
@@ -67,10 +95,19 @@ class MaintenanceUpsertMergeTest {
     }
 
     @Test
-    void hasSharedExpensePayload_detectsExplicitZeroExpenseField() {
+    void hasPositiveSharedExpenseSum_trueWhenAnyLinePositive() {
         MaintenanceCreateResource req = new MaintenanceCreateResource();
         req.setWatchmanSalary(BigDecimal.ZERO);
-        assertThat(MaintenanceUpsertMerge.hasSharedExpensePayload(req)).isTrue();
+        req.setGarbageCollection(new BigDecimal("100.00"));
+        assertThat(MaintenanceUpsertMerge.hasPositiveSharedExpenseSum(req)).isTrue();
+        assertThat(MaintenanceUpsertMerge.blocksPreservedSharedBaseMerge(req)).isTrue();
+    }
+
+    @Test
+    void hasPositiveSharedExpenseSum_trueForPositiveCustomExpense() {
+        MaintenanceCreateResource req = new MaintenanceCreateResource();
+        req.setCustomExpenses(Map.of("Repairs", new BigDecimal("50.00")));
+        assertThat(MaintenanceUpsertMerge.hasPositiveSharedExpenseSum(req)).isTrue();
     }
 
     private static MaintenanceCreateResource emptyExpenseRequest() {
