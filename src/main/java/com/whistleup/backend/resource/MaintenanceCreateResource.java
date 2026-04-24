@@ -22,6 +22,7 @@ public class MaintenanceCreateResource {
     private Integer year;
     private Integer month;
     private BigDecimal amount;
+    private BigDecimal fixedMaintenance;
     private LocalDate dueDate;
     private Integer totalFlats;
 
@@ -52,6 +53,12 @@ public class MaintenanceCreateResource {
 
     @NotNull
     private String buildingId;
+
+    /**
+     * When true, do not reuse the prior month's embedded base from DB rows when recomputing shared split
+     * (admin explicitly cleared or replaced shared expenses). Rare; omit or false for normal flows.
+     */
+    private Boolean resetSharedExpenses;
 
     /** Total appliance maintenance for the month; split equally across opted-in residents when building flag is on. */
     private BigDecimal appliancesTotalAmount;

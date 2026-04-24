@@ -45,6 +45,10 @@ public interface ProfileRepository extends JpaRepository<Profile, String>, JpaSp
 
     List<Profile> findByBuildingIdAndRole(String buildingId, Roles role);
 
+    Optional<Profile> findFirstByBuildingIdAndFlatNo(String buildingId, String flatNo);
+
+    Optional<Profile> findFirstByBuildingIdAndFlatNoAndPhoneNot(String buildingId, String flatNo, String phone);
+
     @Query("""
        select p from Profile p
        where p.buildingId = :buildingId
@@ -65,4 +69,15 @@ public interface ProfileRepository extends JpaRepository<Profile, String>, JpaSp
        """)
     List<ResidentsResponse> getPendingResidentsByBuilding(@Param("buildingId") String buildingId,
                                                           @Param("roles") List<Roles> roles);
+
+    @Query("""
+       select upper(trim(p.flatNo))
+       from Profile p
+       where p.buildingId = :buildingId
+         and p.flatNo is not null
+         and trim(p.flatNo) <> ''
+       group by upper(trim(p.flatNo))
+       having count(p.phone) > 1
+       """)
+    List<String> findDuplicateFlatNosByBuildingId(@Param("buildingId") String buildingId);
 }

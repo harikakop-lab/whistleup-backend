@@ -38,6 +38,9 @@ public class Ledger {
     @Column(name = "total_amount", nullable = false)
     private double totalAmount;
 
+    @Column(name = "total_expenses")
+    private double totalExpenses;
+
     @Column(name = "total_flats", nullable = false)
     private int totalFlats;
 

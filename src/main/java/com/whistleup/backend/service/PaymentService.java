@@ -112,7 +112,7 @@ public class PaymentService {
                 .totalCollection(totalCollection)
                 .collected(collected)
                 .pending(pending)
-                .spent(0)
+                .spent(ledgerResponse.getTotalExpenses())
                 .flatsPaid(flatsPaid)
                 .flatsTotal(flatsTotal)
                 .perFlatAmount(ledgerResponse.getPerFlatAmount())

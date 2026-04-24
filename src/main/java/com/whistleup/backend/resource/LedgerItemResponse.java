@@ -15,10 +15,14 @@ public class LedgerItemResponse {
     private Long id;
     private String name;
     private double amount;
+    private String sectionKey;
+    private String sectionLabel;
 
-    public LedgerItemResponse(Long id, String name, double amount) {
+    public LedgerItemResponse(Long id, String name, double amount, String sectionKey, String sectionLabel) {
         this.id = id;
         this.name = name;
         this.amount = amount;
+        this.sectionKey = sectionKey;
+        this.sectionLabel = sectionLabel;
     }
 }
