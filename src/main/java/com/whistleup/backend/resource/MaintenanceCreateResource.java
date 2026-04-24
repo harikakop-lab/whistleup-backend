@@ -22,6 +22,7 @@ public class MaintenanceCreateResource {
     private Integer year;
     private Integer month;
     private BigDecimal amount;
+    private BigDecimal fixedMaintenance;
     private LocalDate dueDate;
     private Integer totalFlats;
 

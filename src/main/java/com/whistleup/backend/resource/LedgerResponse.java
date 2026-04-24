@@ -18,6 +18,10 @@ public class LedgerResponse {
     private int year;
     private String month;
     private double totalAmount;
+    private double totalExpenses;
+    private double openingBalance;
+    private double totalBudget;
+    private double closingBalance;
     private int totalFlats;
     private double perFlatAmount;
     private Long flatsPaid;
@@ -35,6 +39,10 @@ public class LedgerResponse {
         this.totalFlats = totalFlats;
         this.perFlatAmount = perFlatAmount;
         this.items = items;
+        this.totalExpenses = 0;
+        this.openingBalance = 0;
+        this.totalBudget = 0;
+        this.closingBalance = 0;
     }
 
     // getters

@@ -26,6 +26,12 @@ public class LedgerItem {
     @Column(nullable = false)
     private double amount;
 
+    @Column(name = "section_key", length = 32)
+    private String sectionKey;
+
+    @Column(name = "section_label", length = 64)
+    private String sectionLabel;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "ledger_id", nullable = false)
     private Ledger ledger;

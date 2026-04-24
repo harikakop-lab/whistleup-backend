@@ -7,11 +7,10 @@ import com.whistleup.backend.entity.BuildingDetails;
 import com.whistleup.backend.entity.Ledger;
 import com.whistleup.backend.entity.LedgerItem;
 import com.whistleup.backend.entity.Maintenance;
-import com.whistleup.backend.entity.Profile;
+import com.whistleup.backend.entity.NotebookMonthly;
 import com.whistleup.backend.repository.BuildingDetailsRepository;
 import com.whistleup.backend.repository.LedgerRepository;
 import com.whistleup.backend.repository.MaintenanceRepository;
-import com.whistleup.backend.repository.ProfileRepository;
 import com.whistleup.backend.resource.*;
 import jakarta.transaction.Transactional;
 import jakarta.validation.constraints.NotBlank;
@@ -24,10 +23,8 @@ import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.format.TextStyle;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -40,21 +37,20 @@ public class LedgerServiceImpl implements LedgerService {
 
     private final MaintenanceRepository maintenanceRepository;
 
-    private final ProfileRepository profileRepository;
-
     private final BuildingDetailsRepository buildingDetailsRepository;
+    private final NotebookService notebookService;
 
     public LedgerServiceImpl(
             LedgerRepository ledgerRepository,
             MaintenanceService maintenanceService,
             MaintenanceRepository maintenanceRepository,
-            ProfileRepository profileRepository,
-            BuildingDetailsRepository buildingDetailsRepository) {
+            BuildingDetailsRepository buildingDetailsRepository,
+            NotebookService notebookService) {
         this.ledgerRepository = ledgerRepository;
         this.maintenanceService = maintenanceService;
         this.maintenanceRepository = maintenanceRepository;
-        this.profileRepository = profileRepository;
         this.buildingDetailsRepository = buildingDetailsRepository;
+        this.notebookService = notebookService;
     }
 
     @Override
@@ -124,31 +120,64 @@ public class LedgerServiceImpl implements LedgerService {
                 year,
                 getMonthValue(month)
         );
-        Optional<Ledger> existing = ledgerRepository.findByYearAndMonthAndBuildingIdWithItems(
-                year,
-                normalizeMonth(month),
-                buildingId
-        );
-        if (existing.isPresent()) {
-            LedgerResponse response = toResponse(existing.get());
-            if (!maintenanceRows.isEmpty()) {
-                enrichFromMaintenanceRows(response, maintenanceRows);
-            }
-            return response;
-        }
         if (maintenanceRows.isEmpty()) {
             throw new IllegalStateException("No ledger/maintenance found for requested month");
         }
-        LedgerResponse response = new LedgerResponse(
-                null,
+        String normalizedMonth = normalizeMonth(month);
+        Optional<Ledger> existing = ledgerRepository.findByYearAndMonthAndBuildingIdWithItems(
                 year,
-                normalizeMonth(month),
+                normalizedMonth,
+                buildingId
+        );
+        return composeLedgerForBuilding(
+                buildingId,
+                year,
+                normalizedMonth,
+                existing.map(Ledger::getId).orElse(null),
+                maintenanceRows
+        );
+    }
+
+    /**
+     * Single source of truth for building-scoped ledger: maintenance rows define collected amounts and
+     * paid-flat progress; notebook (if any) supplies opening-balance toggle, expenses, and closing math.
+     */
+    private LedgerResponse composeLedgerForBuilding(
+            String buildingId,
+            int year,
+            String normalizedMonth,
+            Long persistedLedgerId,
+            List<Maintenance> maintenanceRows) {
+        Optional<NotebookMonthly> notebook = notebookService.findNotebookEntity(buildingId, year, normalizedMonth);
+
+        List<LedgerItemResponse> items = new ArrayList<>(buildItemsFromMaintenanceRows(maintenanceRows));
+        if (notebook.isPresent()) {
+            items.addAll(buildItemsFromNotebook(notebook.get()));
+        }
+
+        LedgerResponse response = new LedgerResponse(
+                persistedLedgerId,
+                year,
+                normalizedMonth,
                 0,
                 0,
                 0,
-                buildItemsFromMaintenanceRows(maintenanceRows)
+                items
         );
         response.setBuildingId(buildingId);
+        response.setItems(items);
+        response.setFlatsPaid(maintenanceRows.stream().filter(m -> "PAID".equals(m.getStatus().name())).count());
+        response.setDueDate(maintenanceRows.stream()
+                .map(Maintenance::getDueDate)
+                .filter(java.util.Objects::nonNull)
+                .findFirst()
+                .orElse(null));
+        if (notebook.isPresent()) {
+            applyNotebookSnapshot(response, notebook.get());
+        } else {
+            response.setOpeningBalance(0);
+            response.setTotalExpenses(0);
+        }
         enrichFromMaintenanceRows(response, maintenanceRows);
         return response;
     }
@@ -195,26 +224,55 @@ public class LedgerServiceImpl implements LedgerService {
             LedgerItem item = new LedgerItem();
             item.setName(req.getName());
             item.setAmount(req.getAmount());
+            item.setSectionKey(req.getSectionKey());
+            item.setSectionLabel(req.getSectionLabel());
             item.setLedger(ledger);
             ledger.getItems().add(item);
         }
     }
 
     private void calculateTotals(Ledger ledger) {
-        double total = ledger.getItems()
+        boolean hasCollectionSection = ledger.getItems().stream()
+                .anyMatch(item -> "COLLECTION".equalsIgnoreCase(item.getSectionKey()));
+        double collectionTotal = ledger.getItems()
                 .stream()
+                .filter(item -> !hasCollectionSection || "COLLECTION".equalsIgnoreCase(item.getSectionKey()))
                 .mapToDouble(LedgerItem::getAmount)
                 .sum();
-        ledger.setTotalAmount(total);
+        double expenseTotal = ledger.getItems()
+                .stream()
+                .filter(item -> "EXPENSE".equalsIgnoreCase(item.getSectionKey()))
+                .mapToDouble(LedgerItem::getAmount)
+                .sum();
+        ledger.setTotalAmount(collectionTotal);
+        ledger.setTotalExpenses(expenseTotal);
         ledger.setPerFlatAmount(
-                ledger.getTotalFlats() == 0 ? 0 : total / ledger.getTotalFlats()
+                ledger.getTotalFlats() == 0 ? 0 : collectionTotal / ledger.getTotalFlats()
         );
     }
 
     private LedgerResponse toResponse(Ledger ledger) {
+        if (ledger.getBuildingId() != null && !ledger.getBuildingId().isBlank()) {
+            List<Maintenance> rows = maintenanceRepository.findByBuildingIdAndMaintenanceYearAndMaintenanceMonth(
+                    ledger.getBuildingId(),
+                    ledger.getYear(),
+                    getMonthValue(ledger.getMonth())
+            );
+            if (!rows.isEmpty()) {
+                String normalizedMonth = normalizeMonth(ledger.getMonth());
+                return composeLedgerForBuilding(
+                        ledger.getBuildingId(),
+                        ledger.getYear(),
+                        normalizedMonth,
+                        ledger.getId(),
+                        rows
+                );
+            }
+        }
+
         List<LedgerItemResponse> items = ledger.getItems()
                 .stream()
-                .map(i -> new LedgerItemResponse(i.getId(), i.getName(), i.getAmount()))
+                .map(i -> new LedgerItemResponse(i.getId(), i.getName(), i.getAmount(), i.getSectionKey(), i.getSectionLabel()))
                 .toList();
 
         LedgerResponse ledgerResponse = new LedgerResponse(
@@ -227,26 +285,21 @@ public class LedgerServiceImpl implements LedgerService {
                 items
         );
         ledgerResponse.setBuildingId(ledger.getBuildingId());
-        List<Maintenance> rows = maintenanceRepository.findByBuildingIdAndMaintenanceYearAndMaintenanceMonth(
-                ledger.getBuildingId(),
-                ledger.getYear(),
-                getMonthValue(ledger.getMonth())
-        );
-        if (!rows.isEmpty()) {
-            enrichFromMaintenanceRows(ledgerResponse, rows);
-            if (CollectionUtils.isEmpty(ledgerResponse.getItems())) {
-                ledgerResponse.setItems(buildItemsFromMaintenanceRows(rows));
-            }
-        }
+        ledgerResponse.setTotalExpenses(ledger.getTotalExpenses());
         return ledgerResponse;
     }
 
     private void enrichFromMaintenanceRows(LedgerResponse response, List<Maintenance> rows) {
         double totalAmount = rows.stream().mapToDouble(m -> m.getAmount().doubleValue()).sum();
-        int totalFlats = resolveTotalResidentsForBuilding(response.getBuildingId(), rows.size());
+        int totalFlats = Math.max(rows.size(), 1);
         response.setTotalAmount(totalAmount);
+        if (response.getTotalExpenses() == 0) {
+            response.setTotalExpenses(0);
+        }
         response.setTotalFlats(totalFlats);
         response.setPerFlatAmount(totalFlats == 0 ? 0 : totalAmount / totalFlats);
+        response.setTotalBudget(totalAmount + response.getOpeningBalance());
+        response.setClosingBalance(response.getTotalBudget() - response.getTotalExpenses());
         response.setFlatsPaid(rows.stream().filter(m -> "PAID".equals(m.getStatus().name())).count());
         response.setDueDate(rows.stream()
                 .map(Maintenance::getDueDate)
@@ -274,68 +327,47 @@ public class LedgerServiceImpl implements LedgerService {
         if (CollectionUtils.isEmpty(rows)) {
             return List.of();
         }
-        double watchman = rows.stream().map(Maintenance::getWatchmanSalary)
-                .filter(java.util.Objects::nonNull).mapToDouble(BigDecimal::doubleValue).sum();
-        double garbage = rows.stream().map(Maintenance::getGarbageCollection)
-                .filter(java.util.Objects::nonNull).mapToDouble(BigDecimal::doubleValue).sum();
-        double lift = rows.stream().map(Maintenance::getLiftMaintenance)
-                .filter(java.util.Objects::nonNull).mapToDouble(BigDecimal::doubleValue).sum();
-        double electricity = rows.stream().map(Maintenance::getElectricityCommon)
-                .filter(java.util.Objects::nonNull).mapToDouble(BigDecimal::doubleValue).sum();
-        double motor = rows.stream().map(Maintenance::getMotorPump)
-                .filter(java.util.Objects::nonNull).mapToDouble(BigDecimal::doubleValue).sum();
-        double misc = rows.stream().map(Maintenance::getMiscellaneous)
-                .filter(java.util.Objects::nonNull).mapToDouble(BigDecimal::doubleValue).sum();
-        double water = rows.stream().map(Maintenance::getWaterAmount)
-                .filter(java.util.Objects::nonNull).mapToDouble(BigDecimal::doubleValue).sum();
-        Map<String, Double> customExpenses = new LinkedHashMap<>();
-        for (Maintenance row : rows) {
-            if (row.getCustomExpenses() == null || row.getCustomExpenses().isEmpty()) {
-                continue;
-            }
-            for (Map.Entry<String, BigDecimal> entry : row.getCustomExpenses().entrySet()) {
-                if (entry.getKey() == null || entry.getKey().trim().isEmpty() || entry.getValue() == null) {
-                    continue;
-                }
-                customExpenses.merge(entry.getKey().trim(), entry.getValue().doubleValue(), Double::sum);
-            }
+        double fixedMaintenance = MaintenanceLedgerAggregation.fixedMaintenanceCollectionTotal(rows);
+        double water = MaintenanceLedgerAggregation.sumWater(rows).doubleValue();
+        List<LedgerItemResponse> items = new ArrayList<>();
+        if (fixedMaintenance > 0.005) {
+            items.add(new LedgerItemResponse(null, "Fixed Maintenance", fixedMaintenance, "COLLECTION", "Collection Amount"));
+        }
+        if (water > 0.005) {
+            items.add(new LedgerItemResponse(null, "Water Bill", water, "COLLECTION", "Collection Amount"));
         }
 
-        List<LedgerItemResponse> items = new ArrayList<>();
-        if (watchman > 0) items.add(new LedgerItemResponse(null, "Watchman Salary", watchman));
-        if (garbage > 0) items.add(new LedgerItemResponse(null, "Garbage Collection", garbage));
-        if (lift > 0) items.add(new LedgerItemResponse(null, "Lift Maintenance", lift));
-        if (electricity > 0) items.add(new LedgerItemResponse(null, "Common Area Electricity", electricity));
-        if (motor > 0) items.add(new LedgerItemResponse(null, "Motor Maintenance", motor));
-        if (misc > 0) items.add(new LedgerItemResponse(null, "Miscellaneous", misc));
-        customExpenses.forEach((name, amount) -> {
-            if (amount > 0) {
-                items.add(new LedgerItemResponse(null, name, amount));
-            }
-        });
-        if (water > 0) items.add(new LedgerItemResponse(null, "Water Charges", water));
-
-        double appliancesTotal = rows.stream()
-                .map(Maintenance::getAppliancesAmount)
-                .filter(java.util.Objects::nonNull)
-                .mapToDouble(BigDecimal::doubleValue)
-                .sum();
-        if (appliancesTotal > 0) {
-            List<String> flats = new ArrayList<>();
-            for (Maintenance row : rows) {
-                if (row.getAppliancesAmount() == null || row.getAppliancesAmount().compareTo(BigDecimal.ZERO) <= 0) {
-                    continue;
-                }
-                String flatLabel = profileRepository.findByPhone(row.getProfileId())
-                        .map(Profile::getFlatNo)
-                        .filter(f -> f != null && !f.isBlank())
-                        .orElse(row.getProfileId());
-                flats.add(flatLabel);
-            }
-            String label = "Appliances - " + String.join(", ", flats);
-            items.add(new LedgerItemResponse(null, label, appliancesTotal));
+        double appliancesTotal = MaintenanceLedgerAggregation.sumAppliances(rows).doubleValue();
+        if (appliancesTotal > 0.005) {
+            items.add(new LedgerItemResponse(null, "Appliances", appliancesTotal, "COLLECTION", "Collection Amount"));
         }
         return items;
+    }
+
+    private void applyNotebookSnapshot(LedgerResponse response, NotebookMonthly notebook) {
+        response.setOpeningBalance(Boolean.TRUE.equals(notebook.getUsePreviousBalance())
+                ? notebook.getOpeningBalance().doubleValue()
+                : 0);
+        response.setTotalExpenses(notebook.getTotalExpenses().doubleValue());
+    }
+
+    private List<LedgerItemResponse> buildItemsFromNotebook(NotebookMonthly notebook) {
+        List<LedgerItemResponse> rows = new ArrayList<>();
+        if (notebook.getExpenseBreakdown() != null) {
+            notebook.getExpenseBreakdown().forEach((name, amount) -> {
+                if (name == null || name.trim().isEmpty() || amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+                    return;
+                }
+                rows.add(new LedgerItemResponse(
+                        null,
+                        name.trim(),
+                        amount.doubleValue(),
+                        "EXPENSE",
+                        "Expense Breakdown"
+                ));
+            });
+        }
+        return rows;
     }
 
     private String normalizeMonth(String month) {

@@ -100,6 +100,9 @@ public class ProfileServiceImpl implements ProfileService {
                 profile.setIsAssigned(true);
             }
         }
+        profile.setBuildingId(normalizeBuildingId(profile.getBuildingId()));
+        profile.setFlatNo(normalizeFlatNo(profile.getFlatNo()));
+        validateUniqueFlatOccupancy(profile.getBuildingId(), profile.getFlatNo(), profile.getPhone());
 
         profile.setPin(passwordEncoder.encode(profile.getPin()));
 
@@ -139,6 +142,9 @@ public class ProfileServiceImpl implements ProfileService {
                 profileEntity,
                 CustomBeanUtils.getNullPropertyNames(profileUpdateResource)
         );
+        profileEntity.setBuildingId(normalizeBuildingId(profileEntity.getBuildingId()));
+        profileEntity.setFlatNo(normalizeFlatNo(profileEntity.getFlatNo()));
+        validateUniqueFlatOccupancy(profileEntity.getBuildingId(), profileEntity.getFlatNo(), profileEntity.getPhone());
 
         // Password update (only if provided)
         if (Objects.nonNull(profileUpdateResource.getPin())) {
@@ -423,6 +429,40 @@ public class ProfileServiceImpl implements ProfileService {
             return AppConstants.CONTACT_KIND_EMERGENCY;
         }
         return AppConstants.CONTACT_KIND_GENERAL;
+    }
+
+    private String normalizeBuildingId(String buildingId) {
+        if (buildingId == null) {
+            return null;
+        }
+        String trimmed = buildingId.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String normalizeFlatNo(String flatNo) {
+        if (flatNo == null) {
+            return null;
+        }
+        String trimmed = flatNo.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+        return trimmed.toUpperCase(Locale.ROOT);
+    }
+
+    private void validateUniqueFlatOccupancy(String buildingId, String flatNo, String phone) {
+        if (buildingId == null || flatNo == null) {
+            return;
+        }
+        Optional<Profile> conflict = (phone == null || phone.isBlank())
+                ? profileRepository.findFirstByBuildingIdAndFlatNo(buildingId, flatNo)
+                : profileRepository.findFirstByBuildingIdAndFlatNoAndPhoneNot(buildingId, flatNo, phone);
+        if (conflict.isPresent()) {
+            throw new BadRequestException(
+                    "Flat already assigned",
+                    "Flat " + flatNo + " in building " + buildingId + " is already assigned to another profile."
+            );
+        }
     }
 
     private static void validateEmergencyContactLimits(List<ContactResource> contacts) {

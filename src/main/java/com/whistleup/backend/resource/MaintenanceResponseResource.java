@@ -20,6 +20,7 @@ public class MaintenanceResponseResource {
     private Integer month;
     private String monthLabel;     // "April Maintenance"
     private BigDecimal amount;
+    private BigDecimal fixedMaintenance;
     private BigDecimal watchmanSalary;
     private BigDecimal garbageCollection;
     private BigDecimal liftMaintenance;

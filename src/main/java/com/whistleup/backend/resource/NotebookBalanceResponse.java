@@ -1,10 +1,10 @@
 package com.whistleup.backend.resource;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
+
+import java.math.BigDecimal;
 
 @Getter
 @Setter
@@ -13,17 +13,10 @@ import lombok.*;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class LedgerItemRequest {
+public class NotebookBalanceResponse {
 
-    @NotBlank
-    private String name;
-
-    @NotNull
-    private Double amount;
-
-    private String sectionKey;
-
-    private String sectionLabel;
-
-    // getters & setters
+    private String buildingId;
+    private Integer year;
+    private String month;
+    private BigDecimal previousClosingBalance;
 }

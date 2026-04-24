@@ -34,7 +34,7 @@ public class LedgerController {
         if (buildingId != null && !buildingId.trim().isEmpty()) {
             return ledgerService.getLedgerByYearAndMonthAndBuilding(year, month, buildingId);
         }
-        return null;
+        return ledgerService.getLedgerByYearAndMonth(year, month);
     }
 
     @PutMapping("/{ledgerId}")

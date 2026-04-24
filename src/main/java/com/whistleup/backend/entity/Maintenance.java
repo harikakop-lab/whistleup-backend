@@ -43,6 +43,9 @@ public class Maintenance {
     @Column(nullable = false, precision = 38, scale = 2)
     private BigDecimal amount;
 
+    @Column(name = "fixed_maintenance", precision = 38, scale = 2)
+    private BigDecimal fixedMaintenance;
+
     @Column(name = "due_date", nullable = false)
     private LocalDate dueDate;
 
