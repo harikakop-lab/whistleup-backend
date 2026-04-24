@@ -1,9 +1,11 @@
 package com.whistleup.backend.service;
 
 import com.whistleup.backend.resource.MaintenanceCreateResource;
+import com.whistleup.backend.resource.MaintenanceMeterRowResource;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -82,6 +84,35 @@ class MaintenanceUpsertMergeTest {
     }
 
     @Test
+    void hasWaterPayload_falseWhenOnlyWaterModeWithoutBill() {
+        MaintenanceCreateResource req = new MaintenanceCreateResource();
+        req.setWaterMode("FIXED");
+        assertThat(MaintenanceUpsertMerge.hasWaterPayload(req)).isFalse();
+    }
+
+    @Test
+    void hasWaterPayload_trueWhenIndividualRateAndPositiveUnits() {
+        MaintenanceCreateResource req = new MaintenanceCreateResource();
+        req.setIndividualRatePerUnit(new BigDecimal("12"));
+        req.setIndividualRows(List.of(MaintenanceMeterRowResource.builder()
+                .flatNumber("101")
+                .units(new BigDecimal("10"))
+                .build()));
+        assertThat(MaintenanceUpsertMerge.hasWaterPayload(req)).isTrue();
+    }
+
+    @Test
+    void hasWaterPayload_falseWhenIndividualRateButNoPositiveUnits() {
+        MaintenanceCreateResource req = new MaintenanceCreateResource();
+        req.setIndividualRatePerUnit(new BigDecimal("12"));
+        req.setIndividualRows(List.of(MaintenanceMeterRowResource.builder()
+                .flatNumber("101")
+                .units(BigDecimal.ZERO)
+                .build()));
+        assertThat(MaintenanceUpsertMerge.hasWaterPayload(req)).isFalse();
+    }
+
+    @Test
     void combinedBasePlusWater_matchesIncrementalTotal() {
         BigDecimal effectiveBase = MaintenanceUpsertMerge.resolveEffectiveBase(
                 BigDecimal.ZERO,
@@ -108,6 +139,21 @@ class MaintenanceUpsertMergeTest {
         MaintenanceCreateResource req = new MaintenanceCreateResource();
         req.setCustomExpenses(Map.of("Repairs", new BigDecimal("50.00")));
         assertThat(MaintenanceUpsertMerge.hasPositiveSharedExpenseSum(req)).isTrue();
+    }
+
+    @Test
+    void hasCustomExpensePayload_falseWhenMapEmptyOrAllNonPositive() {
+        assertThat(MaintenanceUpsertMerge.hasCustomExpensePayload(new MaintenanceCreateResource())).isFalse();
+        MaintenanceCreateResource req = new MaintenanceCreateResource();
+        req.setCustomExpenses(Map.of("Repairs", BigDecimal.ZERO));
+        assertThat(MaintenanceUpsertMerge.hasCustomExpensePayload(req)).isFalse();
+    }
+
+    @Test
+    void hasCustomExpensePayload_trueWhenAnyCustomPositive() {
+        MaintenanceCreateResource req = new MaintenanceCreateResource();
+        req.setCustomExpenses(Map.of("Repairs", new BigDecimal("0.01")));
+        assertThat(MaintenanceUpsertMerge.hasCustomExpensePayload(req)).isTrue();
     }
 
     private static MaintenanceCreateResource emptyExpenseRequest() {

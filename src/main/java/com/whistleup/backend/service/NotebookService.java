@@ -205,6 +205,18 @@ public class NotebookService {
                         .ledger(ledger)
                         .build());
             }
+            for (Map.Entry<String, BigDecimal> e : MaintenanceLedgerAggregation.mergeCustomExpenseTotals(maintRows).entrySet()) {
+                double custom = e.getValue().doubleValue();
+                if (custom > 0.005) {
+                    ledger.getItems().add(LedgerItem.builder()
+                            .name(e.getKey())
+                            .amount(custom)
+                            .sectionKey(SECTION_COLLECTION)
+                            .sectionLabel(SECTION_COLLECTION_LABEL)
+                            .ledger(ledger)
+                            .build());
+                }
+            }
         } else {
             ledger.setTotalFlats(Math.max(1, notebook.getResidentCount()));
             ledger.setTotalAmount(scale(notebook.getCollectionAmount()).doubleValue());

@@ -264,6 +264,10 @@ public class MaintenanceService {
                 req.getMonth());
         boolean existingRow = existingOpt.isPresent();
 
+        LinkedHashMap<String, BigDecimal> customToStore =
+                resolveCustomExpensesToStore(req, existingOpt, customExpensesPerFlat);
+        BigDecimal perFlatCustomTotal = sumMapDecimalValues(customToStore);
+
         BigDecimal resolvedAmount = explicitAmountByFlat.getOrDefault(flatNo, null);
         boolean hasExplicitFlatTotal = resolvedAmount != null;
 
@@ -275,6 +279,15 @@ public class MaintenanceService {
                 existingOpt.map(Maintenance::getWaterAmount).orElse(null),
                 MaintenanceUpsertMerge.hasWaterPayload(req));
 
+        BigDecimal applianceShare = resolveApplianceShare(
+                phone,
+                flatNo,
+                explicitAppliancesByPhone,
+                explicitAppliancesByFlat,
+                optedAppliancePhones,
+                optedCountByFlat,
+                perApplianceShare);
+
         if (!hasExplicitFlatTotal) {
             BigDecimal effectiveBase = MaintenanceUpsertMerge.resolveEffectiveBase(
                     basePerFlat,
@@ -283,7 +296,15 @@ public class MaintenanceService {
                     existingOpt.map(Maintenance::getWaterAmount).orElse(null),
                     existingOpt.map(Maintenance::getAppliancesAmount).orElse(null),
                     MaintenanceUpsertMerge.blocksPreservedSharedBaseMerge(req));
-            resolvedAmount = effectiveBase.add(waterForFlat);
+            BigDecimal land = effectiveBase;
+            if (existingRow && existingOpt.isPresent()) {
+                land = land.max(floorLandFromExisting(existingOpt.get(), perFlatCustomTotal));
+            }
+            resolvedAmount = land.add(waterForFlat).add(applianceShare);
+        } else if (existingRow && existingOpt.isPresent()) {
+            BigDecimal floor = floorLandFromExisting(existingOpt.get(), perFlatCustomTotal);
+            BigDecimal reconciled = floor.add(waterForFlat).add(applianceShare);
+            resolvedAmount = Objects.requireNonNullElse(resolvedAmount, BigDecimal.ZERO).max(reconciled);
         }
 
         if (resolvedAmount != null && resolvedAmount.compareTo(BigDecimal.ZERO) <= 0 && req.getAmount() != null) {
@@ -302,18 +323,6 @@ public class MaintenanceService {
             }
         } else {
             fixedMaintenance = Objects.requireNonNullElse(req.getAmount(), basePerFlat);
-        }
-
-        BigDecimal applianceShare = resolveApplianceShare(
-                phone,
-                flatNo,
-                explicitAppliancesByPhone,
-                explicitAppliancesByFlat,
-                optedAppliancePhones,
-                optedCountByFlat,
-                perApplianceShare);
-        if (!hasExplicitFlatTotal) {
-            resolvedAmount = resolvedAmount.add(applianceShare);
         }
 
         final BigDecimal amountToPersist = resolvedAmount;
@@ -342,7 +351,7 @@ public class MaintenanceService {
         maintenance.setElectricityCommon(electricityPerFlat);
         maintenance.setMotorPump(motorPerFlat);
         maintenance.setMiscellaneous(miscPerFlat);
-        maintenance.setCustomExpenses(new LinkedHashMap<>(customExpensesPerFlat));
+        maintenance.setCustomExpenses(customToStore);
         maintenance.setWaterAmount(waterForFlat);
         maintenance.setAppliancesAmount(applianceShare);
         return repository.save(maintenance);
@@ -485,6 +494,55 @@ public class MaintenanceService {
             );
         }
         return perFlat;
+    }
+
+    private LinkedHashMap<String, BigDecimal> resolveCustomExpensesToStore(
+            MaintenanceCreateResource req,
+            Optional<Maintenance> existingOpt,
+            Map<String, BigDecimal> customExpensesPerFlat) {
+        LinkedHashMap<String, BigDecimal> out = new LinkedHashMap<>();
+        if (MaintenanceUpsertMerge.hasCustomExpensePayload(req)) {
+            out.putAll(customExpensesPerFlat);
+        } else if (existingOpt.isPresent() && existingOpt.get().getCustomExpenses() != null) {
+            out.putAll(existingOpt.get().getCustomExpenses());
+        } else {
+            out.putAll(customExpensesPerFlat);
+        }
+        return out;
+    }
+
+    private BigDecimal sumMapDecimalValues(Map<String, BigDecimal> m) {
+        if (m == null || m.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+        return m.values().stream()
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    /**
+     * Lower bound for land (amount − water − appliances) from the prior row so incremental updates
+     * (notably explicit {@code flatCharges} totals that omit custom) cannot drop persisted custom charges.
+     */
+    private BigDecimal floorLandFromExisting(Maintenance ex, BigDecimal perFlatCustomTotal) {
+        if (ex == null) {
+            return BigDecimal.ZERO;
+        }
+        BigDecimal impliedPrior = Objects.requireNonNullElse(ex.getAmount(), BigDecimal.ZERO)
+                .subtract(Objects.requireNonNullElse(ex.getWaterAmount(), BigDecimal.ZERO))
+                .subtract(Objects.requireNonNullElse(ex.getAppliancesAmount(), BigDecimal.ZERO));
+        if (impliedPrior.compareTo(BigDecimal.ZERO) < 0) {
+            impliedPrior = BigDecimal.ZERO;
+        }
+        BigDecimal fixedCol = Objects.requireNonNullElse(ex.getFixedMaintenance(), BigDecimal.ZERO);
+        if (fixedCol.compareTo(BigDecimal.ZERO) < 0) {
+            fixedCol = BigDecimal.ZERO;
+        }
+        BigDecimal custom = Objects.requireNonNullElse(perFlatCustomTotal, BigDecimal.ZERO);
+        if (custom.compareTo(BigDecimal.ZERO) < 0) {
+            custom = BigDecimal.ZERO;
+        }
+        return impliedPrior.max(fixedCol.add(custom));
     }
 
     private Map<String, BigDecimal> normalizeCustomExpenses(Map<String, BigDecimal> customExpenses) {

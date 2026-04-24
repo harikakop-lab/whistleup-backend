@@ -1,10 +1,11 @@
 package com.whistleup.backend.service;
 
 import com.whistleup.backend.resource.MaintenanceCreateResource;
+import com.whistleup.backend.resource.MaintenanceMeterRowResource;
 import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
-import java.util.Locale;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -72,24 +73,44 @@ public final class MaintenanceUpsertMerge {
         return false;
     }
 
+    /**
+     * True only when the request supplies actual water <em>amounts</em> (bill or metered usage).
+     * Sending only {@code waterMode} (e.g. {@code FIXED}) without a bill must return false so we keep
+     * the existing per-row {@code waterAmount} from the database on merge.
+     */
     public static boolean hasWaterPayload(MaintenanceCreateResource req) {
         if (req == null) {
             return false;
         }
-        String mode = req.getWaterMode() == null ? "" : req.getWaterMode().trim().toUpperCase(Locale.ROOT);
-        if (!mode.isEmpty()) {
-            return true;
-        }
         if (positive(req.getFixedWaterBill()) || positive(req.getMasterWaterBill())) {
             return true;
         }
-        if (positive(req.getIndividualRatePerUnit()) || positive(req.getMixedRatePerUnit()) || positive(req.getMixedFixedPool())) {
+        if (positive(req.getMixedFixedPool())) {
             return true;
         }
-        if (!CollectionUtils.isEmpty(req.getIndividualRows())) {
+        if (positive(req.getIndividualRatePerUnit()) && hasPositiveMeterUnits(req.getIndividualRows())) {
             return true;
         }
-        return !CollectionUtils.isEmpty(req.getMixedMeterRows());
+        if (positive(req.getMixedRatePerUnit()) && hasPositiveMeterUnits(req.getMixedMeterRows())) {
+            return true;
+        }
+        return false;
+    }
+
+    private static boolean hasPositiveMeterUnits(List<MaintenanceMeterRowResource> rows) {
+        if (CollectionUtils.isEmpty(rows)) {
+            return false;
+        }
+        for (MaintenanceMeterRowResource row : rows) {
+            if (row == null) {
+                continue;
+            }
+            BigDecimal units = row.getUnits();
+            if (units != null && units.compareTo(ZERO) > 0) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -131,6 +152,22 @@ public final class MaintenanceUpsertMerge {
             }
         }
         return w;
+    }
+
+    /**
+     * True when the request includes at least one positive custom expense total (building-level map).
+     * When false on an update, callers should keep the row's existing {@code customExpenses} map.
+     */
+    public static boolean hasCustomExpensePayload(MaintenanceCreateResource req) {
+        if (req == null || req.getCustomExpenses() == null || req.getCustomExpenses().isEmpty()) {
+            return false;
+        }
+        for (BigDecimal v : req.getCustomExpenses().values()) {
+            if (positive(v)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean positive(BigDecimal v) {

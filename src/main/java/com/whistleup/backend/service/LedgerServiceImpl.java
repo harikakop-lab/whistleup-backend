@@ -25,6 +25,7 @@ import java.time.format.TextStyle;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -340,6 +341,17 @@ public class LedgerServiceImpl implements LedgerService {
         double appliancesTotal = MaintenanceLedgerAggregation.sumAppliances(rows).doubleValue();
         if (appliancesTotal > 0.005) {
             items.add(new LedgerItemResponse(null, "Appliances", appliancesTotal, "COLLECTION", "Collection Amount"));
+        }
+        for (Map.Entry<String, BigDecimal> e : MaintenanceLedgerAggregation.mergeCustomExpenseTotals(rows).entrySet()) {
+            double custom = e.getValue().doubleValue();
+            if (custom > 0.005) {
+                items.add(new LedgerItemResponse(
+                        null,
+                        e.getKey(),
+                        custom,
+                        "COLLECTION",
+                        "Collection Amount"));
+            }
         }
         return items;
     }
