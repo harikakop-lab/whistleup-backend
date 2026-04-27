@@ -2,13 +2,15 @@ package com.whistleup.backend.controllers;
 
 import com.whistleup.backend.entity.DeviceTokenEntity;
 import com.whistleup.backend.repository.DeviceTokenRepository;
+import com.whistleup.backend.resource.DebugNotifyAllRequest;
 import com.whistleup.backend.service.ExpoPushService;
 import com.whistleup.backend.service.FcmPushService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -25,11 +27,13 @@ public class NotificationDebugController {
     private final FcmPushService fcmPushService;
 
     @PostMapping("/notify-me")
-    public void notifyMe() {
+    public void notifyMe(@Valid @RequestBody DebugNotifyAllRequest request) {
+        String title = request.getTitle();
+        String body = request.getBody();
         List<DeviceTokenEntity> devices = deviceTokenRepository.findAll();
         if (devices.isEmpty()) {
             log.warn(
-                    "[push][debug] no active device_tokens for userId={}. Log in on the phone so /devices/register runs.");
+                    "[push][debug] no active device_tokens. Log in on the phone so /devices/register runs.");
             return;
         }
         devices.forEach(d -> {
@@ -45,19 +49,13 @@ public class NotificationDebugController {
 
             if (hasFcm && fcmReady) {
                 log.info("[push][debug] using FCM path");
-                fcmPushService.send(
-                        d.getFcmToken(),
-                        "Sample Notification",
-                        "This is a sample notification for testing");
+                fcmPushService.send(d.getFcmToken(), title, body);
             } else if (hasExpo) {
                 if (hasFcm && !fcmReady) {
                     log.warn("[push][debug] FCM token present but server FCM disabled; falling back to Expo");
                 }
                 log.info("[push][debug] using Expo path");
-                expoPushService.send(
-                        d.getExpoPushToken(),
-                        "Sample Notification",
-                        "This is a sample notification for testing");
+                expoPushService.send(d.getExpoPushToken(), title, body);
             } else {
                 log.warn("[push][debug] no fcm_token and no expo_push_token on row id={}", d.getId());
             }
