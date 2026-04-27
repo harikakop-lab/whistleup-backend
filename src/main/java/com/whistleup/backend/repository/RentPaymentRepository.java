@@ -18,4 +18,6 @@ public interface RentPaymentRepository extends JpaRepository<RentPayment, Long> 
             Integer rentYear,
             Integer rentMonth
     );
+
+    void deleteByProfileId(String profileId);
 }

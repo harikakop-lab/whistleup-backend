@@ -1,6 +1,7 @@
 package com.whistleup.backend.service.impl;
 
 import com.whistleup.backend.constants.AppConstants;
+import com.whistleup.backend.constants.MaintenanceStatus;
 import com.whistleup.backend.constants.Roles;
 import com.whistleup.backend.entity.BuildingDetails;
 import com.whistleup.backend.entity.Contact;
@@ -8,9 +9,7 @@ import com.whistleup.backend.entity.FlatDetails;
 import com.whistleup.backend.entity.Profile;
 import com.whistleup.backend.exception.BadRequestException;
 import com.whistleup.backend.exception.NotFoundException;
-import com.whistleup.backend.repository.BuildingDetailsRepository;
-import com.whistleup.backend.repository.FlatRepository;
-import com.whistleup.backend.repository.ProfileRepository;
+import com.whistleup.backend.repository.*;
 import com.whistleup.backend.resource.ContactResource;
 import com.whistleup.backend.resource.ProfileCreateResource;
 import com.whistleup.backend.resource.ProfileResponseResource;
@@ -25,6 +24,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -51,6 +51,15 @@ public class ProfileServiceImpl implements ProfileService {
     private final BuildingAdminService buildingAdminService;
 
     private final FileStorageService fileStorageService;
+    private final MaintenanceRepository maintenanceRepository;
+    private final RentPaymentRepository rentPaymentRepository;
+    private final ComplaintsRepository complaintsRepository;
+    private final NotificationRepository notificationRepository;
+    private final NoticeRepository noticeRepository;
+    private final EventRepository eventRepository;
+    private final ServiceOrderRepository serviceOrderRepository;
+    private final PackersMoversInquiryRepository packersMoversInquiryRepository;
+    private final UserPushTokenRepository userPushTokenRepository;
 
     @Value("${app.base-url:http://localhost:8080}")
     private String appBaseUrl;
@@ -61,13 +70,31 @@ public class ProfileServiceImpl implements ProfileService {
             BuildingDetailsRepository buildingRepository,
             PasswordEncoder passwordEncoder,
             BuildingAdminService buildingAdminService,
-            FileStorageService fileStorageService) {
+            FileStorageService fileStorageService,
+            MaintenanceRepository maintenanceRepository,
+            RentPaymentRepository rentPaymentRepository,
+            ComplaintsRepository complaintsRepository,
+            NotificationRepository notificationRepository,
+            NoticeRepository noticeRepository,
+            EventRepository eventRepository,
+            ServiceOrderRepository serviceOrderRepository,
+            PackersMoversInquiryRepository packersMoversInquiryRepository,
+            UserPushTokenRepository userPushTokenRepository) {
         this.profileRepository = profileRepository;
         this.flatRepository = flatRepository;
         this.buildingRepository = buildingRepository;
         this.passwordEncoder = passwordEncoder;
         this.buildingAdminService = buildingAdminService;
         this.fileStorageService = fileStorageService;
+        this.maintenanceRepository = maintenanceRepository;
+        this.rentPaymentRepository = rentPaymentRepository;
+        this.complaintsRepository = complaintsRepository;
+        this.notificationRepository = notificationRepository;
+        this.noticeRepository = noticeRepository;
+        this.eventRepository = eventRepository;
+        this.serviceOrderRepository = serviceOrderRepository;
+        this.packersMoversInquiryRepository = packersMoversInquiryRepository;
+        this.userPushTokenRepository = userPushTokenRepository;
     }
 
     @Override
@@ -121,6 +148,9 @@ public class ProfileServiceImpl implements ProfileService {
         }
 
         Profile savedProfile = profileRepository.save(profile);
+        if (shouldCountAsResident(savedProfile)) {
+            adjustBuildingResidentCount(savedProfile.getBuildingId(), 1);
+        }
         upsertFlatDetails(savedProfile);
         ProfileResponseResource profileResponseResource = new ProfileResponseResource();
         profileResponseResource.setUserId(savedProfile.getPhone());
@@ -136,6 +166,8 @@ public class ProfileServiceImpl implements ProfileService {
             throw new NotFoundException("Profile not found");
         }
         Profile profileEntity = profileOptional.get();
+        boolean wasCountedResident = shouldCountAsResident(profileEntity);
+        String previousBuildingId = profileEntity.getBuildingId();
         // Copy non-null basic fields
         BeanUtils.copyProperties(
                 profileUpdateResource,
@@ -193,24 +225,26 @@ public class ProfileServiceImpl implements ProfileService {
         }
 
         Profile updatedProfile = profileRepository.save(profileEntity);
+        reconcileResidentCount(previousBuildingId, wasCountedResident, updatedProfile);
         upsertFlatDetails(updatedProfile);
         return updatedProfile.getPhone();
     }
 
 
     @Override
+    @Transactional
     public String deleteProfile(String userId) {
         Optional<Profile> profileOptional = profileRepository.findByPhone(userId);
         if (profileOptional.isEmpty()) {
             log.error("Profile not found with id: {}", userId);
             throw new NotFoundException("Profile not found");
         }
-        detachFlatMapping(userId);
-        profileRepository.deleteById(userId);
+        deleteProfileAndCleanup(profileOptional.get());
         return "SUCCESS";
     }
 
     @Override
+    @Transactional
     public String deleteProfileAsRequester(String targetUserId, String requesterUsername) {
         Profile targetProfile = profileRepository.findByPhone(targetUserId)
                 .orElseThrow(() -> new NotFoundException("Profile not found"));
@@ -230,9 +264,85 @@ public class ProfileServiceImpl implements ProfileService {
                     "Users may only delete their own account.");
         }
 
-        detachFlatMapping(targetProfile.getPhone());
-        profileRepository.deleteById(targetProfile.getPhone());
+        deleteProfileAndCleanup(targetProfile);
         return "SUCCESS";
+    }
+
+    private void deleteProfileAndCleanup(Profile targetProfile) {
+        String profilePhone = targetProfile.getPhone();
+        assertNoPendingMaintenanceDues(profilePhone);
+        if (shouldCountAsResident(targetProfile)) {
+            adjustBuildingResidentCount(targetProfile.getBuildingId(), -1);
+        }
+        detachFlatMapping(profilePhone);
+        maintenanceRepository.deleteByProfileId(profilePhone);
+        rentPaymentRepository.deleteByProfileId(profilePhone);
+        complaintsRepository.clearAssigneeForProfile(profilePhone);
+        complaintsRepository.deleteByProfileId(profilePhone);
+        serviceOrderRepository.deleteByProfileId(profilePhone);
+        eventRepository.deleteByProfileId(profilePhone);
+        noticeRepository.deleteByProfileId(profilePhone);
+        packersMoversInquiryRepository.deleteByProfileId(profilePhone);
+        notificationRepository.deleteByPhone(profilePhone);
+        userPushTokenRepository.deleteById(profilePhone);
+        profileRepository.deleteById(profilePhone);
+    }
+
+    private void assertNoPendingMaintenanceDues(String profilePhone) {
+        if (maintenanceRepository.existsByProfileIdAndStatus(profilePhone, MaintenanceStatus.PENDING)) {
+            throw new BadRequestException("Please clear the pending dues for this tenant");
+        }
+    }
+
+    private boolean shouldCountAsResident(Profile profile) {
+        if (profile == null) return false;
+        if (profile.getRole() != Roles.USER && profile.getRole() != Roles.OWNER) {
+            return false;
+        }
+        if (!Boolean.TRUE.equals(profile.getIsAssigned())) {
+            return false;
+        }
+        return profile.getBuildingId() != null && !profile.getBuildingId().trim().isEmpty();
+    }
+
+    private void reconcileResidentCount(String previousBuildingId, boolean wasCountedResident, Profile updatedProfile) {
+        boolean isCountedResident = shouldCountAsResident(updatedProfile);
+        String currentBuildingId = updatedProfile.getBuildingId();
+
+        if (wasCountedResident && isCountedResident) {
+            if (Objects.equals(normalizeBuildingId(previousBuildingId), normalizeBuildingId(currentBuildingId))) {
+                return;
+            }
+            adjustBuildingResidentCount(previousBuildingId, -1);
+            adjustBuildingResidentCount(currentBuildingId, 1);
+            return;
+        }
+
+        if (!wasCountedResident && isCountedResident) {
+            adjustBuildingResidentCount(currentBuildingId, 1);
+            return;
+        }
+
+        if (wasCountedResident) {
+            adjustBuildingResidentCount(previousBuildingId, -1);
+        }
+    }
+
+    private void adjustBuildingResidentCount(String buildingIdRaw, long delta) {
+        if (delta == 0) return;
+        String buildingId = normalizeBuildingId(buildingIdRaw);
+        if (buildingId == null) return;
+        try {
+            Long id = Long.valueOf(buildingId);
+            buildingRepository.findById(id).ifPresent(building -> {
+                long current = building.getTotalResidents() == null ? 0L : building.getTotalResidents();
+                long updated = Math.max(0L, current + delta);
+                building.setTotalResidents(updated);
+                buildingRepository.save(building);
+            });
+        } catch (Exception ignore) {
+            // Keep profile flow resilient even if resident count sync cannot be applied.
+        }
     }
 
     @Override

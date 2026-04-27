@@ -1,5 +1,6 @@
 package com.whistleup.backend.repository;
 
+import com.whistleup.backend.constants.MaintenanceStatus;
 import com.whistleup.backend.entity.Maintenance;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -34,6 +35,10 @@ public interface MaintenanceRepository extends JpaRepository<Maintenance, Long> 
             Integer maintenanceYear,
             Integer maintenanceMonth
     );
+
+    boolean existsByProfileIdAndStatus(String profileId, MaintenanceStatus status);
+
+    void deleteByProfileId(String profileId);
 
     @Query(value = "select * from maintenance where status = 'PENDING' and maintenance_year = :year", nativeQuery = true)
     List<Maintenance> findPendingMaintenanceByPreviousMonthAndYear(int year);

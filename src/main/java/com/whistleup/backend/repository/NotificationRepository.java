@@ -24,4 +24,6 @@ public interface NotificationRepository
     List<NotificationEntity> findPendingMaintenance(
             @Param("threshold") LocalDateTime threshold
     );
+
+    void deleteByPhone(String phone);
 }

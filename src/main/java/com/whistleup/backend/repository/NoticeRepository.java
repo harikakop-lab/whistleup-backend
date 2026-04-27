@@ -9,4 +9,6 @@ import java.util.UUID;
 public interface NoticeRepository extends JpaRepository<Notice, UUID> {
 
     List<Notice> findByBuildingIdOrderByCreatedAtDesc(String buildingId);
+
+    void deleteByProfileId(String profileId);
 }
