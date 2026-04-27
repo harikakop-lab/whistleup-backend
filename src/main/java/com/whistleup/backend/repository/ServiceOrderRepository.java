@@ -22,4 +22,6 @@ public interface ServiceOrderRepository extends JpaRepository<ServiceOrder, Long
     List<ServiceOrder> findAllByBuildingId(String buildingId);
 
     Optional<ServiceOrder> findByVhsBookingId(String vhsBookingId);
+
+    void deleteByProfileId(String profileId);
 }

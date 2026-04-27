@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface PackersMoversInquiryRepository extends JpaRepository<PackersMoversInquiry, Long> {
+    void deleteByProfileId(String profileId);
 }
