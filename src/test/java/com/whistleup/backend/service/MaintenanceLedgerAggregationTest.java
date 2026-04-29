@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -103,5 +104,73 @@ class MaintenanceLedgerAggregationTest {
                 .isEqualTo(1000.0);
         assertThat(MaintenanceLedgerAggregation.mergeCustomExpenseTotals(java.util.List.of(m)))
                 .containsEntry("Water tanker", new BigDecimal("625.00"));
+    }
+
+    @Test
+    void buildingAssetAmount_countsBuildingValueOnceAcrossRows() {
+        Maintenance first = Maintenance.builder()
+                .profileId("p1")
+                .maintenanceYear(2026)
+                .maintenanceMonth(4)
+                .amount(new BigDecimal("1100.00"))
+                .fixedMaintenance(new BigDecimal("1000.00"))
+                .waterAmount(new BigDecimal("100.00"))
+                .appliancesAmount(BigDecimal.ZERO)
+                .assetAmount(new BigDecimal("3000.00"))
+                .dueDate(LocalDate.of(2026, 4, 30))
+                .status(MaintenanceStatus.PENDING)
+                .buildingId("1")
+                .build();
+        Maintenance second = Maintenance.builder()
+                .profileId("p2")
+                .maintenanceYear(2026)
+                .maintenanceMonth(4)
+                .amount(new BigDecimal("1100.00"))
+                .fixedMaintenance(new BigDecimal("1000.00"))
+                .waterAmount(new BigDecimal("100.00"))
+                .appliancesAmount(BigDecimal.ZERO)
+                .assetAmount(new BigDecimal("3000.00"))
+                .dueDate(LocalDate.of(2026, 4, 30))
+                .status(MaintenanceStatus.PENDING)
+                .buildingId("1")
+                .build();
+
+        assertThat(MaintenanceLedgerAggregation.buildingAssetAmount(List.of(first, second)))
+                .isEqualByComparingTo(new BigDecimal("3000.00"));
+        assertThat(MaintenanceLedgerAggregation.canonicalTotalCollected(List.of(first, second)))
+                .isEqualByComparingTo(new BigDecimal("5200.00"));
+    }
+
+    @Test
+    void canonicalTotalCollected_withAccumulatedAsset_countsAssetOnlyOnceForBuilding() {
+        Maintenance first = Maintenance.builder()
+                .profileId("p1")
+                .maintenanceYear(2026)
+                .maintenanceMonth(5)
+                .amount(new BigDecimal("1000.00"))
+                .fixedMaintenance(new BigDecimal("1000.00"))
+                .waterAmount(BigDecimal.ZERO)
+                .appliancesAmount(BigDecimal.ZERO)
+                .assetAmount(new BigDecimal("21000.00"))
+                .status(MaintenanceStatus.PENDING)
+                .buildingId("1")
+                .build();
+        Maintenance second = Maintenance.builder()
+                .profileId("p2")
+                .maintenanceYear(2026)
+                .maintenanceMonth(5)
+                .amount(new BigDecimal("1000.00"))
+                .fixedMaintenance(new BigDecimal("1000.00"))
+                .waterAmount(BigDecimal.ZERO)
+                .appliancesAmount(BigDecimal.ZERO)
+                .assetAmount(new BigDecimal("21000.00"))
+                .status(MaintenanceStatus.PENDING)
+                .buildingId("1")
+                .build();
+
+        assertThat(MaintenanceLedgerAggregation.canonicalTotalCollected(List.of(first, second)))
+                .isEqualByComparingTo(new BigDecimal("23000.00"));
+        assertThat(MaintenanceLedgerAggregation.sumAmounts(List.of(first, second)))
+                .isEqualByComparingTo(new BigDecimal("2000.00"));
     }
 }

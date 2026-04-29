@@ -298,7 +298,8 @@ public class LedgerServiceImpl implements LedgerService {
             response.setTotalExpenses(0);
         }
         response.setTotalFlats(totalFlats);
-        response.setPerFlatAmount(totalFlats == 0 ? 0 : totalAmount / totalFlats);
+        double billedTotal = MaintenanceLedgerAggregation.sumAmounts(rows).doubleValue();
+        response.setPerFlatAmount(totalFlats == 0 ? 0 : billedTotal / totalFlats);
         response.setTotalBudget(totalAmount + response.getOpeningBalance());
         response.setClosingBalance(response.getTotalBudget() - response.getTotalExpenses());
         response.setFlatsPaid(rows.stream().filter(m -> "PAID".equals(m.getStatus().name())).count());
@@ -341,6 +342,21 @@ public class LedgerServiceImpl implements LedgerService {
         double appliancesTotal = MaintenanceLedgerAggregation.sumAppliances(rows).doubleValue();
         if (appliancesTotal > 0.005) {
             items.add(new LedgerItemResponse(null, "Appliances", appliancesTotal, "COLLECTION", "Collection Amount"));
+        }
+        double assetTotal = MaintenanceLedgerAggregation.buildingAssetAmount(rows).doubleValue();
+        if (assetTotal > 0.005) {
+            String desc = rows.stream()
+                    .map(Maintenance::getAssetDescription)
+                    .filter(s -> s != null && !s.isBlank())
+                    .findFirst()
+                    .orElse("");
+            String label = desc.isBlank() ? "Asset" : "Asset - " + desc.trim();
+            items.add(new LedgerItemResponse(
+                    null,
+                    label,
+                    assetTotal,
+                    "COLLECTION",
+                    "Collection Amount"));
         }
         for (Map.Entry<String, BigDecimal> e : MaintenanceLedgerAggregation.mergeCustomExpenseTotals(rows).entrySet()) {
             double custom = e.getValue().doubleValue();

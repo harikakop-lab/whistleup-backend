@@ -172,7 +172,11 @@ public class NotebookService {
         if (!maintRows.isEmpty()) {
             ledger.setTotalFlats(Math.max(1, maintRows.size()));
             ledger.setTotalAmount(scale(MaintenanceLedgerAggregation.canonicalTotalCollected(maintRows)).doubleValue());
-            double perFlat = maintRows.isEmpty() ? 0 : ledger.getTotalAmount() / maintRows.size();
+            double perFlat = maintRows.isEmpty()
+                    ? 0
+                    : scale(MaintenanceLedgerAggregation.sumAmounts(maintRows))
+                    .divide(BigDecimal.valueOf(maintRows.size()), 2, RoundingMode.HALF_UP)
+                    .doubleValue();
             ledger.setPerFlatAmount(perFlat);
 
             double fixed = MaintenanceLedgerAggregation.fixedMaintenanceCollectionTotal(maintRows);
@@ -200,6 +204,22 @@ public class NotebookService {
                 ledger.getItems().add(LedgerItem.builder()
                         .name("Appliances")
                         .amount(appl)
+                        .sectionKey(SECTION_COLLECTION)
+                        .sectionLabel(SECTION_COLLECTION_LABEL)
+                        .ledger(ledger)
+                        .build());
+            }
+            double asset = MaintenanceLedgerAggregation.buildingAssetAmount(maintRows).doubleValue();
+            if (asset > 0.005) {
+                String desc = maintRows.stream()
+                        .map(Maintenance::getAssetDescription)
+                        .filter(s -> s != null && !s.isBlank())
+                        .findFirst()
+                        .orElse("");
+                String label = desc.isBlank() ? "Asset" : "Asset - " + desc.trim();
+                ledger.getItems().add(LedgerItem.builder()
+                        .name(label)
+                        .amount(asset)
                         .sectionKey(SECTION_COLLECTION)
                         .sectionLabel(SECTION_COLLECTION_LABEL)
                         .ledger(ledger)
