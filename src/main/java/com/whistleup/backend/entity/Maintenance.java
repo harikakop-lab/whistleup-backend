@@ -111,4 +111,10 @@ public class Maintenance {
 
     @Column(name = "appliances_amount", precision = 38, scale = 2)
     private BigDecimal appliancesAmount;
+
+    @Column(name = "asset_amount", precision = 38, scale = 2)
+    private BigDecimal assetAmount;
+
+    @Column(name = "asset_description", length = 255)
+    private String assetDescription;
 }

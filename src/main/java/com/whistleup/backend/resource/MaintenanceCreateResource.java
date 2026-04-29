@@ -63,6 +63,12 @@ public class MaintenanceCreateResource {
     /** Total appliance maintenance for the month; split equally across opted-in residents when building flag is on. */
     private BigDecimal appliancesTotalAmount;
 
+    /** Building-level monthly income (e.g. shutters/commercial); not split among residents. */
+    private BigDecimal assetAmount;
+
+    /** Optional note for the asset income source. */
+    private String assetDescription;
+
     /**
      * Optional per-resident appliance fee (when UI collects Fee/Month per opted-in phone). Keys are tenant phone
      * numbers. When non-empty, takes precedence over {@link MaintenanceFlatChargeResource#getAppliancesAmount()} for

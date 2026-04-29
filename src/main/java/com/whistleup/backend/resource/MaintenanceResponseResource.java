@@ -30,6 +30,8 @@ public class MaintenanceResponseResource {
     private Map<String, BigDecimal> customExpenses;
     private BigDecimal waterAmount;
     private BigDecimal appliancesAmount;
+    private BigDecimal assetAmount;
+    private String assetDescription;
     private String waterMode;
     private LocalDate dueDate;
     private MaintenanceStatus status;

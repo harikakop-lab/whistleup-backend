@@ -49,6 +49,17 @@ public final class MaintenanceLedgerAggregation {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
+    /** Building-level non-split asset amount. Stored on each row, but counted once using max. */
+    public static BigDecimal buildingAssetAmount(List<Maintenance> rows) {
+        if (CollectionUtils.isEmpty(rows)) {
+            return BigDecimal.ZERO;
+        }
+        return rows.stream()
+                .map(Maintenance::getAssetAmount)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::max);
+    }
+
     /** Sum of per-flat custom expense map values on one maintenance row. */
     public static BigDecimal rowCustomSum(Maintenance m) {
         if (m == null || m.getCustomExpenses() == null || m.getCustomExpenses().isEmpty()) {
@@ -144,7 +155,7 @@ public final class MaintenanceLedgerAggregation {
                 .add(sumCustomExpensesAcrossRows(rows))
                 .add(sumWater(rows))
                 .add(sumAppliances(rows));
-        return fromCollectionLines.max(sumAmounts(rows));
+        return fromCollectionLines.max(sumAmounts(rows)).add(buildingAssetAmount(rows));
     }
 
     /** Building total of per-flat custom map values (each map entry is already split per flat). */

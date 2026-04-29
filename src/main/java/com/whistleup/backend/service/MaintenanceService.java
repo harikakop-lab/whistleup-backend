@@ -354,7 +354,33 @@ public class MaintenanceService {
         maintenance.setCustomExpenses(customToStore);
         maintenance.setWaterAmount(waterForFlat);
         maintenance.setAppliancesAmount(applianceShare);
+        maintenance.setAssetAmount(resolveAssetAmountToPersist(req, existingOpt));
+        maintenance.setAssetDescription(resolveAssetDescriptionToPersist(req, existingOpt));
         return repository.save(maintenance);
+    }
+
+    static BigDecimal resolveAssetAmountToPersist(MaintenanceCreateResource req, Optional<Maintenance> existingOpt) {
+        BigDecimal incomingAsset = Objects.requireNonNullElse(req.getAssetAmount(), BigDecimal.ZERO);
+        if (incomingAsset.compareTo(BigDecimal.ZERO) < 0) {
+            incomingAsset = BigDecimal.ZERO;
+        }
+        BigDecimal existingAsset = existingOpt
+                .map(Maintenance::getAssetAmount)
+                .map(v -> v.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : v)
+                .orElse(BigDecimal.ZERO);
+        return existingAsset.add(incomingAsset);
+    }
+
+    static String resolveAssetDescriptionToPersist(MaintenanceCreateResource req, Optional<Maintenance> existingOpt) {
+        String incoming = req.getAssetDescription() == null ? "" : req.getAssetDescription().trim();
+        if (!incoming.isBlank()) {
+            return incoming;
+        }
+        return existingOpt
+                .map(Maintenance::getAssetDescription)
+                .map(String::trim)
+                .filter(s -> !s.isBlank())
+                .orElse(null);
     }
 
     private BigDecimal splitPerFlat(BigDecimal value, int totalProfiles) {
@@ -747,6 +773,8 @@ public class MaintenanceService {
                 .customExpenses(m.getCustomExpenses())
                 .waterAmount(m.getWaterAmount())
                 .appliancesAmount(m.getAppliancesAmount())
+                .assetAmount(m.getAssetAmount())
+                .assetDescription(m.getAssetDescription())
                 .waterMode(m.getWaterMode())
                 .dueDate(m.getDueDate())
                 .status(m.getStatus())
