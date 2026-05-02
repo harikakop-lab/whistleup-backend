@@ -100,11 +100,11 @@ public class ProfileServiceImpl implements ProfileService {
     @Override
     public ProfileResponseResource createProfile(ProfileCreateResource profileCreateResource) {
 
-        if (profileRepository.findByPhone(profileCreateResource.getPhone()).isPresent()) {
+        if (profileCreateResource.getPhone() != null
+                && profileRepository.findByPhone(profileCreateResource.getPhone()).isPresent()) {
             throw new BadRequestException(
                     "Phone already exists",
-                    "Try using a different phone number."
-            );
+                    "Try using a different phone number.");
         }
 
         Profile profile = Profile.builder().build();
@@ -116,7 +116,8 @@ public class ProfileServiceImpl implements ProfileService {
             throw new BadRequestException("PIN is required", "Please provide a valid 4-digit PIN.");
         }
         if (profile.getIsAssigned() == null) {
-            // New user/owner self-signups wait for admin approval unless flat is already assigned.
+            // New user/owner self-signups wait for admin approval unless flat is already
+            // assigned.
             if (profile.getRole() == Roles.USER || profile.getRole() == Roles.OWNER) {
                 boolean hasFlat = profile.getFlatNo() != null && !profile.getFlatNo().isBlank();
                 log.info("Flat no: {}", profile.getFlatNo());
@@ -159,8 +160,7 @@ public class ProfileServiceImpl implements ProfileService {
 
     @Override
     public String updateProfile(ProfileCreateResource profileUpdateResource) {
-        Optional<Profile> profileOptional =
-                profileRepository.findByPhone(profileUpdateResource.getPhone());
+        Optional<Profile> profileOptional = profileRepository.findByPhone(profileUpdateResource.getPhone());
         if (profileOptional.isEmpty()) {
             log.error("Profile not found with phone: {}", profileUpdateResource.getPhone());
             throw new NotFoundException("Profile not found");
@@ -172,8 +172,7 @@ public class ProfileServiceImpl implements ProfileService {
         BeanUtils.copyProperties(
                 profileUpdateResource,
                 profileEntity,
-                CustomBeanUtils.getNullPropertyNames(profileUpdateResource)
-        );
+                CustomBeanUtils.getNullPropertyNames(profileUpdateResource));
         profileEntity.setBuildingId(normalizeBuildingId(profileEntity.getBuildingId()));
         profileEntity.setFlatNo(normalizeFlatNo(profileEntity.getFlatNo()));
         validateUniqueFlatOccupancy(profileEntity.getBuildingId(), profileEntity.getFlatNo(), profileEntity.getPhone());
@@ -181,8 +180,7 @@ public class ProfileServiceImpl implements ProfileService {
         // Password update (only if provided)
         if (Objects.nonNull(profileUpdateResource.getPin())) {
             profileEntity.setPin(
-                    passwordEncoder.encode(profileUpdateResource.getPin())
-            );
+                    passwordEncoder.encode(profileUpdateResource.getPin()));
         }
 
         if (profileUpdateResource.getContacts() != null
@@ -230,7 +228,6 @@ public class ProfileServiceImpl implements ProfileService {
         return updatedProfile.getPhone();
     }
 
-
     @Override
     @Transactional
     public String deleteProfile(String userId) {
@@ -255,8 +252,8 @@ public class ProfileServiceImpl implements ProfileService {
         boolean isAdmin = requester.getRole() == Roles.ADMIN || requester.getRole() == Roles.SYSTEM_ADMIN;
         boolean isSelfDelete = Objects.equals(requester.getPhone(), targetProfile.getPhone())
                 || (requester.getEmail() != null
-                && targetProfile.getEmail() != null
-                && requester.getEmail().equalsIgnoreCase(targetProfile.getEmail()));
+                        && targetProfile.getEmail() != null
+                        && requester.getEmail().equalsIgnoreCase(targetProfile.getEmail()));
 
         if (!isAdmin && !isSelfDelete) {
             throw new BadRequestException(
@@ -295,7 +292,8 @@ public class ProfileServiceImpl implements ProfileService {
     }
 
     private boolean shouldCountAsResident(Profile profile) {
-        if (profile == null) return false;
+        if (profile == null)
+            return false;
         if (profile.getRole() != Roles.USER && profile.getRole() != Roles.OWNER) {
             return false;
         }
@@ -329,9 +327,11 @@ public class ProfileServiceImpl implements ProfileService {
     }
 
     private void adjustBuildingResidentCount(String buildingIdRaw, long delta) {
-        if (delta == 0) return;
+        if (delta == 0)
+            return;
         String buildingId = normalizeBuildingId(buildingIdRaw);
-        if (buildingId == null) return;
+        if (buildingId == null)
+            return;
         try {
             Long id = Long.valueOf(buildingId);
             buildingRepository.findById(id).ifPresent(building -> {
@@ -380,8 +380,10 @@ public class ProfileServiceImpl implements ProfileService {
         profileResponseResource.setContacts(mapContactsToResources(profile.getContacts()));
         if (profile.getBuildingId() != null && !profile.getBuildingId().isBlank()) {
             try {
-                Optional<BuildingDetails> buildingDetailsOptional = buildingRepository.findById(Long.valueOf(profile.getBuildingId()));
-                buildingDetailsOptional.ifPresent(buildingDetails -> profileResponseResource.setBuildingName(buildingDetails.getBuildingName()));
+                Optional<BuildingDetails> buildingDetailsOptional = buildingRepository
+                        .findById(Long.valueOf(profile.getBuildingId()));
+                buildingDetailsOptional.ifPresent(
+                        buildingDetails -> profileResponseResource.setBuildingName(buildingDetails.getBuildingName()));
             } catch (Exception ignore) {
                 // Keep profile response even if building mapping is stale/invalid.
             }
@@ -442,7 +444,8 @@ public class ProfileServiceImpl implements ProfileService {
 
     @Override
     public List<ContactResource> getContactsByUsername(String username) {
-        Profile profile = profileRepository.findByEmailOrPhone(username).orElseThrow(() -> new RuntimeException("Profile not found"));
+        Profile profile = profileRepository.findByEmailOrPhone(username)
+                .orElseThrow(() -> new RuntimeException("Profile not found"));
         return mapContactsToResources(profile.getContacts());
     }
 
@@ -495,7 +498,8 @@ public class ProfileServiceImpl implements ProfileService {
         if (targetBuildingId == null || !targetBuildingId.equals(requestedBuildingId)) {
             throw new BadRequestException("Forbidden", "Resident is not in this building.");
         }
-        // Auth checks intentionally bypassed: allow resident detail fetch without requester validation.
+        // Auth checks intentionally bypassed: allow resident detail fetch without
+        // requester validation.
         ProfileResponseResource res = new ProfileResponseResource();
         BeanUtils.copyProperties(target, res, "contacts");
         res.setContacts(mapContactsToResources(target.getContacts()));
@@ -514,7 +518,8 @@ public class ProfileServiceImpl implements ProfileService {
     }
 
     private void assertCanAccessTenantDocuments(String requesterUsername, Profile target) {
-        // Auth checks intentionally bypassed for tenant document flows in current setup.
+        // Auth checks intentionally bypassed for tenant document flows in current
+        // setup.
         return;
     }
 
@@ -570,8 +575,7 @@ public class ProfileServiceImpl implements ProfileService {
         if (conflict.isPresent()) {
             throw new BadRequestException(
                     "Flat already assigned",
-                    "Flat " + flatNo + " in building " + buildingId + " is already assigned to another profile."
-            );
+                    "Flat " + flatNo + " in building " + buildingId + " is already assigned to another profile.");
         }
     }
 
@@ -626,28 +630,15 @@ public class ProfileServiceImpl implements ProfileService {
         Long buildingId = buildingOptional.get().getBuildingId();
         String flatNo = profile.getFlatNo().trim();
 
-        Optional<FlatDetails> residentCurrentFlatOptional = flatRepository.findByResident_Phone(profile.getPhone());
-        Optional<FlatDetails> targetFlatOptional =
-                flatRepository.findByBuilding_BuildingIdAndFlatNumber(buildingId, flatNo);
-
-        if (residentCurrentFlatOptional.isPresent()) {
-            FlatDetails residentCurrentFlat = residentCurrentFlatOptional.get();
-            boolean movingToDifferentFlat = targetFlatOptional
-                    .map(targetFlat -> !Objects.equals(targetFlat.getFlatId(), residentCurrentFlat.getFlatId()))
-                    .orElse(true);
-            if (movingToDifferentFlat) {
-                residentCurrentFlat.setResident(null);
-                flatRepository.save(residentCurrentFlat);
-            }
-        }
+        Optional<FlatDetails> targetFlatOptional = flatRepository.findByBuilding_BuildingIdAndFlatNumber(buildingId,
+                flatNo);
 
         FlatDetails flatDetails = targetFlatOptional.orElseGet(FlatDetails::new);
         Profile existingResident = flatDetails.getResident();
         if (existingResident != null && !Objects.equals(existingResident.getPhone(), profile.getPhone())) {
             throw new BadRequestException(
                     "Flat is already assigned",
-                    "Selected flat is assigned to another resident."
-            );
+                    "Selected flat is assigned to another resident.");
         }
 
         flatDetails.setResident(profile);
@@ -667,11 +658,15 @@ public class ProfileServiceImpl implements ProfileService {
         if (profilePhone == null || profilePhone.trim().isEmpty()) {
             return;
         }
-        flatRepository.findByResident_Phone(profilePhone.trim()).ifPresent(flatDetails -> {
+        List<FlatDetails> linkedFlats = flatRepository.findAllByResident_Phone(profilePhone.trim());
+        if (linkedFlats == null || linkedFlats.isEmpty()) {
+            return;
+        }
+        for (FlatDetails flatDetails : linkedFlats) {
             flatDetails.setBuilding(null);
             flatDetails.setResident(null);
-            flatRepository.save(flatDetails);
-        });
+        }
+        flatRepository.saveAll(linkedFlats);
     }
 
 }

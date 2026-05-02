@@ -13,7 +13,7 @@ import java.util.Optional;
 public interface FlatRepository extends JpaRepository<FlatDetails, Long> {
     Optional<FlatDetails> findFlatByFlatNumber(String flatNumber);
 
-    Optional<FlatDetails> findByResident_Phone(String phone);
+    List<FlatDetails> findAllByResident_Phone(String phone);
 
     Optional<FlatDetails> findByBuilding_BuildingIdAndFlatNumber(Long buildingId, String flatNumber);
 

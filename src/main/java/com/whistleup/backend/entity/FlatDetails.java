@@ -1,10 +1,6 @@
 package com.whistleup.backend.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.whistleup.backend.resource.BuildingDetailsRequestResource;
-import com.whistleup.backend.resource.BuildingDetailsResponseResource;
-import com.whistleup.backend.resource.OwnerDetailsRequestResource;
-import com.whistleup.backend.resource.OwnerDetailsResponseResource;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -31,8 +27,8 @@ public class FlatDetails {
     @JoinColumn(name = "building_id")
     private BuildingDetails building;
 
-    // One flat mapped to one resident (Profile)
-    @OneToOne(fetch = FetchType.LAZY)
+    // Many flats can be mapped to the same resident (Profile)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "profile_id")
     private Profile resident;
 

@@ -14,10 +14,7 @@ import lombok.Setter;
 import java.util.List;
 
 @Entity
-@Table(
-        name = "profile",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"building_id", "flat_no"})
-)
+@Table(name = "profile")
 @Getter
 @Setter
 @AllArgsConstructor
@@ -31,7 +28,7 @@ public class Profile {
     private String name;
 
     @Id
-    @Column(name = "phone", unique = true, nullable = false)
+    @Column(name = "phone")
     private String phone;
 
     @Column(name = "email")
