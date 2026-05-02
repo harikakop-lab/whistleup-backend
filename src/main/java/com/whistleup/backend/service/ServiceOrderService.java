@@ -123,7 +123,7 @@ public class ServiceOrderService {
 
         String city = building.getBuildingAddress() != null && building.getBuildingAddress().getCity() != null
                 ? building.getBuildingAddress().getCity() : "Bengaluru";
-        String address = getAddress(building);
+        String resolvedAddress = firstNonBlank(createResource.getServiceAddress(), getAddress(building));
         String flatNo = profile.getFlatNo() == null ? "" : profile.getFlatNo();
         String externalReference = String.valueOf(ThreadLocalRandom.current().nextLong(1_000_000_000L, 9_999_999_999L));
         String vhsBookingId = vhsBookingClient.createBooking(
@@ -133,7 +133,7 @@ public class ServiceOrderService {
                 createResource.getAmount(),
                 profile.getName(),
                 city,
-                address,
+                resolvedAddress,
                 flatNo,
                 externalReference,
                 profile.getPhone()
@@ -141,6 +141,7 @@ public class ServiceOrderService {
         var vhsBooking = vhsBookingClient.getBooking(vhsBookingId);
 
         ServiceOrder entity = serviceOrderMapper.toEntity(createResource);
+        entity.setServiceAddress(resolvedAddress);
         entity.setServicePerson(null);
         entity.setOrderStatus(OrderStatus.CREATED);
         entity.setVhsBookingId(vhsBookingId);

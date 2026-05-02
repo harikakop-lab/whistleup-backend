@@ -46,6 +46,9 @@ public class ServiceOrder {
     @Column(name = "option_title")
     private String optionTitle;
 
+    @Column(name = "service_address", columnDefinition = "TEXT")
+    private String serviceAddress;
+
     @Column(name = "notes")
     private String notes;
 

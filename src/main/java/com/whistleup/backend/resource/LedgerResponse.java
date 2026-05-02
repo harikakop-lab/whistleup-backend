@@ -27,6 +27,7 @@ public class LedgerResponse {
     private Long flatsPaid;
     private LocalDate dueDate;
     private List<LedgerItemResponse> items;
+    private List<LedgerAttachmentResponse> attachments;
 
     public LedgerResponse(Long id, int year, String month,
                           double totalAmount, int totalFlats,

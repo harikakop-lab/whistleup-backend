@@ -1,5 +1,6 @@
 package com.whistleup.backend.controllers;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.whistleup.backend.entity.Maintenance;
 import com.whistleup.backend.resource.MaintenanceAppliancesOptInResource;
 import com.whistleup.backend.resource.MaintenanceCreateResource;
@@ -29,6 +30,7 @@ public class MaintenanceController {
 
     private final MaintenanceService maintenanceService;
     private final FileStorageService fileStorageService;
+    private final ObjectMapper objectMapper;
 
     @GetMapping("/appliances-opted-in")
     public ResponseEntity<List<MaintenanceAppliancesOptInResource>> listAppliancesOptIn(
@@ -36,14 +38,51 @@ public class MaintenanceController {
         return ResponseEntity.ok(maintenanceService.listAppliancesOptInFlats(buildingId));
     }
 
-    @PostMapping("/create")
-    public ResponseEntity<List<MaintenanceResponseResource>> create(@RequestBody MaintenanceCreateResource req) {
+    @PostMapping(value = "/create", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<MaintenanceResponseResource>> createJson(@RequestBody MaintenanceCreateResource req) {
         return ResponseEntity.status(HttpStatus.CREATED).body(maintenanceService.createOrUpdateMaintenance(req));
     }
 
-    @PatchMapping("/update")
-    public ResponseEntity<List<MaintenanceResponseResource>> update(@RequestBody MaintenanceCreateResource req) {
+    @PostMapping(value = "/create", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<List<MaintenanceResponseResource>> createMultipart(
+            @RequestPart("data") String dataJson,
+            @RequestPart(value = "files", required = false) MultipartFile[] files) throws Exception {
+        MaintenanceCreateResource req = objectMapper.readValue(dataJson, MaintenanceCreateResource.class);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(maintenanceService.createOrUpdateMaintenance(req, files));
+    }
+
+    @PatchMapping(value = "/update", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<MaintenanceResponseResource>> updateJson(@RequestBody MaintenanceCreateResource req) {
         return ResponseEntity.ok(maintenanceService.updateMaintenance(req));
+    }
+
+    @PatchMapping(value = "/update", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<List<MaintenanceResponseResource>> updateMultipart(
+            @RequestPart("data") String dataJson,
+            @RequestPart(value = "files", required = false) MultipartFile[] files) throws Exception {
+        MaintenanceCreateResource req = objectMapper.readValue(dataJson, MaintenanceCreateResource.class);
+        return ResponseEntity.ok(maintenanceService.updateMaintenance(req, files));
+    }
+
+    @GetMapping("/ledger-attachment/{buildingId}/{year}/{month}/{fileName:.+}")
+    public ResponseEntity<Resource> getLedgerAttachment(
+            @PathVariable String buildingId,
+            @PathVariable int year,
+            @PathVariable int month,
+            @PathVariable String fileName,
+            HttpServletRequest request) {
+        Resource resource =
+                fileStorageService.loadMaintenanceLedgerAttachment(buildingId, year, month, fileName);
+        String contentType;
+        try {
+            contentType = request.getServletContext().getMimeType(resource.getFile().getAbsolutePath());
+        } catch (Exception ex) {
+            contentType = "application/octet-stream";
+        }
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(contentType != null ? contentType : "application/octet-stream"))
+                .body(resource);
     }
 
     @GetMapping("/building/{buildingId}")
