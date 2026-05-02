@@ -10,6 +10,9 @@ import com.whistleup.backend.exception.NotFoundException;
 import com.whistleup.backend.repository.BuildingDetailsRepository;
 import com.whistleup.backend.repository.MaintenanceRepository;
 import com.whistleup.backend.repository.ProfileRepository;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.whistleup.backend.resource.LedgerAttachmentStored;
 import com.whistleup.backend.resource.MaintenanceFlatChargeResource;
 import com.whistleup.backend.resource.MaintenanceCreateResource;
 import com.whistleup.backend.resource.MaintenanceMeterRowResource;
@@ -20,6 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -54,24 +58,169 @@ public class MaintenanceService {
     private final NotificationSendService notificationSendService;
     private final FileStorageService fileStorageService;
     private final NotebookService notebookService;
+    private final ObjectMapper objectMapper;
 
     @Value("${app.base-url}")
     private String appBaseUrl;
 
     private static final long MAX_PAYMENT_PROOF_BYTES = 5L * 1024 * 1024;
+    private static final long MAX_LEDGER_ATTACHMENT_BYTES = 5L * 1024 * 1024;
+    private static final int MAX_LEDGER_ATTACHMENTS = 10;
+    private static final Set<String> ALLOWED_LEDGER_ATTACHMENT_TYPES = Set.of(
+            "image/jpeg",
+            "image/png",
+            "image/webp",
+            "application/pdf");
     private static final Set<String> ALLOWED_PAYMENT_METHODS =
             Set.of("UPI", "BANK_TRANSFER", "CASH", "CHEQUE");
 
     public List<MaintenanceResponseResource> createOrUpdateMaintenance(MaintenanceCreateResource maintenanceCreateResource) {
+        return createOrUpdateMaintenance(maintenanceCreateResource, null);
+    }
+
+    @Transactional
+    public List<MaintenanceResponseResource> createOrUpdateMaintenance(
+            MaintenanceCreateResource maintenanceCreateResource,
+            MultipartFile[] ledgerAttachmentFiles) {
+        String priorAttachmentsJson = snapshotLedgerAttachmentsJson(maintenanceCreateResource);
         List<MaintenanceResponseResource> rows = upsertMaintenanceRows(maintenanceCreateResource);
+        if (!CollectionUtils.isEmpty(rows)) {
+            applyLedgerAttachmentChanges(maintenanceCreateResource, ledgerAttachmentFiles, priorAttachmentsJson);
+        }
         triggerNotebookRefreshAfterMaintenance(rows, maintenanceCreateResource);
         return rows;
     }
 
     public List<MaintenanceResponseResource> updateMaintenance(MaintenanceCreateResource maintenanceCreateResource) {
+        return updateMaintenance(maintenanceCreateResource, null);
+    }
+
+    @Transactional
+    public List<MaintenanceResponseResource> updateMaintenance(
+            MaintenanceCreateResource maintenanceCreateResource,
+            MultipartFile[] ledgerAttachmentFiles) {
+        String priorAttachmentsJson = snapshotLedgerAttachmentsJson(maintenanceCreateResource);
         List<MaintenanceResponseResource> rows = upsertMaintenanceRows(maintenanceCreateResource);
+        if (!CollectionUtils.isEmpty(rows)) {
+            applyLedgerAttachmentChanges(maintenanceCreateResource, ledgerAttachmentFiles, priorAttachmentsJson);
+        }
         triggerNotebookRefreshAfterMaintenance(rows, maintenanceCreateResource);
         return rows;
+    }
+
+    private String snapshotLedgerAttachmentsJson(MaintenanceCreateResource req) {
+        if (req.getBuildingId() == null
+                || req.getBuildingId().isBlank()
+                || req.getYear() == null
+                || req.getMonth() == null) {
+            return null;
+        }
+        return repository
+                .findByBuildingIdAndMaintenanceYearAndMaintenanceMonth(
+                        req.getBuildingId(), req.getYear(), req.getMonth())
+                .stream()
+                .map(Maintenance::getLedgerAttachmentsJson)
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .findFirst()
+                .orElse(null);
+    }
+
+    private void applyLedgerAttachmentChanges(
+            MaintenanceCreateResource req,
+            MultipartFile[] ledgerAttachmentFiles,
+            String priorAttachmentsJson) {
+        if (ledgerAttachmentFiles == null) {
+            return;
+        }
+        int nonEmpty = 0;
+        for (MultipartFile f : ledgerAttachmentFiles) {
+            if (f != null && !f.isEmpty()) {
+                nonEmpty++;
+            }
+        }
+        if (nonEmpty == 0) {
+            return;
+        }
+        if (nonEmpty > MAX_LEDGER_ATTACHMENTS) {
+            throw new BadRequestException(
+                    "Too many attachments",
+                    "You can attach at most " + MAX_LEDGER_ATTACHMENTS + " files.");
+        }
+        List<LedgerAttachmentStored> previous = parseStoredAttachments(priorAttachmentsJson);
+        if (!previous.isEmpty()) {
+            fileStorageService.deleteMaintenanceLedgerStoredFiles(
+                    req.getBuildingId(),
+                    req.getYear(),
+                    req.getMonth(),
+                    previous.stream().map(LedgerAttachmentStored::getFileName).toList());
+        }
+        List<LedgerAttachmentStored> saved = new ArrayList<>();
+        for (MultipartFile file : ledgerAttachmentFiles) {
+            if (file == null || file.isEmpty()) {
+                continue;
+            }
+            validateLedgerAttachmentFile(file);
+            String storedName =
+                    fileStorageService.saveMaintenanceLedgerAttachment(
+                            req.getBuildingId(), req.getYear(), req.getMonth(), file);
+            saved.add(
+                    LedgerAttachmentStored.builder()
+                            .fileName(storedName)
+                            .contentType(normalizeLedgerAttachmentContentType(file))
+                            .build());
+        }
+        if (saved.isEmpty()) {
+            return;
+        }
+        try {
+            String json = objectMapper.writeValueAsString(saved);
+            repository.updateLedgerAttachmentsJsonForPeriod(
+                    req.getBuildingId(), req.getYear(), req.getMonth(), json);
+            repository.flush();
+        } catch (Exception e) {
+            throw new BadRequestException("Could not persist attachment metadata", e.getMessage());
+        }
+    }
+
+    private List<LedgerAttachmentStored> parseStoredAttachments(String json) {
+        if (json == null || json.isBlank()) {
+            return List.of();
+        }
+        try {
+            List<LedgerAttachmentStored> list =
+                    objectMapper.readValue(json, new TypeReference<List<LedgerAttachmentStored>>() {});
+            return list == null ? List.of() : list;
+        } catch (Exception e) {
+            log.warn("Could not parse ledger_attachments_json: {}", e.toString());
+            return List.of();
+        }
+    }
+
+    private void validateLedgerAttachmentFile(MultipartFile file) {
+        if (file.getSize() > MAX_LEDGER_ATTACHMENT_BYTES) {
+            throw new BadRequestException(
+                    "Attachment too large", "Each file must be at most 5 MB.");
+        }
+        String ct = normalizeLedgerAttachmentContentType(file);
+        if (!ALLOWED_LEDGER_ATTACHMENT_TYPES.contains(ct)) {
+            throw new BadRequestException(
+                    "Unsupported file type",
+                    "Allowed types: JPEG, PNG, WebP, PDF.");
+        }
+    }
+
+    private String normalizeLedgerAttachmentContentType(MultipartFile file) {
+        String raw = file.getContentType();
+        if (raw == null || raw.isBlank()) {
+            return "";
+        }
+        String lower = raw.split(";")[0].trim().toLowerCase(Locale.ROOT);
+        if ("image/jpg".equals(lower)) {
+            return "image/jpeg";
+        }
+        return lower;
     }
 
     private void triggerNotebookRefreshAfterMaintenance(

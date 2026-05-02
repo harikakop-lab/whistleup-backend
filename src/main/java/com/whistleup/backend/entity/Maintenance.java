@@ -117,4 +117,8 @@ public class Maintenance {
 
     @Column(name = "asset_description", length = 255)
     private String assetDescription;
+
+    /** JSON array: [{"fileName":"...","contentType":"image/jpeg"}, ...] — duplicated on all rows for building/month. */
+    @Column(name = "ledger_attachments_json", columnDefinition = "TEXT")
+    private String ledgerAttachmentsJson;
 }

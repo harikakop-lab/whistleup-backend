@@ -73,6 +73,22 @@ public class FileStorageService {
         return getResolvedRootDir().resolve("packers-movers").resolve(inquiryId.toString());
     }
 
+    private Path getMaintenanceLedgerDir(String buildingId, int year, int month) {
+        String safeBuilding = sanitizePathSegment(buildingId);
+        return getResolvedRootDir()
+                .resolve("maintenance-ledger")
+                .resolve(safeBuilding)
+                .resolve(String.valueOf(year))
+                .resolve(String.valueOf(month));
+    }
+
+    private String sanitizePathSegment(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return "unknown";
+        }
+        return raw.replaceAll("[^0-9A-Za-z._-]", "_");
+    }
+
     private String sanitizeProfilePhoneSegment(String phone) {
         if (phone == null || phone.isBlank()) {
             return "unknown";
@@ -178,6 +194,58 @@ public class FileStorageService {
             return fileName;
         } catch (IOException e) {
             throw new RuntimeException("Failed to store walkthrough video", e);
+        }
+    }
+
+    public String saveMaintenanceLedgerAttachment(String buildingId, int year, int month, MultipartFile file) {
+        try {
+            String originalName = Objects.requireNonNullElse(file.getOriginalFilename(), "attachment.bin")
+                    .replaceAll("[^a-zA-Z0-9._-]", "_");
+            String fileName = System.currentTimeMillis() + "_" + originalName;
+            Path dir = getMaintenanceLedgerDir(buildingId, year, month);
+            Files.createDirectories(dir);
+            Path target = dir.resolve(fileName);
+            Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+            return fileName;
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to store maintenance ledger attachment", e);
+        }
+    }
+
+    public Resource loadMaintenanceLedgerAttachment(String buildingId, int year, int month, String fileName) {
+        try {
+            if (fileName == null || fileName.isBlank() || fileName.contains("..")) {
+                throw new RuntimeException("Invalid file name");
+            }
+            Path filePath = getMaintenanceLedgerDir(buildingId, year, month).resolve(fileName);
+            Resource resource = new UrlResource(filePath.toUri());
+            if (!resource.exists()) {
+                throw new RuntimeException("File not found");
+            }
+            return resource;
+        } catch (MalformedURLException e) {
+            throw new RuntimeException("Invalid file path", e);
+        }
+    }
+
+    public void deleteMaintenanceLedgerStoredFiles(String buildingId, int year, int month, java.util.List<String> fileNames) {
+        if (fileNames == null || fileNames.isEmpty()) {
+            return;
+        }
+        Path dir = getMaintenanceLedgerDir(buildingId, year, month);
+        for (String name : fileNames) {
+            if (name == null || name.isBlank() || name.contains("..")) {
+                continue;
+            }
+            try {
+                Path p = dir.resolve(name).normalize();
+                if (!p.startsWith(dir.normalize())) {
+                    continue;
+                }
+                Files.deleteIfExists(p);
+            } catch (IOException ignored) {
+                log.warn("Could not delete maintenance ledger file {}", name);
+            }
         }
     }
 

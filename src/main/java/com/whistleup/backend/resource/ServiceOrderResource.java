@@ -32,6 +32,8 @@ public class ServiceOrderResource {
     private String timeSlot;
     private String optionId;
     private String optionTitle;
+    /** Full service location line (optional on create; falls back to building address). */
+    private String serviceAddress;
     private String notes;
     private Integer amount;
     private String vhsBookingId;

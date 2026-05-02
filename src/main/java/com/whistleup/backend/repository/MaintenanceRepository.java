@@ -3,7 +3,9 @@ package com.whistleup.backend.repository;
 import com.whistleup.backend.constants.MaintenanceStatus;
 import com.whistleup.backend.entity.Maintenance;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -42,4 +44,14 @@ public interface MaintenanceRepository extends JpaRepository<Maintenance, Long> 
 
     @Query(value = "select * from maintenance where status = 'PENDING' and maintenance_year = :year", nativeQuery = true)
     List<Maintenance> findPendingMaintenanceByPreviousMonthAndYear(int year);
+
+    @Modifying
+    @Query(
+            "update Maintenance m set m.ledgerAttachmentsJson = :json "
+                    + "where m.buildingId = :buildingId and m.maintenanceYear = :year and m.maintenanceMonth = :month")
+    int updateLedgerAttachmentsJsonForPeriod(
+            @Param("buildingId") String buildingId,
+            @Param("year") int year,
+            @Param("month") int month,
+            @Param("json") String json);
 }

@@ -1,5 +1,7 @@
 package com.whistleup.backend.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lowagie.text.Document;
 import com.lowagie.text.Paragraph;
 import com.lowagie.text.pdf.PdfWriter;
@@ -14,6 +16,7 @@ import com.whistleup.backend.repository.MaintenanceRepository;
 import com.whistleup.backend.resource.*;
 import jakarta.transaction.Transactional;
 import jakarta.validation.constraints.NotBlank;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
@@ -40,18 +43,24 @@ public class LedgerServiceImpl implements LedgerService {
 
     private final BuildingDetailsRepository buildingDetailsRepository;
     private final NotebookService notebookService;
+    private final ObjectMapper objectMapper;
+
+    @Value("${app.base-url:http://localhost:8080}")
+    private String appBaseUrl;
 
     public LedgerServiceImpl(
             LedgerRepository ledgerRepository,
             MaintenanceService maintenanceService,
             MaintenanceRepository maintenanceRepository,
             BuildingDetailsRepository buildingDetailsRepository,
-            NotebookService notebookService) {
+            NotebookService notebookService,
+            ObjectMapper objectMapper) {
         this.ledgerRepository = ledgerRepository;
         this.maintenanceService = maintenanceService;
         this.maintenanceRepository = maintenanceRepository;
         this.buildingDetailsRepository = buildingDetailsRepository;
         this.notebookService = notebookService;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -180,7 +189,63 @@ public class LedgerServiceImpl implements LedgerService {
             response.setTotalExpenses(0);
         }
         enrichFromMaintenanceRows(response, maintenanceRows);
+        response.setAttachments(buildLedgerAttachmentResponses(buildingId, year, maintenanceRows));
         return response;
+    }
+
+    private List<LedgerAttachmentResponse> buildLedgerAttachmentResponses(
+            String buildingId, int year, List<Maintenance> maintenanceRows) {
+        if (CollectionUtils.isEmpty(maintenanceRows)) {
+            return List.of();
+        }
+        String json = maintenanceRows.stream()
+                .map(Maintenance::getLedgerAttachmentsJson)
+                .filter(s -> s != null && !s.isBlank())
+                .findFirst()
+                .orElse(null);
+        if (json == null) {
+            return List.of();
+        }
+        try {
+            List<LedgerAttachmentStored> stored =
+                    objectMapper.readValue(json, new TypeReference<List<LedgerAttachmentStored>>() {});
+            if (stored == null || stored.isEmpty()) {
+                return List.of();
+            }
+            int month = maintenanceRows.get(0).getMaintenanceMonth();
+            String base = normalizedBaseUrl();
+            List<LedgerAttachmentResponse> out = new ArrayList<>();
+            for (LedgerAttachmentStored s : stored) {
+                if (s.getFileName() == null || s.getFileName().isBlank()) {
+                    continue;
+                }
+                String url = base + "/whistleup/maintenance/ledger-attachment/"
+                        + buildingId
+                        + "/"
+                        + year
+                        + "/"
+                        + month
+                        + "/"
+                        + s.getFileName();
+                out.add(
+                        LedgerAttachmentResponse.builder()
+                                .url(url)
+                                .contentType(s.getContentType())
+                                .fileName(s.getFileName())
+                                .build());
+            }
+            return out;
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
+
+    private String normalizedBaseUrl() {
+        String b = appBaseUrl == null ? "" : appBaseUrl.trim();
+        if (b.endsWith("/")) {
+            return b.substring(0, b.length() - 1);
+        }
+        return b;
     }
 
     @Override
