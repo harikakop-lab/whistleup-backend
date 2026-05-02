@@ -23,6 +23,11 @@ public interface DeviceTokenRepository
 
     List<DeviceTokenEntity> findByUserIdAndActiveTrue(Long userId);
 
+    /**
+     * Most recently registered/seen active device for push routing (tie-break on higher id).
+     */
+    Optional<DeviceTokenEntity> findFirstByUserIdAndActiveTrueOrderByLastSeenDescIdDesc(Long userId);
+
     @Modifying
     @Transactional
     @Query("""

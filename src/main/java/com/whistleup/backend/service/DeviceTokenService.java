@@ -40,7 +40,8 @@ public class DeviceTokenService {
             log.info("[push][register] fcmTokenPrefix={}", fcmToken.trim().substring(0, Math.min(12, fcmToken.trim().length())));
         }
 
-        // Allow multiple devices per user. Update existing row for this specific device token when present.
+        // Multiple device rows per user are allowed; push notifications go only to the latest by lastSeen
+        // (see NotificationSendService). Update existing row for this specific device token when present.
         Optional<DeviceTokenEntity> existing = Optional.empty();
         if (StringUtils.hasText(fcmToken)) {
             existing = repo.findByFcmTokenAndUserId(fcmToken.trim(), userId);

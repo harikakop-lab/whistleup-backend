@@ -11,7 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -42,14 +42,19 @@ public class NotificationSendService {
                         .build()
         );
 
-        List<DeviceTokenEntity> devices =
-                deviceTokenRepository.findByUserIdAndActiveTrue(userId);
-        for (DeviceTokenEntity d : devices) {
-            if (StringUtils.hasText(d.getFcmToken()) && fcmPushService.isAvailable()) {
-                fcmPushService.send(d.getFcmToken(), title, body);
-            } else if (StringUtils.hasText(d.getExpoPushToken())) {
-                expoPushService.send(d.getExpoPushToken(), title, body);
-            }
+        Optional<DeviceTokenEntity> latest =
+                deviceTokenRepository.findFirstByUserIdAndActiveTrueOrderByLastSeenDescIdDesc(userId);
+        if (latest.isEmpty()) {
+            log.debug("[push] userId={}: no active device token; in-app notification saved, skip push", userId);
+            return;
+        }
+        DeviceTokenEntity d = latest.get();
+        if (StringUtils.hasText(d.getFcmToken()) && fcmPushService.isAvailable()) {
+            fcmPushService.send(d.getFcmToken(), title, body);
+        } else if (StringUtils.hasText(d.getExpoPushToken())) {
+            expoPushService.send(d.getExpoPushToken(), title, body);
+        } else {
+            log.debug("[push] userId={}: latest device row id={} has no FCM/Expo token; skip push", userId, d.getId());
         }
     }
 
