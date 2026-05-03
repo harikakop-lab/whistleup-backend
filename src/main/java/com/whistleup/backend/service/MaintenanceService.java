@@ -772,8 +772,8 @@ public class MaintenanceService {
                 notificationSendService.notifyUser(
                 Long.valueOf(row.getProfileId()),
                 "Maintenance",
-                "Please pay your maintenance amount of " + row.getAmount() + " rupees for
-                this month.",
+                "Please pay your maintenance amount of " + row.getAmount() + " rupees for " +
+                YearMonth.of(row.getMaintenanceYear(), row.getMaintenanceMonth()).toString() + ".",
                 IssueType.ALERT.name()
                 );
             } catch (Exception ignore) {
