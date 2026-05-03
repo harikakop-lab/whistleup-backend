@@ -167,6 +167,22 @@ public final class MaintenanceLedgerAggregation {
     }
 
     /**
+     * Denominator for “per flat slot” averages: persisted {@code billedUnitCount} on any row for the period,
+     * or legacy fallback to payer row count.
+     */
+    public static int resolveBilledUnitCount(List<Maintenance> rows) {
+        if (CollectionUtils.isEmpty(rows)) {
+            return 1;
+        }
+        for (Maintenance m : rows) {
+            if (m != null && m.getBilledUnitCount() != null && m.getBilledUnitCount() > 0) {
+                return m.getBilledUnitCount();
+            }
+        }
+        return Math.max(1, rows.size());
+    }
+
+    /**
      * Per-flat average land charge before water/appliances (uses {@link #rowFixedPortion}, which may reflect
      * full {@code amount} when it exceeds {@code fixedMaintenance}).
      */
@@ -175,7 +191,8 @@ public final class MaintenanceLedgerAggregation {
             return BigDecimal.ZERO;
         }
         BigDecimal sum = sumFixedPortions(rows);
-        return sum.divide(BigDecimal.valueOf(rows.size()), scale, mode);
+        int divisor = resolveBilledUnitCount(rows);
+        return sum.divide(BigDecimal.valueOf(divisor), scale, mode);
     }
 
     /**

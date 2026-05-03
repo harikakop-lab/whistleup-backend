@@ -173,4 +173,73 @@ class MaintenanceLedgerAggregationTest {
         assertThat(MaintenanceLedgerAggregation.sumAmounts(List.of(first, second)))
                 .isEqualByComparingTo(new BigDecimal("2000.00"));
     }
+
+    @Test
+    void resolveBilledUnitCount_usesPersistedBilledUnitCount() {
+        Maintenance m = Maintenance.builder()
+                .profileId("p1")
+                .maintenanceYear(2026)
+                .maintenanceMonth(4)
+                .amount(new BigDecimal("1000.00"))
+                .fixedMaintenance(new BigDecimal("1000.00"))
+                .waterAmount(BigDecimal.ZERO)
+                .appliancesAmount(BigDecimal.ZERO)
+                .dueDate(LocalDate.of(2026, 4, 30))
+                .status(MaintenanceStatus.PENDING)
+                .buildingId("1")
+                .billedUnitCount(10)
+                .build();
+
+        assertThat(MaintenanceLedgerAggregation.resolveBilledUnitCount(List.of(m))).isEqualTo(10);
+    }
+
+    @Test
+    void resolveBilledUnitCount_fallsBackToRowCountWhenColumnNull() {
+        Maintenance a = Maintenance.builder()
+                .profileId("p1")
+                .maintenanceYear(2026)
+                .maintenanceMonth(4)
+                .amount(new BigDecimal("1000.00"))
+                .fixedMaintenance(new BigDecimal("1000.00"))
+                .waterAmount(BigDecimal.ZERO)
+                .appliancesAmount(BigDecimal.ZERO)
+                .dueDate(LocalDate.of(2026, 4, 30))
+                .status(MaintenanceStatus.PENDING)
+                .buildingId("1")
+                .build();
+        Maintenance b = Maintenance.builder()
+                .profileId("p2")
+                .maintenanceYear(2026)
+                .maintenanceMonth(4)
+                .amount(new BigDecimal("1000.00"))
+                .fixedMaintenance(new BigDecimal("1000.00"))
+                .waterAmount(BigDecimal.ZERO)
+                .appliancesAmount(BigDecimal.ZERO)
+                .dueDate(LocalDate.of(2026, 4, 30))
+                .status(MaintenanceStatus.PENDING)
+                .buildingId("1")
+                .build();
+
+        assertThat(MaintenanceLedgerAggregation.resolveBilledUnitCount(List.of(a, b))).isEqualTo(2);
+    }
+
+    @Test
+    void resolveFixedPerFlat_dividesByBilledUnitCountNotPayerRowCount() {
+        Maintenance row = Maintenance.builder()
+                .profileId("p1")
+                .maintenanceYear(2026)
+                .maintenanceMonth(6)
+                .amount(new BigDecimal("4500.00"))
+                .fixedMaintenance(new BigDecimal("4500.00"))
+                .waterAmount(BigDecimal.ZERO)
+                .appliancesAmount(BigDecimal.ZERO)
+                .dueDate(LocalDate.of(2026, 6, 30))
+                .status(MaintenanceStatus.PENDING)
+                .buildingId("1")
+                .billedUnitCount(10)
+                .build();
+
+        assertThat(MaintenanceLedgerAggregation.resolveFixedPerFlat(List.of(row), 2, java.math.RoundingMode.HALF_UP))
+                .isEqualByComparingTo(new BigDecimal("450.00"));
+    }
 }

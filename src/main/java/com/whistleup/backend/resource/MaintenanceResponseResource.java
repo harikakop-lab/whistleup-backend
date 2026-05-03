@@ -40,4 +40,6 @@ public class MaintenanceResponseResource {
     private String paymentReference;
     private String paymentProofUrl;
     private boolean invoiceAvailable;
+    /** Denominator used when splitting shared expenses (flat slots); duplicated on all rows for the period. */
+    private Integer billedUnitCount;
 }

@@ -121,4 +121,11 @@ public class Maintenance {
     /** JSON array: [{"fileName":"...","contentType":"image/jpeg"}, ...] — duplicated on all rows for building/month. */
     @Column(name = "ledger_attachments_json", columnDefinition = "TEXT")
     private String ledgerAttachmentsJson;
+
+    /**
+     * Number of billed flat slots (denominator for shared splits) for this building/month; duplicated on all rows.
+     * Null for legacy rows — readers fall back to row count.
+     */
+    @Column(name = "billed_unit_count")
+    private Integer billedUnitCount;
 }

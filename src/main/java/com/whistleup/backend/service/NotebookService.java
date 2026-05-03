@@ -170,12 +170,13 @@ public class NotebookService {
 
         ledger.getItems().clear();
         if (!maintRows.isEmpty()) {
-            ledger.setTotalFlats(Math.max(1, maintRows.size()));
+            int billedUnits = Math.max(1, MaintenanceLedgerAggregation.resolveBilledUnitCount(maintRows));
+            ledger.setTotalFlats(billedUnits);
             ledger.setTotalAmount(scale(MaintenanceLedgerAggregation.canonicalTotalCollected(maintRows)).doubleValue());
             double perFlat = maintRows.isEmpty()
                     ? 0
                     : scale(MaintenanceLedgerAggregation.sumAmounts(maintRows))
-                    .divide(BigDecimal.valueOf(maintRows.size()), 2, RoundingMode.HALF_UP)
+                    .divide(BigDecimal.valueOf(billedUnits), 2, RoundingMode.HALF_UP)
                     .doubleValue();
             ledger.setPerFlatAmount(perFlat);
 
@@ -310,7 +311,7 @@ public class NotebookService {
         if (rows == null || rows.isEmpty()) {
             return;
         }
-        notebook.setResidentCount(rows.size());
+        notebook.setResidentCount(MaintenanceLedgerAggregation.resolveBilledUnitCount(rows));
         notebook.setWaterBillAmount(scale(MaintenanceLedgerAggregation.sumWater(rows)));
         notebook.setFixedMaintenance(scale(MaintenanceLedgerAggregation.resolveFixedPerFlat(rows, 2, RoundingMode.HALF_UP)));
     }
