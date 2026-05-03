@@ -33,11 +33,10 @@ public interface ProfileRepository extends JpaRepository<Profile, String>, JpaSp
 
     @Query("""
        select new com.whistleup.backend.controllers.ResidentsResponse(
-       f.resident.phone, f.resident.name, f.resident.flatNo)
+       f.resident.phone, f.resident.name, f.flatNumber)
        from FlatDetails f
        where f.building.buildingId = :buildingId
-         and f.resident is not null
-       order by f.resident.flatNo asc
+       order by f.flatNumber asc
        """)
     List<ResidentsResponse> getListOfResidentsByBuilding(Long buildingId);
 
